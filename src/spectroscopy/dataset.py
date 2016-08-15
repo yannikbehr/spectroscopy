@@ -6,7 +6,6 @@ class Dataset(object):
 
     def __init__(self, plugin):
         self._root = plugin
-        self._root.create_item('spectra/blub/counts', np.zeros((1, 2048)))
 
     @staticmethod
     def new(format, filename=None):
