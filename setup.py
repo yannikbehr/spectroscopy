@@ -19,6 +19,7 @@ setup(
       url="",
       license="GPL v3",
       package_dir={'':'src'},
+      install_requires = ['pyinotify'],
       packages=['spectroscopy', 'spectroscopy.flux', 'spectroscopy.doas',
                 'spectroscopy.plugins'],
       package_data={"spectroscopy.flux":["flyspec_config.cfg"]},
