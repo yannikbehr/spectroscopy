@@ -1,0 +1,147 @@
+### Datamodel for SpectroscoPy
+
+The following describes a datamodel for storing raw spectroscopy data,
+analysis results, and the corresponding processing flows. It was
+designed with the HDF5 file format in mind but it could also be
+realized using XML or SQL. The HDF5 format can be thought of as a
+directory structure contained in a single file, hence the following
+syntax. Comments always refer to the following elements. Every element
+is followed by its datatype, dimension, unit, and sometimes additional
+comments. Optional elements have to be present but can be left
+blank. ID stands for a unique identifier that is guaranteed to only
+occur once (using Python's uuid package). Data files can be merged,
+split, or extended. The general idea is that a file contains all the
+information required to reproduce the final flux measurements.
+
+#### Datamodel scheme
+
+
+                                             target
+                                            /
+                                           /
+                       retrieval -- spectra
+                      /                    \
+                     /                      \
+preferredFlux -- flux                        instrument
+                     \
+                      \
+                       plumevelocity
+
+
+# lookup table of IDs to avoid long searches; can be either stored as
+# part of the data or created dynamically when loading the file
+
+/IDs
+    /ID
+        /path
+
+# array of links pointing to preferred flux; if, for example, an
+# automatic flux measurement is updated by a subsequent manual
+# analysis the preferredFluxID would usually point to the manual
+# analysis
+
+/preferredFluxIDs: 1xMany, file can contain multiple days worth of data/flux calculations
+
+# datatype for spectra; every spectra section can contain multiple
+# scans; spectra sections can be extended; spectra can be deleted if
+# the corresponding spectra ID is not linked to; spectra from
+# different instruments are represented by different IDs; changing any
+# of the data fields results in a new ID; both scans and traverses can
+# be stored
+
+/spectra
+    /ID
+        /link to instrument ID: string
+        /link to target ID: string
+        /angle: float, 1xS, [degrees from horizontal]
+        /angle error: float, 1xS, [degrees from horizontal]
+        /bearing: float, 1x1, [degrees from grid north], optional
+        /bearing error: float, 1x1, [degrees from grid north], optional
+        /position: float, 1x3 or Sx3, [decimal longitude,decimal latitude,elevation in m above sea level]
+        /position error: float, 1x3 or Sx3, [decimal longitude,decimal latitude,elevation in m above sea level]
+        /counts: integer, SxW
+        /wavelengths: float, 1xW, [nm]
+        /time: float, 1xS, [ms], unix timestamp, t_n < t_n+1
+        /integration time: float, 1xS, [s]
+        /no of averages: integer, 1xS
+        /creation time: float, 1x1, [ms], unix timestamp, date of the spectra instance
+        /modification time: float, 1x1, [ms], unix timestamp, last modification time of the spectra instance
+        /type: enum, [0:dark,1:offset,2:measurement,3:background,4:other]
+        /user notes: string, optional
+
+# datatype for spectrometers; 
+
+/instruments
+    /ID
+        /ADC no of bits: integer, 1x1
+        /instrument type: string
+        /spectrometer ID: string
+        /description: string, optional
+
+# datatype for the plumevelocity assuming cartesian grids with uniform
+# grid point spacing; can either come from wind data or motion
+# tracking data
+
+/plumevelocity 
+    /ID
+        /vx: float, XxYxZxT, [m/s]
+        /vx error: float, XxYxZxT, [m/s]
+        /vy: float, XxYxZxT, [m/s]
+        /vy error: float, XxYxZxT, [m/s]
+        /vz: float, XxYxZxT, [m/s]
+        /vy error:float,  XxYxZxT, [m/s]
+        /position: float, 1x3, [decimal longitude,decimal latitude,elevation in m above sea level], grid origin or weather station location
+        /position error: float, 1x3, [decimal longitude,decimal latitude,elevation in m above sea level], grid origin or weather station location
+        /grid bearing: float, 1x1, [degrees from grid north of the x-axis] 
+        /grid increments: float, 1x3, [m], optional
+        /time: dim.: float, 1xT, unix timestamp, [ms]
+        /description: string, optional
+        /creation time: float, 1x1, unix timestamp, [ms]
+        /modification time: float, 1x1, unix timestamp, [ms]
+
+# datatype for the target plume
+
+/target
+    /ID
+        /position: float, 1x3, [decimal longitude,decimal latitude,elevation in m above sea level]
+        /description: string, optional
+    
+# datatype for retrievals; like spectra, retrievals can be extended
+# but only deleted if the retrieval ID is not linked to;
+
+/retrievals
+    /ID
+        /link to spectrum ID: string
+        /slice indices: integer, 1x2, start and end index of a slice of spectra
+        /retrieval type: string, e.g. FlySpec, DOAS, etc.
+        /gas species: string, e.g. SO2, BrO
+        /slant column amount: float, 1xS, [molec/(cm*cm)]
+        /slant column amount errors: float, 1xS, [molec/(cm*cm)]
+        /software name: string
+        /software version: string
+        /analyst name: string
+        /creation time: float, 1x1, [ms], unix timestamp, date of the retrieval
+        /modification time: float, 1x1, [ms], unix timestamp, date of the retrieval
+        /software specific settings: string, compressed json string describing the retrieval parameters (e.g. reference spectra, instrument line shape etc.)
+        /user notes: string, optional
+            
+
+# datatype for flux estimates; like spectra and retrievals, fluxes can
+# be extended but only deleted if the flux ID is not linked to; 
+
+/flux
+    /ID
+        /link to retrieval ID: string
+        /slice indices: integer, 1x2, start and end index of a slice of retrievals equivalent to n numbers of complete scans
+        /link to plumevelocity ID: string    
+        /flux: float, 1xT2, [kg/s]
+        /flux error: float, 1xT2, [kg/s]
+        /time: float, 1xT2, [ms], unix timestamp
+        /software name: string
+        /software version: string
+        /analyst name: string
+        /creation time: float, 1x1, [ms], unix timestamp, date of the retrieval
+        /modification time: float, 1x1, [ms], unix timestamp, date of the retrieval
+        /software specific settings: string, compressed json string describing the retrieval parameters (e.g. reference spectra, instrument line shape etc.)
+        /user notes: string, optional
+    
