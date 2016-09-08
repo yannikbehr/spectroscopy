@@ -2,7 +2,6 @@ import inspect
 import os
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import binned_statistic
 
@@ -52,10 +51,23 @@ class FlySpecPluginTestCase(unittest.TestCase):
                             165., 164., 165., 163., 163., 164., 163., 165.,
                             164., 164., 164., 161.])
         np.testing.assert_array_almost_equal(maxima, bins[ids], 2)
-        #plt.contourf(range(nretrieval),bins[1:],m.T,100)
-        #plt.contour(range(nretrieval),bins[1:],m.T,100)
-        #plt.ylim(140,175)
-        #plt.show()
+        
+        d1 = Dataset.open(os.path.join(self.data_dir,
+                                      '2016_06_11_0830_TOFP04.txt'),
+                         format='FLYSPEC')
+        nretrieval = len(d1.retrievals)
+        m = np.zeros((nretrieval,bins.size-1))
+        for i,_r in enumerate(d1.retrievals):
+            _s = ResourceIdentifier(_r.spectra_id).get_referred_object()
+            _angle = _s.angle[_r.slice]
+            _so2 = _r.sca
+            _so2_binned = binned_statistic(_angle, _so2, 'mean', bins)
+            m[i,:] = _so2_binned.statistic
+        ids = np.argmax(np.ma.masked_invalid(m),axis=1)
+        maxima = np.array([147., 25., 27., 86., 29., 31., 27., 27., 28., 137.,
+                           34., 34.])
+        np.testing.assert_array_almost_equal(maxima, bins[ids], 2)
+
 
     def test_split_by_scan(self):
         f = FlySpecPlugin()
