@@ -456,22 +456,22 @@ class Dataset(__Dataset):
     to the final gas flux results.
 
     :type preferredFluxIDs: list
-    :param preferredFluxIDs: ID of the best/final flux estimate. As a dataset
+    :param preferredFluxIDs: IDs of the best/final flux estimate. As a dataset
         can contain analyses from different targets there can be more than one
         preferred flux estimate.
     :type spectra: list
-    :param spectra: IDs of all spectra that are part of the dataset.
+    :param spectra: List of all spectra that are part of the dataset.
     :type instruments: list
-    :param instruments: IDs of all instruments that are part of the dataset.
+    :param instruments: List of all instruments that are part of the dataset.
     :type retrievals: list
-    :param retrievals: IDs of all retrievals that are part of the dataset.
+    :param retrievals: List of all retrievals that are part of the dataset.
     :type plumevelocities: list
-    :param plumevelocities: IDs of all plume velocities that are part of the
+    :param plumevelocities: List of all plume velocities that are part of the
         dataset.
     :type targets: list
-    :param targets: IDs of all target plumes that are part of the dataset.
+    :param targets: List of all target plumes that are part of the dataset.
     :type flux: list
-    :param flux: IDs of all flux estimates that are part of the dataset.
+    :param flux: List of all flux estimates that are part of the dataset.
     """
 
     @staticmethod
