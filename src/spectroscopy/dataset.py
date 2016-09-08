@@ -338,7 +338,7 @@ class ResourceIdentifier(object):
         self._uuid = str(uuid4())
 
 
-def _class_factory(class_name, class_attributes=[]):
+def _class_factory(class_name, class_attributes=[],class_contains=[]):
     """
     Class factory to unify the creation of all the types in the datamodel.
     """
@@ -348,14 +348,23 @@ def _class_factory(class_name, class_attributes=[]):
         """
         # Every element has to have an ID and a reference to the plugin
         # root node
-        _properties = [('resource_id', ResourceIdentifier),
-                       ('_root', DatasetPluginBase)]
+        _properties = []
         for item in class_attributes:
             _properties.append((item[0], item[1]))
         _property_keys = [_i[0] for _i in _properties]
         _property_dict = {}
         for key, value in _properties:
             _property_dict[key] = value
+        # Dynamic class attributes that are not set through the plugin 
+        # interface
+        _attributes = [('resource_id', ResourceIdentifier),
+                       ('_root', DatasetPluginBase)]
+        for item in class_contains:  
+            _attributes.append((item[0],item[1]))
+        _attribute_keys = [_i[0] for _i in _attributes]
+        _attribute_dict = {}
+        for key, value in _attributes:
+            _attribute_dict[key] = value
 
         def __init__(self, plugin_root, *args, **kwargs):
             # Set the plugin entrance point
@@ -367,21 +376,34 @@ def _class_factory(class_name, class_attributes=[]):
             setattr(self, 'resource_id', value)
             # Set all property values to None or the kwarg value.
             for key, _ in self._properties:
-                if key in ["resource_id", "_root"]:
+                value = kwargs.get(key, None)
+                setattr(self, key, value)
+            for key, _ in self._attributes:
+                if key in ['_root', 'resource_id']:
                     continue
                 value = kwargs.get(key, None)
                 setattr(self, key, value)
+            
 
         def __setattr__(self, name, value):
-            # Pass to the parent method if not a custom property.
-            if name not in self._property_dict.keys():
-                raise Exception("%s is not a property of class %s" % \
-                                (name, type(self).__name__))
-            attrib_type = self._property_dict[name]
+            # Raise an exception if not a property or attribute
+            try:
+                attrib_type = self._property_dict[name]
+            except KeyError:
+                try:
+                    attrib_type = self._attribute_dict[name]
+                except KeyError:
+                    raise Exception("%s is not a property or attribute of class %s" % \
+                                    (name, type(self).__name__))
             # If the value is None or already the correct type just set it.
-            if (value is not None) and (type(value) is not attrib_type):
-                raise Exception("%s and %s are incompatible types." % \
-                                (type(value), attrib_type))
+            if name == '_root':
+                if (value is not None) and (not isinstance(value,attrib_type)): 
+                    raise Exception("%s and %s are incompatible types." % \
+                                    (type(value), attrib_type))
+            else:
+                if (value is not None) and (type(value) is not attrib_type):
+                    raise Exception("%s and %s are incompatible types." % \
+                                    (type(value), attrib_type))
             if value is None:
                 if attrib_type == list:
                     value = []
@@ -390,7 +412,7 @@ def _class_factory(class_name, class_attributes=[]):
             if name == "resource_id":
                 self.__dict__[name] = value
                 self.resource_id.set_referred_object(self)
-            elif name == "_root":
+            elif name in self._attribute_keys:
                 self.__dict__[name] = value
             else:
                 # Construct path as required by the plugin interface
@@ -403,7 +425,7 @@ def _class_factory(class_name, class_attributes=[]):
                     self._root.create_item(xpath, value)
 
         def __getattr__(self, name):
-            if name in ["resource_id", "_root"]:
+            if name in self._attribute_keys:
                 return self.__dict__[name]
             # Construct path as required by the plugin interface
             xpath = "{}/{}/{}".format(string.lower(type(self).__name__),
@@ -418,13 +440,13 @@ def _class_factory(class_name, class_attributes=[]):
 
 
 __Dataset = _class_factory('__Dataset',
-                           class_attributes=[('preferredFluxIDs', list),
-                                             ('spectra', list),
-                                             ('instruments', list),
-                                             ('retrievals', list),
-                                             ('plumevelocities', list),
-                                             ('targets', list),
-                                             ('fluxes', list)])
+                           class_contains=[('preferredFluxIDs', list),
+                                           ('spectra', list),
+                                           ('instruments', list),
+                                           ('retrievals', list),
+                                           ('plumevelocities', list),
+                                           ('targets', list),
+                                           ('fluxes', list)])
 
 
 class Dataset(__Dataset):
@@ -455,9 +477,9 @@ class Dataset(__Dataset):
     @staticmethod
     def new(format, filename=None):
         plugins = get_registered_plugins()
-        if format not in plugins:
-            raise Exception('Format %s is not supported.' % format)
-        _p = plugins[format]()
+        if format.lower() not in plugins:
+            raise Exception('Format %s is not supported.' % format.lower())
+        _p = plugins[format.lower()]()
         _p.new(filename)
         return Dataset(_p)
 
@@ -471,8 +493,14 @@ class Dataset(__Dataset):
     def __setitem__(self, path, value):
         return self._root.set_item(path, value)
 
-    def open(self, filename, format):
-        pass
+    @staticmethod
+    def open(filename, format):
+        plugins = get_registered_plugins()
+        if format.lower() not in plugins:
+            raise Exception('Format %s is not supported.' % format.lower())
+        _p = plugins[format.lower()]()
+        return _p.open(filename)
+        
 
 
 __Spectra = _class_factory('__Spectra',
@@ -667,7 +695,7 @@ class Target(__Target):
 
 __Retrievals = _class_factory('__Retrievals',
                               class_attributes=[('spectra_id', str),
-                                                ('slice', list),
+                                                ('slice', slice),
                                                 ('type', str),
                                                 ('gas_species', str),
                                                 ('sca', np.ndarray),
@@ -691,7 +719,7 @@ class Retrievals(__Retrievals):
     :type spectra_id: str
     :param spectra_id: ID of the :class:`Spectra` instance the retrievals are
         based on.
-    :type slice: list
+    :type slice: slice
     :param slice: Start and end index of a slice of spectra used to compute the
         retrieval.
     :type type: str
@@ -724,7 +752,7 @@ class Retrievals(__Retrievals):
 
 __Flux = _class_factory('__Flux',
                         class_attributes=[('retrieval_id', str),
-                                          ('slice', list),
+                                          ('slice', slice),
                                           ('plumevelocity_id', str),
                                           ('time', np.ndarray),
                                           ('flux', np.ndarray),
@@ -748,7 +776,7 @@ class Flux(__Flux):
     :type retrieval_id: str
     :param retrieval_id: ID of the :class:`Retrievals` instance the flux
         estimates are based on.
-    :type slice: list
+    :type slice: slice
     :param slice: Start and end index of a slice of retrievals used to compute
         the flux, which is equivalent to n numbers of complete scans.
     :type plumevelocity_id: str
