@@ -32,6 +32,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         id_max = np.argmax(r.sca)
         np.testing.assert_almost_equal(angle[id_max], 168.04, 2)
         self.assertEqual(len(d.retrievals), 36)
+        np.testing.assert_array_almost_equal(s1.position[0,:],
+                                             [-67.8047,-23.3565,3927.],2)
         
         # dicretize all retrievals onto a grid to show a daily plot
         bins = np.arange(0,180,1.0)

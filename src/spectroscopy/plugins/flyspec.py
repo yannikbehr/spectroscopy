@@ -15,9 +15,21 @@ class FlySpecPlugin(DatasetPluginBase):
     def open(self, filename, format=None):
         # load data and convert southern hemisphere to negative 
         # latitudes and western hemisphere to negative longitudes
+        def todd(x):
+            """ 
+            Convert degrees and decimal minutes to decimal degrees.
+            """
+            idx = x.find('.')
+            minutes = float(x[idx-2:])/60.
+            deg = float(x[:idx-2])
+            return deg+minutes
+        
         data = np.loadtxt(filename,usecols=range(0,21),
-                          converters={9:lambda x: -1.0 if x.lower() == 's' else 1.0,
-                                      11:lambda x: -1.0 if x.lower() == 'w' else 1.0})
+                          converters={
+                              8:todd,
+                              9:lambda x: -1.0 if x.lower() == 's' else 1.0,
+                              10:todd,
+                              11:lambda x: -1.0 if x.lower() == 'w' else 1.0})
         int_times = np.zeros(data[:, 1:7].shape, dtype='int')
         int_times[:, :6] = data[:, 1:7]
         int_times[:, 5] = (data[:, 6] - int_times[:, 5]) * 1000  # convert decimal seconds to milliseconds
