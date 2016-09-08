@@ -30,16 +30,16 @@ class FlySpecPlugin(DatasetPluginBase):
                               9:lambda x: -1.0 if x.lower() == 's' else 1.0,
                               10:todd,
                               11:lambda x: -1.0 if x.lower() == 'w' else 1.0})
-        int_times = np.zeros(data[:, 1:7].shape, dtype='int')
+        int_times = np.zeros(data[:, :7].shape, dtype='int')
         int_times[:, :6] = data[:, 1:7]
-        int_times[:, 5] = (data[:, 6] - int_times[:, 5]) * 1000  # convert decimal seconds to milliseconds
+        int_times[:, 6] = (data[:, 6] - int_times[:, 5]) * 1000  # convert decimal seconds to milliseconds
         times = [datetime.datetime(*int_times[i, :]) for i in range(int_times.shape[0])]
         unix_times = [calendar.timegm(i.utctimetuple()) for i in times]
         latitude = data[:,8] * data[:,9]
         longitude = data[:,10] * data[:,11]
         elevation = data[:,12]
-        angles = data[:,17]
         so2 = data[:,16]
+        angles = data[:,17]
         s = Spectra(self,angle=np.zeros(angles.shape),
                     position=np.zeros((latitude.size,3)),
                     time=np.zeros(angles.shape))
