@@ -1,12 +1,15 @@
 import collections
 from copy import deepcopy
+import inspect
 import string
 from uuid import uuid4
+import warnings
 import weakref
 
 import numpy as np
 
 from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
+
 
 class ResourceIdentifier(object):
     """
@@ -57,7 +60,7 @@ class ResourceIdentifier(object):
     >>> import sys
     >>> ref_count = sys.getrefcount(a)
     >>> res_id = ResourceIdentifier(referred_object=a)
-    >>> # The reference does not changed the reference count of the object.
+    >>> # The reference does not change the reference count of the object.
     >>> print(ref_count == sys.getrefcount(a))
     True
     >>> # It actually is the same object.
@@ -127,16 +130,16 @@ class ResourceIdentifier(object):
     # Use an additional dictionary to track all resource ids.
     __resource_id_tracker = collections.defaultdict(int)
 
-    def __init__(self, id=None, prefix=None,
+    def __init__(self, oid=None, prefix=None,
                  referred_object=None):
         # Create a resource id if None is given and possibly use a prefix.
-        if id is None:
+        if oid is None:
             self.fixed = False
             self._prefix = prefix
             self._uuid = str(uuid4())
         else:
             self.fixed = True
-            self.id = id
+            self.id = oid
         # Append the referred object in case one is given to the class level
         # reference dictionary.
         if referred_object is not None:
@@ -228,11 +231,11 @@ class ResourceIdentifier(object):
         if self.fixed:
             return self.__dict__.get("id")
         else:
-            id = self.prefix
-            if id is not None and not id.endswith("_"):
-                id += "_"
-                id += self.uuid
-                return id
+            oid = self.prefix
+            if oid is not None and not oid.endswith("_"):
+                oid += "_"
+                oid += self.uuid
+                return oid
             return self.uuid
 
     @id.deleter
@@ -338,7 +341,7 @@ class ResourceIdentifier(object):
         self._uuid = str(uuid4())
 
 
-def _class_factory(class_name, class_attributes=[],class_contains=[]):
+def _class_factory(class_name, class_attributes=[], class_contains=[]):
     """
     Class factory to unify the creation of all the types in the datamodel.
     """
@@ -355,12 +358,12 @@ def _class_factory(class_name, class_attributes=[],class_contains=[]):
         _property_dict = {}
         for key, value in _properties:
             _property_dict[key] = value
-        # Dynamic class attributes that are not set through the plugin 
+        # Dynamic class attributes that are not set through the plugin
         # interface
         _attributes = [('resource_id', ResourceIdentifier),
                        ('_root', DatasetPluginBase)]
-        for item in class_contains:  
-            _attributes.append((item[0],item[1]))
+        for item in class_contains:
+            _attributes.append((item[0], item[1]))
         _attribute_keys = [_i[0] for _i in _attributes]
         _attribute_dict = {}
         for key, value in _attributes:
@@ -383,7 +386,6 @@ def _class_factory(class_name, class_attributes=[],class_contains=[]):
                     continue
                 value = kwargs.get(key, None)
                 setattr(self, key, value)
-            
 
         def __setattr__(self, name, value):
             # Raise an exception if not a property or attribute
@@ -393,16 +395,18 @@ def _class_factory(class_name, class_attributes=[],class_contains=[]):
                 try:
                     attrib_type = self._attribute_dict[name]
                 except KeyError:
-                    raise Exception("%s is not a property or attribute of class %s" % \
-                                    (name, type(self).__name__))
+                    raise Exception(
+                        "%s is not a property or attribute of class %s" %
+                        (name, type(self).__name__))
             # If the value is None or already the correct type just set it.
             if name == '_root':
-                if (value is not None) and (not isinstance(value,attrib_type)): 
-                    raise Exception("%s and %s are incompatible types." % \
+                if (value is not None) and \
+                        (not isinstance(value, attrib_type)):
+                    raise Exception("%s and %s are incompatible types." %
                                     (type(value), attrib_type))
             else:
                 if (value is not None) and (type(value) is not attrib_type):
-                    raise Exception("%s and %s are incompatible types." % \
+                    raise Exception("%s and %s are incompatible types." %
                                     (type(value), attrib_type))
             if value is None:
                 if attrib_type == list:
@@ -500,27 +504,27 @@ class Dataset(__Dataset):
             raise Exception('Format %s is not supported.' % format.lower())
         _p = plugins[format.lower()]()
         return _p.open(filename)
-        
 
 
 __Spectra = _class_factory('__Spectra',
-                         class_attributes=[('instrument_id', ResourceIdentifier),
-                                           ('target_id', ResourceIdentifier),
-                                           ('angle', np.ndarray),
-                                           ('angle_error', np.ndarray),
-                                           ('bearing', float),
-                                           ('bearing_error', float),
-                                           ('position', np.ndarray),
-                                           ('position_error', np.ndarray),
-                                           ('counts', np.ndarray),
-                                           ('wavelengths', np.ndarray),
-                                           ('time', np.ndarray),
-                                           ('integration_time', np.ndarray),
-                                           ('no_averages', np.ndarray),
-                                           ('creation_time', float),
-                                           ('modification_time', float),
-                                           ('type', int),
-                                           ('user_notes', str)])
+                           class_attributes=[('instrument_id',
+                                              ResourceIdentifier),
+                                             ('target_id', ResourceIdentifier),
+                                             ('angle', np.ndarray),
+                                             ('angle_error', np.ndarray),
+                                             ('bearing', float),
+                                             ('bearing_error', float),
+                                             ('position', np.ndarray),
+                                             ('position_error', np.ndarray),
+                                             ('counts', np.ndarray),
+                                             ('wavelengths', np.ndarray),
+                                             ('time', np.ndarray),
+                                             ('integration_time', np.ndarray),
+                                             ('no_averages', np.ndarray),
+                                             ('creation_time', float),
+                                             ('modification_time', float),
+                                             ('type', int),
+                                             ('user_notes', str)])
 
 
 class Spectra(__Spectra):
@@ -541,8 +545,8 @@ class Spectra(__Spectra):
     :type angle: :class:`numpy.ndarray`
     :param angle: Angles corresponding to the spectra in a scan in degrees from
         the horizontal. The number of angles has to be equal to the number of
-        recorded spectra. For a transect all angles would typically be the same,
-        e.g. 90.0 if the spectrometer was pointing up.
+        recorded spectra. For a transect all angles would typically be the
+        same, e.g. 90.0 if the spectrometer was pointing up.
     :type angle_error: :class:`numpy.ndarray`
     :param angle_error: Uncertainty for every angle.
     :type bearing: float
@@ -551,15 +555,15 @@ class Spectra(__Spectra):
     :param bearing_error: Bearing uncertainty.
     :type position: :class:`numpy.ndarray`
     :param position: The position of the spectrometer in decimal longitude,
-        latitude, and elevation in m above sea level. For a scan this would be a
-        1x3 array, for a transect it would be an Sx3 matrix, where S is the number
-        of recorded spectra.
+        latitude, and elevation in m above sea level. For a scan this would be
+        a 1x3 array, for a transect it would be an Sx3 matrix, where S is the
+        number of recorded spectra.
     :type position_error: :class:`numpy.ndarray`
     :param position_error: Position uncertainty.
     :type counts: :class:`numpy.ndarray`
     :param counts: The raw spectra as returned from the spectrometer. It is a
-        matrix of dimension S x W where S is the number of spectra and W the number
-        of wavelengths determined by the spectrometer.
+        matrix of dimension S x W where S is the number of spectra and W the
+        number of wavelengths determined by the spectrometer.
     :type wavelengths: :class:`numpy.ndarray`
     :param wavelengths: A 1 x W array containing the wavelengths for the
         spectra.
@@ -586,7 +590,8 @@ class Spectra(__Spectra):
 __Instrument = _class_factory('__Instrument',
                               class_attributes=[('no_bits', int),
                                                 ('type', str),
-                                                ('spectrometer_ID', str),
+                                                ('spectrometer_ID',
+                                                 ResourceIdentifier),
                                                 ('description', str)])
 
 
@@ -601,8 +606,8 @@ class Instrument(__Instrument):
     :type spectrometer_ID: str
     :param spectrometer_ID: The spectrometer's ID as given by the manufacturer.
     :type description: str, optional
-    :param description: Any additional information on the instrument that may be
-        relevant.
+    :param description: Any additional information on the instrument that may
+        be relevant.
     """
 
 
@@ -614,13 +619,16 @@ __Plumevelocity = _class_factory('__Plumevelocity',
                                                    ('vz', np.ndarray),
                                                    ('vz_error', np.ndarray),
                                                    ('position', np.ndarray),
-                                                   ('position_error', np.ndarray),
+                                                   ('position_error',
+                                                    np.ndarray),
                                                    ('grid_bearing', float),
-                                                   ('grid_increments', np.ndarray),
+                                                   ('grid_increments',
+                                                    np.ndarray),
                                                    ('time', np.ndarray),
                                                    ('description', str),
                                                    ('creation_time', float),
-                                                   ('modification_time', float)])
+                                                   ('modification_time',
+                                                    float)])
 
 
 class Plumevelocity(__Plumevelocity):
@@ -630,11 +638,11 @@ class Plumevelocity(__Plumevelocity):
     weather stations).
 
     It can store anything from values at a particular point to 4-dimensional
-    models of wind speed or plume velocity. Grids are assumed to be right-handed
-    Cartesian coordinate systems with uniform grid point spacing along any
-    direction. In the following X, Y, and Z are assumed to be the spatial
-    dimensions of the grid and T is the number of time steps. For a point
-    values X, Y, and Z would be equal to 1.
+    models of wind speed or plume velocity. Grids are assumed to be
+    right-handed Cartesian coordinate systems with uniform grid point spacing
+    along any direction. In the following X, Y, and Z are assumed to be the
+    spatial dimensions of the grid and T is the number of time steps. For a
+    point values X, Y, and Z would be equal to 1.
 
     :type vx: :class:`numpy.ndarray`
     :param vx: x-component of the wind speed or plume velocity vector in m/s.
@@ -658,7 +666,8 @@ class Plumevelocity(__Plumevelocity):
     :param position_error: Uncertainty in grid origin or weather station
         position.
     :type grid_bearing: float
-    :param grid_bearing: Angle of the X-axis from grid north in decimal degrees.
+    :param grid_bearing: Angle of the X-axis from grid north in decimal
+        degrees.
     :type grid_increments: :class:`numpy.ndarray`, optional
     :param grid_increments: Grid increments in meters along the X-, Y-, and
         Z-component. This parameter is only required if grid values are used.
@@ -676,8 +685,8 @@ class Plumevelocity(__Plumevelocity):
 
 
 __Target = _class_factory('__Target',
-                              class_attributes=[('position', np.ndarray),
-                                                ('description', str)])
+                          class_attributes=[('position', np.ndarray),
+                                            ('description', str)])
 
 
 class Target(__Target):
@@ -694,7 +703,8 @@ class Target(__Target):
 
 
 __Retrievals = _class_factory('__Retrievals',
-                              class_attributes=[('spectra_id', str),
+                              class_attributes=[('spectra_id',
+                                                 ResourceIdentifier),
                                                 ('slice', slice),
                                                 ('type', str),
                                                 ('gas_species', str),
@@ -734,7 +744,8 @@ class Retrievals(__Retrievals):
     :type software_name: str
     :param software_name: Name of the software used to compute the retrievals.
     :type software_version: str
-    :param software_version: Version of the software used to compute the retrievals.
+    :param software_version: Version of the software used to compute the
+        retrievals.
     :type software_settings: str
     :param software_settings: A compressed json string describing the retrieval
         parameters, e.g. reference spectra, instrument line shape, etc.
@@ -811,4 +822,3 @@ class Flux(__Flux):
 if __name__ == '__main__':
     import doctest
     doctest.testmod(exclude_empty=True)
-
