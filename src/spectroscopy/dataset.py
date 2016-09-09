@@ -381,9 +381,7 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
             for key, _ in self._properties:
                 value = kwargs.get(key, None)
                 setattr(self, key, value)
-            for key, _ in self._attributes:
-                if key in ['_root', 'resource_id']:
-                    continue
+            for key, _ in self._attributes[2:]:
                 value = kwargs.get(key, None)
                 setattr(self, key, value)
 
@@ -505,6 +503,23 @@ class Dataset(__Dataset):
         _p = plugins[format.lower()]()
         return _p.open(filename)
 
+    def __add__(self, other):
+        if not isinstance(other, Dataset):
+            raise TypeError
+        d = {}
+        for _a in self._attribute_keys[2:]:
+            _l1 = getattr(self, _a)
+            _l2 = getattr(other, _a)
+            d[_a] = _l1 + _l2
+        return self.__class__(self._root, **d)
+
+    def __iadd__(self, other):
+        if not isinstance(other, Dataset):
+            raise TypeError
+        for _a in self._attribute_keys[2:]:
+            _l2 = getattr(other, _a)
+            setattr(self, _a, getattr(self, _a) + _l2)
+        return self
 
 __Spectra = _class_factory('__Spectra',
                            class_attributes=[('instrument_id',
