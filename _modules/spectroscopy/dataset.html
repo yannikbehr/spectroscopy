@@ -1,0 +1,1000 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>spectroscopy.dataset &#8212; SpectroscoPy 0.1.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="SpectroscoPy 0.1.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SpectroscoPy 0.1.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for spectroscopy.dataset</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">weakref</span>
+
+<span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">tz</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="k">import</span> <span class="n">Normalize</span><span class="p">,</span> <span class="n">LogNorm</span>
+<span class="kn">from</span> <span class="nn">matplotlib.pyplot</span> <span class="k">import</span> <span class="n">cm</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="k">import</span> <span class="n">binned_statistic</span>
+
+<span class="kn">from</span> <span class="nn">spectroscopy.plugins</span> <span class="k">import</span> <span class="n">get_registered_plugins</span><span class="p">,</span> <span class="n">DatasetPluginBase</span>
+
+
+<div class="viewcode-block" id="ResourceIdentifier"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.ResourceIdentifier">[docs]</a><span class="k">class</span> <span class="nc">ResourceIdentifier</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Unique identifier of any resource so it can be referred to.</span>
+
+<span class="sd">    All elements of a Dataset instance have a unique id that other elements</span>
+<span class="sd">    use to refer to it. This is called a ResourceIdentifier.</span>
+
+<span class="sd">    In this class it can be any hashable object, e.g. most immutable objects</span>
+<span class="sd">    like numbers and strings.</span>
+
+<span class="sd">    :type id: str, optional</span>
+<span class="sd">    :param id: A unique identifier of the element it refers to. It is</span>
+<span class="sd">        not verified, that it actually is unique. The user has to take care of</span>
+<span class="sd">        that. If no resource_id is given, uuid.uuid4() will be used to</span>
+<span class="sd">        create one which assures uniqueness within one Python run.</span>
+<span class="sd">        If no fixed id is provided, the ID will be built from prefix</span>
+<span class="sd">        and a random uuid hash. The random hash part can be regenerated by the</span>
+<span class="sd">        referred object automatically if it gets changed.</span>
+<span class="sd">    :type prefix: str, optional</span>
+<span class="sd">    :param prefix: An optional identifier that will be put in front of any</span>
+<span class="sd">        automatically created resource id. The prefix will only have an effect</span>
+<span class="sd">        if `id` is not specified (for a fixed ID string). Makes automatically</span>
+<span class="sd">        generated resource ids more reasonable.</span>
+<span class="sd">    :type referred_object: Python object, optional</span>
+<span class="sd">    :param referred_object: The object this instance refers to. All instances</span>
+<span class="sd">        created with the same resource_id will be able to access the object as</span>
+<span class="sd">        long as at least one instance actual has a reference to it.</span>
+
+<span class="sd">    .. rubric:: General Usage</span>
+
+<span class="sd">    &gt;&gt;&gt; ResourceIdentifier(&#39;2012-04-11--385392&#39;)</span>
+<span class="sd">    ResourceIdentifier(id=&quot;2012-04-11--385392&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; # If &#39;id&#39; is not specified it will be generated automatically.</span>
+<span class="sd">    &gt;&gt;&gt; ResourceIdentifier()  # doctest: +ELLIPSIS</span>
+<span class="sd">    ResourceIdentifier(id=&quot;...&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; # Supplying a prefix will simply prefix the automatically generated ID</span>
+<span class="sd">    &gt;&gt;&gt; ResourceIdentifier(prefix=&#39;peru09&#39;)  # doctest: +ELLIPSIS</span>
+<span class="sd">    ResourceIdentifier(id=&quot;peru09_...&quot;)</span>
+
+<span class="sd">    ResourceIdentifiers can, and oftentimes should, carry a reference to the</span>
+<span class="sd">    object they refer to. This is a weak reference which means that if the</span>
+<span class="sd">    object gets deleted or runs out of scope, e.g. gets garbage collected, the</span>
+<span class="sd">    reference will cease to exist.</span>
+
+<span class="sd">    &gt;&gt;&gt; class A(object): pass</span>
+<span class="sd">    &gt;&gt;&gt; a = A()</span>
+<span class="sd">    &gt;&gt;&gt; import sys</span>
+<span class="sd">    &gt;&gt;&gt; ref_count = sys.getrefcount(a)</span>
+<span class="sd">    &gt;&gt;&gt; res_id = ResourceIdentifier(referred_object=a)</span>
+<span class="sd">    &gt;&gt;&gt; # The reference does not change the reference count of the object.</span>
+<span class="sd">    &gt;&gt;&gt; print(ref_count == sys.getrefcount(a))</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; # It actually is the same object.</span>
+<span class="sd">    &gt;&gt;&gt; print(a is res_id.get_referred_object())</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; # Deleting it, or letting the garbage collector handle the object will</span>
+<span class="sd">    &gt;&gt;&gt; # invalidate the reference.</span>
+<span class="sd">    &gt;&gt;&gt; del a</span>
+<span class="sd">    &gt;&gt;&gt; print(res_id.get_referred_object())</span>
+<span class="sd">    None</span>
+
+<span class="sd">    The most powerful ability (and reason why one would want to use a resource</span>
+<span class="sd">    identifier class in the first place) is that once a ResourceIdentifier with</span>
+<span class="sd">    an attached referred object has been created, any other ResourceIdentifier</span>
+<span class="sd">    instances with the same ID can retrieve that object. This works</span>
+<span class="sd">    across all ResourceIdentifiers that have been instantiated within one</span>
+<span class="sd">    Python run.</span>
+<span class="sd">    This enables, e.g. the resource references between the different elements</span>
+<span class="sd">    to work in a rather natural way.</span>
+
+<span class="sd">    &gt;&gt;&gt; a = A()</span>
+<span class="sd">    &gt;&gt;&gt; obj_id = id(a)</span>
+<span class="sd">    &gt;&gt;&gt; res_id = &quot;someid&quot;</span>
+<span class="sd">    &gt;&gt;&gt; ref_a = ResourceIdentifier(res_id)</span>
+<span class="sd">    &gt;&gt;&gt; # The object is refers to cannot be found yet. Because no instance that</span>
+<span class="sd">    &gt;&gt;&gt; # an attached object has been created so far.</span>
+<span class="sd">    &gt;&gt;&gt; print(ref_a.get_referred_object())</span>
+<span class="sd">    None</span>
+<span class="sd">    &gt;&gt;&gt; # This instance has an attached object.</span>
+<span class="sd">    &gt;&gt;&gt; ref_b = ResourceIdentifier(res_id, referred_object=a)</span>
+<span class="sd">    &gt;&gt;&gt; ref_c = ResourceIdentifier(res_id)</span>
+<span class="sd">    &gt;&gt;&gt; # All ResourceIdentifiers will refer to the same object.</span>
+<span class="sd">    &gt;&gt;&gt; assert(id(ref_a.get_referred_object()) == obj_id)</span>
+<span class="sd">    &gt;&gt;&gt; assert(id(ref_b.get_referred_object()) == obj_id)</span>
+<span class="sd">    &gt;&gt;&gt; assert(id(ref_c.get_referred_object()) == obj_id)</span>
+
+
+<span class="sd">    ResourceIdentifiers are considered identical if the IDs are</span>
+<span class="sd">    the same.</span>
+
+<span class="sd">    &gt;&gt;&gt; # Create two different resource identifiers.</span>
+<span class="sd">    &gt;&gt;&gt; res_id_1 = ResourceIdentifier()</span>
+<span class="sd">    &gt;&gt;&gt; res_id_2 = ResourceIdentifier()</span>
+<span class="sd">    &gt;&gt;&gt; assert(res_id_1 != res_id_2)</span>
+<span class="sd">    &gt;&gt;&gt; # Equalize the IDs. NEVER do this. This is just an example.</span>
+<span class="sd">    &gt;&gt;&gt; res_id_2.id = res_id_1.id = &quot;smi:local/abcde&quot;</span>
+<span class="sd">    &gt;&gt;&gt; assert(res_id_1 == res_id_2)</span>
+
+<span class="sd">    ResourceIdentifier instances can be used as dictionary keys.</span>
+
+<span class="sd">    &gt;&gt;&gt; dictionary = {}</span>
+<span class="sd">    &gt;&gt;&gt; res_id = ResourceIdentifier(id=&quot;foo&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; dictionary[res_id] = &quot;bar1&quot;</span>
+<span class="sd">    &gt;&gt;&gt; # The same ID can still be used as a key.</span>
+<span class="sd">    &gt;&gt;&gt; dictionary[&quot;foo&quot;] = &quot;bar2&quot;</span>
+<span class="sd">    &gt;&gt;&gt; items = sorted(dictionary.items(), key=lambda kv: kv[1])</span>
+<span class="sd">    &gt;&gt;&gt; for k, v in items:  # doctest: +ELLIPSIS</span>
+<span class="sd">    ...     print repr(k), v</span>
+<span class="sd">    ResourceIdentifier(id=&quot;foo&quot;) bar1</span>
+<span class="sd">    ...&#39;foo&#39; bar2</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Class (not instance) attribute that keeps track of all resource</span>
+    <span class="c1"># identifier throughout one Python run. Will only store weak references and</span>
+    <span class="c1"># therefore does not interfere with the garbage collection.</span>
+    <span class="c1"># DO NOT CHANGE THIS FROM OUTSIDE THE CLASS.</span>
+    <span class="n">__resource_id_weak_dict</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">WeakValueDictionary</span><span class="p">()</span>
+    <span class="c1"># Use an additional dictionary to track all resource ids.</span>
+    <span class="n">__resource_id_tracker</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">referred_object</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Create a resource id if None is given and possibly use a prefix.</span>
+        <span class="k">if</span> <span class="n">oid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fixed</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_uuid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fixed</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">oid</span>
+        <span class="c1"># Append the referred object in case one is given to the class level</span>
+        <span class="c1"># reference dictionary.</span>
+        <span class="k">if</span> <span class="n">referred_object</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_referred_object</span><span class="p">(</span><span class="n">referred_object</span><span class="p">)</span>
+
+        <span class="c1"># Increment the counter for the current resource id.</span>
+        <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_tracker</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_tracker</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="c1"># Decrement the resource id counter.</span>
+        <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_tracker</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="c1"># If below or equal to zero, delete it and also delete it from the weak</span>
+        <span class="c1"># value dictionary.</span>
+        <span class="k">if</span> <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_tracker</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_tracker</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_weak_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+<div class="viewcode-block" id="ResourceIdentifier.get_referred_object"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.ResourceIdentifier.get_referred_object">[docs]</a>    <span class="k">def</span> <span class="nf">get_referred_object</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the object associated with the resource identifier.</span>
+
+<span class="sd">        This works as long as at least one ResourceIdentifier with the same</span>
+<span class="sd">        ID as this instance has an associate object.</span>
+
+<span class="sd">        Will return None if no object could be found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_weak_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ResourceIdentifier.set_referred_object"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.ResourceIdentifier.set_referred_object">[docs]</a>    <span class="k">def</span> <span class="nf">set_referred_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">referred_object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the object the ResourceIdentifier refers to.</span>
+
+<span class="sd">        If it already a weak reference it will be used, otherwise one will be</span>
+<span class="sd">        created. If the object is None, None will be set.</span>
+
+<span class="sd">        Will also append self again to the global class level reference list so</span>
+<span class="sd">        everything stays consistent.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If it does not yet exists simply set it.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_weak_dict</span><span class="p">:</span>
+            <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_weak_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">referred_object</span>
+            <span class="k">return</span>
+        <span class="c1"># Otherwise check if the existing element the same as the new one. If</span>
+        <span class="c1"># it is do nothing, otherwise raise a warning and set the new object as</span>
+        <span class="c1"># the referred object.</span>
+        <span class="k">if</span> <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_weak_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">==</span> \
+                <span class="n">referred_object</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The resource identifier &#39;</span><span class="si">%s</span><span class="s2">&#39; already exists and points to &quot;</span> <span class="o">+</span> \
+              <span class="s2">&quot;another object: &#39;</span><span class="si">%s</span><span class="s2">&#39;.&quot;</span> <span class="o">+</span> \
+              <span class="s2">&quot;It will now point to the object referred to by the new &quot;</span> <span class="o">+</span> \
+              <span class="s2">&quot;resource identifier.&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="nb">repr</span><span class="p">(</span><span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_weak_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]))</span>
+        <span class="c1"># Always raise the warning!</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn_explicit</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">,</span> <span class="n">__file__</span><span class="p">,</span>
+                               <span class="n">inspect</span><span class="o">.</span><span class="n">currentframe</span><span class="p">()</span><span class="o">.</span><span class="n">f_back</span><span class="o">.</span><span class="n">f_lineno</span><span class="p">)</span>
+        <span class="n">ResourceIdentifier</span><span class="o">.</span><span class="n">__resource_id_weak_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">referred_object</span></div>
+
+<div class="viewcode-block" id="ResourceIdentifier.copy"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.ResourceIdentifier.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a copy of the ResourceIdentifier.</span>
+
+<span class="sd">        &gt;&gt;&gt; res_id = ResourceIdentifier()</span>
+<span class="sd">        &gt;&gt;&gt; res_id_2 = res_id.copy()</span>
+<span class="sd">        &gt;&gt;&gt; print(res_id is res_id_2)</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; print(res_id == res_id_2)</span>
+<span class="sd">        True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Unique identifier of the current instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">oid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+            <span class="k">if</span> <span class="n">oid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">oid</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">):</span>
+                <span class="n">oid</span> <span class="o">+=</span> <span class="s2">&quot;_&quot;</span>
+                <span class="n">oid</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uuid</span>
+                <span class="k">return</span> <span class="n">oid</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">uuid</span>
+
+    <span class="nd">@id</span><span class="o">.</span><span class="n">deleter</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The resource id cannot be deleted.&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="nd">@id</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fixed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># XXX: no idea why I had to add bytes for PY2 here</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;attribute id needs to be a string.&quot;</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span>
+
+    <span class="nd">@prefix</span><span class="o">.</span><span class="n">deleter</span>
+    <span class="k">def</span> <span class="nf">prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="nd">@prefix</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;prefix id needs to be a string.&quot;</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">uuid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uuid</span>
+
+    <span class="nd">@uuid</span><span class="o">.</span><span class="n">deleter</span>
+    <span class="k">def</span> <span class="nf">uuid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deleting is uuid hash is forbidden and will not work.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The uuid cannot be deleted.&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="nd">@uuid</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">uuid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>  <span class="c1"># @UnusedVariable</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Setting is uuid hash is forbidden and will not work.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The uuid cannot be set manually.&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resource_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="nd">@resource_id</span><span class="o">.</span><span class="n">deleter</span>
+    <span class="k">def</span> <span class="nf">resource_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="nd">@resource_id</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">resource_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="k">def</span> <span class="nf">_repr_pretty_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">cycle</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;ResourceIdentifier(id=&quot;</span><span class="si">%s</span><span class="s1">&quot;)&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ResourceIdentifier</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uses the same hash as the resource id. This means that class instances</span>
+<span class="sd">        can be used in dictionaries and other hashed types.</span>
+
+<span class="sd">        Both the object and it&#39;s id can still be independently used as</span>
+<span class="sd">        dictionary keys.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># &quot;Salt&quot; the hash with a string so the hash of the object and a</span>
+        <span class="c1"># string identical to the id can both be used as individual</span>
+        <span class="c1"># dictionary keys.</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="s2">&quot;RESOURCE_ID&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">__hash__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ResourceIdentifier.regenerate_uuid"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.ResourceIdentifier.regenerate_uuid">[docs]</a>    <span class="k">def</span> <span class="nf">regenerate_uuid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Regenerates the uuid part of the ID. Does nothing for resource</span>
+<span class="sd">        identifiers with a user-set, fixed id.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_uuid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_class_factory</span><span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">class_attributes</span><span class="o">=</span><span class="p">[],</span> <span class="n">class_contains</span><span class="o">=</span><span class="p">[]):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class factory to unify the creation of all the types in the datamodel.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">class</span> <span class="nc">AbstractBaseClass</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A base class with type checking for all elements in the datamodel.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Every element has to have an ID and a reference to the plugin</span>
+        <span class="c1"># root node</span>
+        <span class="n">_properties</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">class_attributes</span><span class="p">:</span>
+            <span class="n">_properties</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">_property_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">_i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_i</span> <span class="ow">in</span> <span class="n">_properties</span><span class="p">]</span>
+        <span class="n">_property_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_properties</span><span class="p">:</span>
+            <span class="n">_property_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="c1"># Dynamic class attributes that are not set through the plugin</span>
+        <span class="c1"># interface</span>
+        <span class="n">_attributes</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;resource_id&#39;</span><span class="p">,</span> <span class="n">ResourceIdentifier</span><span class="p">),</span>
+                       <span class="p">(</span><span class="s1">&#39;_root&#39;</span><span class="p">,</span> <span class="n">DatasetPluginBase</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">class_contains</span><span class="p">:</span>
+            <span class="n">_attributes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">_attribute_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">_i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_i</span> <span class="ow">in</span> <span class="n">_attributes</span><span class="p">]</span>
+        <span class="n">_attribute_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_attributes</span><span class="p">:</span>
+            <span class="n">_attribute_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_root</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="c1"># Set the plugin entrance point</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_root&#39;</span><span class="p">,</span> <span class="n">plugin_root</span><span class="p">)</span>
+            <span class="c1"># Ensure the object has a resource_id</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">ResourceIdentifier</span><span class="p">()</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;resource_id&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="c1"># Set all property values to None or the kwarg value.</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attributes</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="c1"># Raise an exception if not a property or attribute</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">attrib_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_property_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">attrib_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> is not a property or attribute of class </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">))</span>
+            <span class="c1"># If the value is None or already the correct type just set it.</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_root&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> \
+                        <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">attrib_type</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> and </span><span class="si">%s</span><span class="s2"> are incompatible types.&quot;</span> <span class="o">%</span>
+                                    <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">attrib_type</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">attrib_type</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> and </span><span class="si">%s</span><span class="s2"> are incompatible types.&quot;</span> <span class="o">%</span>
+                                    <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">attrib_type</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">attrib_type</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="n">attrib_type</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;resource_id&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">resource_id</span><span class="o">.</span><span class="n">set_referred_object</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute_keys</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Construct path as required by the plugin interface</span>
+                <span class="n">xpath</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">),</span>
+                                          <span class="bp">self</span><span class="o">.</span><span class="n">resource_id</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                                          <span class="n">name</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">set_item</span><span class="p">(</span><span class="n">xpath</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">create_item</span><span class="p">(</span><span class="n">xpath</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute_keys</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="c1"># Construct path as required by the plugin interface</span>
+            <span class="n">xpath</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">),</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">resource_id</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                                      <span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">get_item</span><span class="p">(</span><span class="n">xpath</span><span class="p">)</span>
+
+    <span class="n">base_class</span> <span class="o">=</span> <span class="n">AbstractBaseClass</span>
+    <span class="c1"># Set the class type name.</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">base_class</span><span class="p">,</span> <span class="s2">&quot;__name__&quot;</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">base_class</span>
+
+
+<span class="n">__Dataset</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Dataset&#39;</span><span class="p">,</span>
+                           <span class="n">class_contains</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;preferredFluxIDs&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="s1">&#39;spectra&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="s1">&#39;instruments&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="s1">&#39;retrievals&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="s1">&#39;plumevelocities&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="s1">&#39;targets&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="s1">&#39;fluxes&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">)])</span>
+
+
+<div class="viewcode-block" id="Dataset"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Dataset">[docs]</a><span class="k">class</span> <span class="nc">Dataset</span><span class="p">(</span><span class="n">__Dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class is a container for all data describing a spectroscopy analysis</span>
+<span class="sd">    from the raw measurements, over instruments and information on gas plumes</span>
+<span class="sd">    to the final gas flux results.</span>
+
+<span class="sd">    :type preferredFluxIDs: list</span>
+<span class="sd">    :param preferredFluxIDs: IDs of the best/final flux estimate. As a dataset</span>
+<span class="sd">        can contain analyses from different targets there can be more than one</span>
+<span class="sd">        preferred flux estimate.</span>
+<span class="sd">    :type spectra: list</span>
+<span class="sd">    :param spectra: List of all spectra that are part of the dataset.</span>
+<span class="sd">    :type instruments: list</span>
+<span class="sd">    :param instruments: List of all instruments that are part of the dataset.</span>
+<span class="sd">    :type retrievals: list</span>
+<span class="sd">    :param retrievals: List of all retrievals that are part of the dataset.</span>
+<span class="sd">    :type plumevelocities: list</span>
+<span class="sd">    :param plumevelocities: List of all plume velocities that are part of the</span>
+<span class="sd">        dataset.</span>
+<span class="sd">    :type targets: list</span>
+<span class="sd">    :param targets: List of all target plumes that are part of the dataset.</span>
+<span class="sd">    :type flux: list</span>
+<span class="sd">    :param flux: List of all flux estimates that are part of the dataset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">new</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plugins</span> <span class="o">=</span> <span class="n">get_registered_plugins</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">plugins</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Format </span><span class="si">%s</span><span class="s1"> is not supported.&#39;</span> <span class="o">%</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="n">_p</span> <span class="o">=</span> <span class="n">plugins</span><span class="p">[</span><span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()]()</span>
+        <span class="n">_p</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">get_item</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">set_item</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
+        <span class="n">plugins</span> <span class="o">=</span> <span class="n">get_registered_plugins</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">plugins</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Format </span><span class="si">%s</span><span class="s1"> is not supported.&#39;</span> <span class="o">%</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="n">_p</span> <span class="o">=</span> <span class="n">plugins</span><span class="p">[</span><span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()]()</span>
+        <span class="k">return</span> <span class="n">_p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">_a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute_keys</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+            <span class="n">_l1</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_a</span><span class="p">)</span>
+            <span class="n">_l2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">_a</span><span class="p">)</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">_a</span><span class="p">]</span> <span class="o">=</span> <span class="n">_l1</span> <span class="o">+</span> <span class="n">_l2</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_root</span><span class="p">,</span> <span class="o">**</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+        <span class="k">for</span> <span class="n">_a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute_keys</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+            <span class="n">_l2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">_a</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_a</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_a</span><span class="p">)</span> <span class="o">+</span> <span class="n">_l2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplot</span><span class="o">=</span><span class="s1">&#39;retrievals&#39;</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">toplot</span> <span class="o">==</span> <span class="s1">&#39;retrievals&#39;</span><span class="p">:</span>
+            <span class="n">cmap</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;RdBu_r&#39;</span><span class="p">)</span>
+            <span class="c1"># dicretize all retrievals onto a grid to show a daily plot</span>
+            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">rts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrievals</span>
+            <span class="n">nretrieval</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rts</span><span class="p">)</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nretrieval</span><span class="p">,</span> <span class="n">bins</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="c1"># first sort retrievals based on start time</span>
+            <span class="k">def</span> <span class="nf">mycmp</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">):</span>
+                <span class="n">s1</span> <span class="o">=</span> <span class="n">r1</span><span class="o">.</span><span class="n">spectra_id</span><span class="o">.</span><span class="n">get_referred_object</span><span class="p">()</span>
+                <span class="n">t1</span> <span class="o">=</span> <span class="n">s1</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">r1</span><span class="o">.</span><span class="n">slice</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                <span class="n">s2</span> <span class="o">=</span> <span class="n">r2</span><span class="o">.</span><span class="n">spectra_id</span><span class="o">.</span><span class="n">get_referred_object</span><span class="p">()</span>
+                <span class="n">t2</span> <span class="o">=</span> <span class="n">s2</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">r2</span><span class="o">.</span><span class="n">slice</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">t1</span> <span class="o">&lt;</span> <span class="n">t2</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="k">if</span> <span class="n">t1</span> <span class="o">==</span> <span class="n">t2</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">t1</span> <span class="o">&gt;</span> <span class="n">t2</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="mi">1</span>
+            <span class="n">rts</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="nb">cmp</span><span class="o">=</span><span class="n">mycmp</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rts</span><span class="p">):</span>
+                <span class="n">_s</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">spectra_id</span><span class="o">.</span><span class="n">get_referred_object</span><span class="p">()</span>
+                <span class="n">_angle</span> <span class="o">=</span> <span class="n">_s</span><span class="o">.</span><span class="n">angle</span><span class="p">[</span><span class="n">_r</span><span class="o">.</span><span class="n">slice</span><span class="p">]</span>
+                <span class="n">_so2</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">sca</span>
+                <span class="n">_so2_binned</span> <span class="o">=</span> <span class="n">binned_statistic</span><span class="p">(</span><span class="n">_angle</span><span class="p">,</span> <span class="n">_so2</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+                <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">_so2_binned</span><span class="o">.</span><span class="n">statistic</span>
+            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+                <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">m</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">z</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+                             <span class="n">norm</span><span class="o">=</span><span class="n">LogNorm</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_invalid</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">m</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+                             <span class="n">norm</span><span class="o">=</span><span class="n">Normalize</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
+            <span class="n">new_labels</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">new_ticks</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">ymin</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ymax</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">_xt</span> <span class="ow">in</span> <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_r</span> <span class="o">=</span> <span class="n">rts</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">_xt</span><span class="p">)]</span>
+                    <span class="n">_s</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">spectra_id</span><span class="o">.</span><span class="n">get_referred_object</span><span class="p">()</span>
+                    <span class="n">_a</span> <span class="o">=</span> <span class="n">_s</span><span class="o">.</span><span class="n">angle</span><span class="p">[</span><span class="n">_r</span><span class="o">.</span><span class="n">slice</span><span class="p">]</span>
+                    <span class="n">ymin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_a</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">ymin</span><span class="p">)</span>
+                    <span class="n">ymax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">_a</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">ymax</span><span class="p">)</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
+                        <span class="n">_s</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">_r</span><span class="o">.</span><span class="n">slice</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">tz</span><span class="o">=</span><span class="n">tz</span><span class="o">.</span><span class="n">gettz</span><span class="p">(</span><span class="s1">&#39;UTC&#39;</span><span class="p">))</span>
+                    <span class="n">new_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M&quot;</span><span class="p">))</span>
+                    <span class="n">new_ticks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_xt</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">new_ticks</span><span class="p">,</span> <span class="n">new_labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+                       <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
+            <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+            <span class="n">cb</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;Slant column amount SO2 [ppm m]&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">r&#39;Angle [$\circ$]&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;Plotting </span><span class="si">%s</span><span class="s1"> is has not been implemented yet&#39;</span> <span class="o">%</span> <span class="n">toplot</span></div>
+
+
+<span class="n">__Spectra</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Spectra&#39;</span><span class="p">,</span>
+                           <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;instrument_id&#39;</span><span class="p">,</span>
+                                              <span class="n">ResourceIdentifier</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;target_id&#39;</span><span class="p">,</span> <span class="n">ResourceIdentifier</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;angle&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;angle_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;bearing&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;bearing_error&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;counts&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;wavelengths&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;integration_time&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;no_averages&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;creation_time&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;modification_time&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                                             <span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+
+<div class="viewcode-block" id="Spectra"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Spectra">[docs]</a><span class="k">class</span> <span class="nc">Spectra</span><span class="p">(</span><span class="n">__Spectra</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class describes spectra as retrieved from a spectrometer.</span>
+
+<span class="sd">    A spectra class can contain multiple scans or multiple transects. Spectra</span>
+<span class="sd">    instances can be extended but can only be deleted as a whole. Modifying</span>
+<span class="sd">    contents of a Spectra instance will result in a new Spectra instance with a</span>
+<span class="sd">    modified ID. Every :class:`spectroscopy.dataset.Spectra` instance has to</span>
+<span class="sd">    be part of a :class:`spectroscopy.dataset.Dataset` instance.</span>
+
+<span class="sd">    :type instrument_id: str</span>
+<span class="sd">    :param instrument_id: The ID of the :class:`Instrument` recording the</span>
+<span class="sd">        spectra.</span>
+<span class="sd">    :type target_id: str</span>
+<span class="sd">    :param target_id: The ID of the target plume.</span>
+<span class="sd">    :type angle: :class:`numpy.ndarray`</span>
+<span class="sd">    :param angle: Angles corresponding to the spectra in a scan in degrees from</span>
+<span class="sd">        the horizontal. The number of angles has to be equal to the number of</span>
+<span class="sd">        recorded spectra. For a transect all angles would typically be the</span>
+<span class="sd">        same, e.g. 90.0 if the spectrometer was pointing up.</span>
+<span class="sd">    :type angle_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param angle_error: Uncertainty for every angle.</span>
+<span class="sd">    :type bearing: float</span>
+<span class="sd">    :param bearing: Bearing of the scan plane in degrees from grid north.</span>
+<span class="sd">    :type bearing_error: float</span>
+<span class="sd">    :param bearing_error: Bearing uncertainty.</span>
+<span class="sd">    :type position: :class:`numpy.ndarray`</span>
+<span class="sd">    :param position: The position of the spectrometer in decimal longitude,</span>
+<span class="sd">        latitude, and elevation in m above sea level. For a scan this would be</span>
+<span class="sd">        a 1x3 array, for a transect it would be an Sx3 matrix, where S is the</span>
+<span class="sd">        number of recorded spectra.</span>
+<span class="sd">    :type position_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param position_error: Position uncertainty.</span>
+<span class="sd">    :type counts: :class:`numpy.ndarray`</span>
+<span class="sd">    :param counts: The raw spectra as returned from the spectrometer. It is a</span>
+<span class="sd">        matrix of dimension S x W where S is the number of spectra and W the</span>
+<span class="sd">        number of wavelengths determined by the spectrometer.</span>
+<span class="sd">    :type wavelengths: :class:`numpy.ndarray`</span>
+<span class="sd">    :param wavelengths: A 1 x W array containing the wavelengths for the</span>
+<span class="sd">        spectra.</span>
+<span class="sd">    :type time: :class:`numpy.ndarray`</span>
+<span class="sd">    :param time: Unix timestamp for the measurement time of every spectrum.</span>
+<span class="sd">    :type integration_time: :class:`numpy.ndarray`</span>
+<span class="sd">    :param integration_time: Integration time for every spectrum.</span>
+<span class="sd">    :type no_averages: :class:`numpy.ndarray`</span>
+<span class="sd">    :param no_averages: Number of averages for every spectrum.</span>
+<span class="sd">    :type creation_time: float</span>
+<span class="sd">    :param creation_time: Unix timestamp for the creation time of the</span>
+<span class="sd">        :class:`Spectra` instance.</span>
+<span class="sd">    :type modification_time: float</span>
+<span class="sd">    :param modification_time: Unix timestamp for the latest modification time</span>
+<span class="sd">        of the :class:`Spectra` instance.</span>
+<span class="sd">    :type type: int</span>
+<span class="sd">    :param type: The spectrum type {0:dark, 1:offset, 2:measurement,</span>
+<span class="sd">        3:background, 4:other}</span>
+<span class="sd">    :type user_notes: str, optional</span>
+<span class="sd">    :param user_notes: Additional notes.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="n">__Instrument</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Instrument&#39;</span><span class="p">,</span>
+                              <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;no_bits&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;spectrometer_ID&#39;</span><span class="p">,</span>
+                                                 <span class="n">ResourceIdentifier</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+
+<div class="viewcode-block" id="Instrument"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Instrument">[docs]</a><span class="k">class</span> <span class="nc">Instrument</span><span class="p">(</span><span class="n">__Instrument</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class describes the spectrometer.</span>
+
+<span class="sd">    :type no_bits: int</span>
+<span class="sd">    :param no_bits: The number of bits used by the analog-to-digital converter.</span>
+<span class="sd">    :type type: str</span>
+<span class="sd">    :param type: The spectrometer type (e.g. FlySpec, MiniDOAS, etc.)</span>
+<span class="sd">    :type spectrometer_ID: str</span>
+<span class="sd">    :param spectrometer_ID: The spectrometer&#39;s ID as given by the manufacturer.</span>
+<span class="sd">    :type description: str, optional</span>
+<span class="sd">    :param description: Any additional information on the instrument that may</span>
+<span class="sd">        be relevant.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="n">__Plumevelocity</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Plumevelocity&#39;</span><span class="p">,</span>
+                                 <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;vx&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;vx_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;vy&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;vy_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;vz&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;vz_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,</span>
+                                                    <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;grid_bearing&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;grid_increments&#39;</span><span class="p">,</span>
+                                                    <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;creation_time&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                                   <span class="p">(</span><span class="s1">&#39;modification_time&#39;</span><span class="p">,</span>
+                                                    <span class="nb">float</span><span class="p">)])</span>
+
+
+<div class="viewcode-block" id="Plumevelocity"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Plumevelocity">[docs]</a><span class="k">class</span> <span class="nc">Plumevelocity</span><span class="p">(</span><span class="n">__Plumevelocity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class describes the plumevelocity, which can be either based on</span>
+<span class="sd">    meteorological data or direct measurements (e.g. from motion tracking or</span>
+<span class="sd">    weather stations).</span>
+
+<span class="sd">    It can store anything from values at a particular point to 4-dimensional</span>
+<span class="sd">    models of wind speed or plume velocity. Grids are assumed to be</span>
+<span class="sd">    right-handed Cartesian coordinate systems with uniform grid point spacing</span>
+<span class="sd">    along any direction. In the following X, Y, and Z are assumed to be the</span>
+<span class="sd">    spatial dimensions of the grid and T is the number of time steps. For a</span>
+<span class="sd">    point values X, Y, and Z would be equal to 1.</span>
+
+<span class="sd">    :type vx: :class:`numpy.ndarray`</span>
+<span class="sd">    :param vx: x-component of the wind speed or plume velocity vector in m/s.</span>
+<span class="sd">    :type vx_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param vx_error: Uncertainty in the x-component of the wind speed or plume</span>
+<span class="sd">        velocity vector.</span>
+<span class="sd">    :type vy: :class:`numpy.ndarray`</span>
+<span class="sd">    :param vy: y-component of the wind speed or plume velocity vector.</span>
+<span class="sd">    :type vy_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param vy_error: Uncertainty in the y-component of the wind speed or plume</span>
+<span class="sd">        velocity vector.</span>
+<span class="sd">    :type vz: :class:`numpy.ndarray`</span>
+<span class="sd">    :param vz: z-component of the wind speed or plume velocity vector.</span>
+<span class="sd">    :type vz_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param vz_error: Uncertainty in the z-component of the wind speed or plume</span>
+<span class="sd">        velocity vector.</span>
+<span class="sd">    :type position: :class:`numpy.ndarray`</span>
+<span class="sd">    :param position: Grid origin or position of a weather station in decimal</span>
+<span class="sd">        degrees for longitude and latitude and m above sea level for elevation.</span>
+<span class="sd">    :type position_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param position_error: Uncertainty in grid origin or weather station</span>
+<span class="sd">        position.</span>
+<span class="sd">    :type grid_bearing: float</span>
+<span class="sd">    :param grid_bearing: Angle of the X-axis from grid north in decimal</span>
+<span class="sd">        degrees.</span>
+<span class="sd">    :type grid_increments: :class:`numpy.ndarray`, optional</span>
+<span class="sd">    :param grid_increments: Grid increments in meters along the X-, Y-, and</span>
+<span class="sd">        Z-component. This parameter is only required if grid values are used.</span>
+<span class="sd">    :type time: :class:`numpy.ndarray`</span>
+<span class="sd">    :param time: Time axis of unix timestamps.</span>
+<span class="sd">    :type creation_time: float</span>
+<span class="sd">    :param creation_time: Unix timestamp for the creation time of the</span>
+<span class="sd">        :class:`Plumevelocity` instance.</span>
+<span class="sd">    :type modification_time: float</span>
+<span class="sd">    :param modification_time: Unix timestamp for the latest modification time</span>
+<span class="sd">        of the :class:`Plumevelocity` instance.</span>
+<span class="sd">    :type description: str, optional</span>
+<span class="sd">    :param description: Any additional information that may be relevant.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="n">__Target</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Target&#39;</span><span class="p">,</span>
+                          <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;position&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                            <span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+
+<div class="viewcode-block" id="Target"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Target">[docs]</a><span class="k">class</span> <span class="nc">Target</span><span class="p">(</span><span class="n">__Target</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class describes a target plume.</span>
+
+<span class="sd">    :type position: :class:`numpy.ndarray`</span>
+<span class="sd">    :param position: Position of a plume in decimal degrees for longitude and</span>
+<span class="sd">        latitude and m above sea level for elevation.</span>
+<span class="sd">    :type description: str, optional</span>
+<span class="sd">    :param description: Any additional information on the plume that may be</span>
+<span class="sd">        relevant.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="n">__Retrievals</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Retrievals&#39;</span><span class="p">,</span>
+                              <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;spectra_id&#39;</span><span class="p">,</span>
+                                                 <span class="n">ResourceIdentifier</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;slice&#39;</span><span class="p">,</span> <span class="nb">slice</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;gas_species&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;sca&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;sca_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;software_name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;software_version&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;software_settings&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;analyst_name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;creation_time&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;modification_time&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+
+<div class="viewcode-block" id="Retrievals"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Retrievals">[docs]</a><span class="k">class</span> <span class="nc">Retrievals</span><span class="p">(</span><span class="n">__Retrievals</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class describes retrievals based on a specific set of spectra.</span>
+
+<span class="sd">    Like spectra, retrievals can be extended but only deleted as a whole and</span>
+<span class="sd">    only if the Retrievals instance is not linked to.</span>
+
+<span class="sd">    :type spectra_id: str</span>
+<span class="sd">    :param spectra_id: ID of the :class:`Spectra` instance the retrievals are</span>
+<span class="sd">        based on.</span>
+<span class="sd">    :type slice: slice</span>
+<span class="sd">    :param slice: Start and end index of a slice of spectra used to compute the</span>
+<span class="sd">        retrieval.</span>
+<span class="sd">    :type type: str</span>
+<span class="sd">    :param type: The type of the retrieval, e.g. FlySpec, DOAS, etc.</span>
+<span class="sd">    :type gas_species: str</span>
+<span class="sd">    :param gas_species: The gas species that is targeted, e.g. SO2, BrO, etc.</span>
+<span class="sd">    :type sca: :class:`numpy.ndarray`</span>
+<span class="sd">    :param sca: The slant column amount in molec/(cm*cm). The dimension of sca</span>
+<span class="sd">       is determined by the slice parameter.</span>
+<span class="sd">    :type sca_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param sca_error: Uncertainty of the slant column amount.</span>
+<span class="sd">    :type software_name: str</span>
+<span class="sd">    :param software_name: Name of the software used to compute the retrievals.</span>
+<span class="sd">    :type software_version: str</span>
+<span class="sd">    :param software_version: Version of the software used to compute the</span>
+<span class="sd">        retrievals.</span>
+<span class="sd">    :type software_settings: str</span>
+<span class="sd">    :param software_settings: A compressed json string describing the retrieval</span>
+<span class="sd">        parameters, e.g. reference spectra, instrument line shape, etc.</span>
+<span class="sd">    :type analyst_name: str</span>
+<span class="sd">    :param analyst_name: Name of the person who ran the analysis software.</span>
+<span class="sd">    :param creation_time: Unix timestamp for the creation time of the</span>
+<span class="sd">        :class:`Retrievals` instance.</span>
+<span class="sd">    :type modification_time: float</span>
+<span class="sd">    :param modification_time: Unix timestamp for the latest modification time</span>
+<span class="sd">        of the :class:`Retrievals` instance.</span>
+<span class="sd">    :type user_notes: str, optional</span>
+<span class="sd">    :param user_notes: Additional notes.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="n">__Flux</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Flux&#39;</span><span class="p">,</span>
+                        <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;retrieval_id&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;slice&#39;</span><span class="p">,</span> <span class="nb">slice</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;plumevelocity_id&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;flux&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;flux_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;software_name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;software_version&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;software_settings&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;analyst_name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;creation_time&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;modification_time&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+
+<div class="viewcode-block" id="Flux"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Flux">[docs]</a><span class="k">class</span> <span class="nc">Flux</span><span class="p">(</span><span class="n">__Flux</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class stores flux estimates based on a specific set of retrievals.</span>
+
+<span class="sd">    Like spectra and retrievals, Flux instances can be extended but only</span>
+<span class="sd">    deleted as a whole and only if the Retrievals instance is not linked to.</span>
+
+<span class="sd">    :type retrieval_id: str</span>
+<span class="sd">    :param retrieval_id: ID of the :class:`Retrievals` instance the flux</span>
+<span class="sd">        estimates are based on.</span>
+<span class="sd">    :type slice: slice</span>
+<span class="sd">    :param slice: Start and end index of a slice of retrievals used to compute</span>
+<span class="sd">        the flux, which is equivalent to n numbers of complete scans.</span>
+<span class="sd">    :type plumevelocity_id: str</span>
+<span class="sd">    :param plumevelocity_id: ID of the :class:`Plumevelocity` instance the flux</span>
+<span class="sd">        estimates are based on.</span>
+<span class="sd">    :type time: :class:`numpy.ndarray`</span>
+<span class="sd">    :param time: An array of time stamps (Unix timestamp in ms) of length T2 to</span>
+<span class="sd">        which flux estimates are assigned to.</span>
+<span class="sd">    :type flux: :class:`numpy.ndarray`</span>
+<span class="sd">    :param flux: An 1 x T2 array of flux estimates.</span>
+<span class="sd">    :type flux_error: :class:`numpy.ndarray`</span>
+<span class="sd">    :param flux_error: Uncertainties in the flux estimates.</span>
+<span class="sd">    :type software_name: str</span>
+<span class="sd">    :param software_name: Name of the software used to compute the flux.</span>
+<span class="sd">    :type software_version: str</span>
+<span class="sd">    :param software_version: Version of the software used to compute the flux.</span>
+<span class="sd">    :type software_settings: str</span>
+<span class="sd">    :param software_settings: A compressed json string describing the flux</span>
+<span class="sd">        parameters.</span>
+<span class="sd">    :type analyst_name: str</span>
+<span class="sd">    :param analyst_name: Name of the person who ran the analysis software.</span>
+<span class="sd">    :param creation_time: Unix timestamp for the creation time of the</span>
+<span class="sd">        :class:`Flux` instance.</span>
+<span class="sd">    :type modification_time: float</span>
+<span class="sd">    :param modification_time: Unix timestamp for the latest modification time</span>
+<span class="sd">        of the :class:`Flux` instance.</span>
+<span class="sd">    :type user_notes: str, optional</span>
+<span class="sd">    :param user_notes: Additional notes.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">doctest</span>
+    <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">(</span><span class="n">exclude_empty</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SpectroscoPy 0.1.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Nial Peters, Yannik Behr.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.6.
+    </div>
+  </body>
+</html>
