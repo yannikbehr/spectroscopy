@@ -591,14 +591,37 @@
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_a</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_a</span><span class="p">)</span> <span class="o">+</span> <span class="n">_l2</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplot</span><span class="o">=</span><span class="s1">&#39;retrievals&#39;</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">toplot</span> <span class="o">==</span> <span class="s1">&#39;retrievals&#39;</span><span class="p">:</span>
-            <span class="n">cmap</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;RdBu_r&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="Dataset.plot"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Dataset.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplot</span><span class="o">=</span><span class="s1">&#39;retrievals&#39;</span><span class="p">,</span> <span class="n">savefig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provide overview plots for data contained in a dataset.</span>
+
+<span class="sd">        :type toplot: str</span>
+<span class="sd">        :param toplot: Choose the datatype to plot.</span>
+
+<span class="sd">        Parameters specific to `retrievals` contour plots:</span>
+
+<span class="sd">        :type log: bool</span>
+<span class="sd">        :param log: Turn on logarithmic colour scales.</span>
+<span class="sd">        :type cmap_name: str</span>
+<span class="sd">        :param cmap_name: The name of the matplotlib colour scale to use.</span>
+<span class="sd">        :type angle_bins: :class:`numpy.ndarray`</span>
+<span class="sd">        :param angle_bins: Define the bins onto which the angles of the</span>
+<span class="sd">            retrievals are discretized to.</span>
+<span class="sd">        :type ncontours: int</span>
+<span class="sd">        :param ncontours: Number of contours used in the contour plot.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">toplot</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;retrievals&#39;</span><span class="p">:</span>
+            <span class="n">cmap_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kargs</span><span class="p">,</span> <span class="s1">&#39;cmap_name&#39;</span><span class="p">,</span> <span class="s1">&#39;RdBu_r&#39;</span><span class="p">)</span>
+            <span class="n">log</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kargs</span><span class="p">,</span> <span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">angle_bins</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kargs</span><span class="p">,</span> <span class="s1">&#39;angle_bins&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+            <span class="n">ncontours</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kargs</span><span class="p">,</span> <span class="s1">&#39;ncontours&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="n">cmap</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap_name</span><span class="p">)</span>
             <span class="c1"># dicretize all retrievals onto a grid to show a daily plot</span>
-            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
             <span class="n">rts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrievals</span>
             <span class="n">nretrieval</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rts</span><span class="p">)</span>
-            <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nretrieval</span><span class="p">,</span> <span class="n">bins</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nretrieval</span><span class="p">,</span> <span class="n">angle_bins</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
 
             <span class="c1"># first sort retrievals based on start time</span>
             <span class="k">def</span> <span class="nf">mycmp</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">):</span>
@@ -618,20 +641,21 @@
                 <span class="n">_s</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">spectra_id</span><span class="o">.</span><span class="n">get_referred_object</span><span class="p">()</span>
                 <span class="n">_angle</span> <span class="o">=</span> <span class="n">_s</span><span class="o">.</span><span class="n">angle</span><span class="p">[</span><span class="n">_r</span><span class="o">.</span><span class="n">slice</span><span class="p">]</span>
                 <span class="n">_so2</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">sca</span>
-                <span class="n">_so2_binned</span> <span class="o">=</span> <span class="n">binned_statistic</span><span class="p">(</span><span class="n">_angle</span><span class="p">,</span> <span class="n">_so2</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+                <span class="n">_so2_binned</span> <span class="o">=</span> <span class="n">binned_statistic</span><span class="p">(</span>
+                    <span class="n">_angle</span><span class="p">,</span> <span class="n">_so2</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">angle_bins</span><span class="p">)</span>
                 <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">_so2_binned</span><span class="o">.</span><span class="n">statistic</span>
             <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
                 <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">m</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
-                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">z</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">angle_bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">z</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ncontours</span><span class="p">,</span>
                              <span class="n">norm</span><span class="o">=</span><span class="n">LogNorm</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_invalid</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">m</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">angle_bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">m</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ncontours</span><span class="p">,</span>
                              <span class="n">norm</span><span class="o">=</span><span class="n">Normalize</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
             <span class="n">new_labels</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">new_ticks</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">ymin</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">ymax</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">ymin</span> <span class="o">=</span> <span class="n">angle_bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ymax</span> <span class="o">=</span> <span class="n">angle_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">_xt</span> <span class="ow">in</span> <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">_r</span> <span class="o">=</span> <span class="n">rts</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">_xt</span><span class="p">)]</span>
@@ -651,9 +675,14 @@
             <span class="n">cb</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;Slant column amount SO2 [ppm m]&#39;</span><span class="p">)</span>
             <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
             <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">r&#39;Angle [$\circ$]&#39;</span><span class="p">)</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">savefig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+                    <span class="n">savefig</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="s1">&#39;Plotting </span><span class="si">%s</span><span class="s1"> is has not been implemented yet&#39;</span> <span class="o">%</span> <span class="n">toplot</span></div>
+            <span class="nb">print</span> <span class="s1">&#39;Plotting </span><span class="si">%s</span><span class="s1"> is has not been implemented yet&#39;</span> <span class="o">%</span> <span class="n">toplot</span></div></div>
 
 
 <span class="n">__Spectra</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Spectra&#39;</span><span class="p">,</span>
@@ -740,8 +769,6 @@
 <span class="n">__Instrument</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Instrument&#39;</span><span class="p">,</span>
                               <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;no_bits&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
                                                 <span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
-                                                <span class="p">(</span><span class="s1">&#39;spectrometer_ID&#39;</span><span class="p">,</span>
-                                                 <span class="n">ResourceIdentifier</span><span class="p">),</span>
                                                 <span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
 
 
@@ -912,9 +939,10 @@
 
 
 <span class="n">__Flux</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Flux&#39;</span><span class="p">,</span>
-                        <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;retrieval_id&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                        <span class="n">class_attributes</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;retrieval_id&#39;</span><span class="p">,</span> <span class="n">ResourceIdentifier</span><span class="p">),</span>
                                           <span class="p">(</span><span class="s1">&#39;slice&#39;</span><span class="p">,</span> <span class="nb">slice</span><span class="p">),</span>
-                                          <span class="p">(</span><span class="s1">&#39;plumevelocity_id&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+                                          <span class="p">(</span><span class="s1">&#39;plumevelocity_id&#39;</span><span class="p">,</span>
+                                           <span class="n">ResourceIdentifier</span><span class="p">),</span>
                                           <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
                                           <span class="p">(</span><span class="s1">&#39;flux&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>
                                           <span class="p">(</span><span class="s1">&#39;flux_error&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span>

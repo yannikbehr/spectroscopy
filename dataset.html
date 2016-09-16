@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Datamodel &#8212; SpectroscoPy 0.1.1 documentation</title>
+    <title>Datamodel for spectroscopy &#8212; SpectroscoPy 0.1.1 documentation</title>
     
     <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -47,7 +47,9 @@
         <div class="sphinxsidebarwrapper">
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Datamodel</a><ul>
+<li><a class="reference internal" href="#">Datamodel for spectroscopy</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#uml">UML</a></li>
 <li><a class="reference internal" href="#module-spectroscopy.dataset">Classes &amp; Functions</a></li>
 </ul>
 </li>
@@ -81,12 +83,28 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="datamodel">
-<h1>Datamodel<a class="headerlink" href="#datamodel" title="Permalink to this headline">¶</a></h1>
-<p>The datamodel used here is intended to store raw spectroscopy data, analysis
-results, and the corresponding processing flows. The general idea is that a
-file contains all the information required to reproduce the final flux
-measurements.</p>
+  <div class="section" id="datamodel-for-spectroscopy">
+<h1>Datamodel for spectroscopy<a class="headerlink" href="#datamodel-for-spectroscopy" title="Permalink to this headline">¶</a></h1>
+<p>The datamodel is intended to store raw spectroscopy data, analysis results, and
+the corresponding processing flows. The general idea is that a file contains
+all the information required to reproduce the final flux measurements. It was
+designed with the HDF5 format in mind for I/O but plugins can also be written
+for storing datasets in a database or XML files.</p>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>The following shows an example on how the <code class="docutils literal"><span class="pre">Dataset</span></code> type, which implements
+the datamodel, can be used to get a quick overview of the data contained in a
+FlySpec file:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">spectroscopy.dataset</span> <span class="k">import</span> <span class="n">Dataset</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;testfile&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;FLYSPEC&#39;</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/chile_retrievals_overview.png"><img alt="_images/chile_retrievals_overview.png" class="align-center" src="_images/chile_retrievals_overview.png" style="width: 922.8px; height: 713.2px;" /></a>
+</div>
+<div class="section" id="uml">
+<h2>UML<a class="headerlink" href="#uml" title="Permalink to this headline">¶</a></h2>
+<img alt="_images/datamodel.svg" src="_images/datamodel.svg" /></div>
 <div class="section" id="module-spectroscopy.dataset">
 <span id="classes-functions"></span><h2>Classes &amp; Functions<a class="headerlink" href="#module-spectroscopy.dataset" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
@@ -277,6 +295,36 @@ dataset.</li>
 </tr>
 </tbody>
 </table>
+<dl class="method">
+<dt id="spectroscopy.dataset.Dataset.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>toplot='retrievals'</em>, <em>savefig=None</em>, <em>**kargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide overview plots for data contained in a dataset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>toplot</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Choose the datatype to plot.</td>
+</tr>
+</tbody>
+</table>
+<p>Parameters specific to <cite>retrievals</cite> contour plots:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>log</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Turn on logarithmic colour scales.</li>
+<li><strong>cmap_name</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name of the matplotlib colour scale to use.</li>
+<li><strong>angle_bins</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.11)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Define the bins onto which the angles of the
+retrievals are discretized to.</li>
+<li><strong>ncontours</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Number of contours used in the contour plot.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
