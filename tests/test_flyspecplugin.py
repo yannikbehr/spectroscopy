@@ -1,5 +1,6 @@
 import inspect
 import os
+import tempfile
 import unittest
 
 import numpy as np
@@ -158,6 +159,37 @@ class FlySpecPluginTestCase(unittest.TestCase):
         out = f._array_multi_sort(*tuple([x1, x2]))
         np.testing.assert_array_equal(out[0], result[0])
         np.testing.assert_array_equal(out[1], result[1])
+
+    def test_plot(self):
+
+        import matplotlib.image
+
+        d = Dataset.open(os.path.join(self.data_dir,
+                                      '2012_02_29_1340_CHILE.txt'),
+                         format='FLYSPEC')
+        with tempfile.TemporaryFile() as fd:
+            d.plot(savefig=fd)
+            expected_image = matplotlib.image.imread(
+                os.path.join(self.data_dir, 'chile_retrievals_overview.png'),
+                format='png')
+            fd.seek(0)
+            actual_image = matplotlib.image.imread(fd, format='png')
+
+            # Set the "color" of fully transparent pixels to white. This avoids
+            # the issue of different "colors" for transparent pixels.
+            expected_image[expected_image[..., 3] <= 0.0035] = \
+                [1.0, 1.0, 1.0, 0.0]
+            actual_image[actual_image[..., 3] <= 0.0035] = \
+                [1.0, 1.0, 1.0, 0.0]
+
+            # This deviates a bit from the matplotlib version and just
+            # calculates the root mean square error of all pixel values without
+            # any other fancy considerations. It also uses the alpha channel of
+            # the images. Scaled by 255.
+            rms = np.sqrt(
+                np.sum((255.0 * (expected_image - actual_image)) ** 2) /
+                float(expected_image.size))
+            self.assertTrue(rms <= 0.001)
 
 
 def suite():
