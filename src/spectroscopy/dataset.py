@@ -1,12 +1,18 @@
 import collections
 from copy import deepcopy
+import datetime
 import inspect
 import string
 from uuid import uuid4
 import warnings
 import weakref
 
+from dateutil import tz
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize, LogNorm
+from matplotlib.pyplot import cm
 import numpy as np
+from scipy.stats import binned_statistic
 
 from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
 
@@ -521,6 +527,100 @@ class Dataset(__Dataset):
             setattr(self, _a, getattr(self, _a) + _l2)
         return self
 
+    def plot(self, toplot='retrievals', savefig=None, **kargs):
+        """
+        Provide overview plots for data contained in a dataset.
+
+        :type toplot: str
+        :param toplot: Choose the datatype to plot.
+
+        Parameters specific to `retrievals` contour plots:
+
+        :type log: bool
+        :param log: Turn on logarithmic colour scales.
+        :type cmap_name: str
+        :param cmap_name: The name of the matplotlib colour scale to use.
+        :type angle_bins: :class:`numpy.ndarray`
+        :param angle_bins: Define the bins onto which the angles of the
+            retrievals are discretized to.
+        :type ncontours: int
+        :param ncontours: Number of contours used in the contour plot.
+
+        """
+
+        if toplot.lower() == 'retrievals':
+            cmap_name = getattr(kargs, 'cmap_name', 'RdBu_r')
+            log = getattr(kargs, 'log', False)
+            angle_bins = getattr(kargs, 'angle_bins', np.arange(0, 180, 1.0))
+            ncontours = getattr(kargs, 'ncontours', 100)
+            cmap = cm.get_cmap(cmap_name)
+            # dicretize all retrievals onto a grid to show a daily plot
+            rts = self.retrievals
+            nretrieval = len(rts)
+            m = np.zeros((nretrieval, angle_bins.size - 1))
+
+            # first sort retrievals based on start time
+            def mycmp(r1, r2):
+                s1 = r1.spectra_id.get_referred_object()
+                t1 = s1.time[r1.slice].min()
+                s2 = r2.spectra_id.get_referred_object()
+                t2 = s2.time[r2.slice].min()
+                if t1 < t2:
+                    return -1
+                if t1 == t2:
+                    return 0
+                if t1 > t2:
+                    return 1
+            rts.sort(cmp=mycmp)
+
+            for i, _r in enumerate(rts):
+                _s = _r.spectra_id.get_referred_object()
+                _angle = _s.angle[_r.slice]
+                _so2 = _r.sca
+                _so2_binned = binned_statistic(
+                    _angle, _so2, 'mean', angle_bins)
+                m[i, :] = _so2_binned.statistic
+            if log:
+                z = np.where(m > 0.0, m, 0.1)
+                plt.contourf(range(nretrieval), angle_bins[1:], z.T, ncontours,
+                             norm=LogNorm(z.min(), z.max()), cmap=cmap)
+            else:
+                z = np.ma.masked_invalid(m)
+                plt.contourf(range(nretrieval), angle_bins[1:], m.T, ncontours,
+                             norm=Normalize(z.min(), z.max()), cmap=cmap)
+            new_labels = []
+            new_ticks = []
+            ymin = angle_bins[-1]
+            ymax = angle_bins[0]
+            for _xt in plt.xticks()[0]:
+                try:
+                    _r = rts[int(_xt)]
+                    _s = _r.spectra_id.get_referred_object()
+                    _a = _s.angle[_r.slice]
+                    ymin = min(_a.min(), ymin)
+                    ymax = max(_a.max(), ymax)
+                    dt = datetime.datetime.fromtimestamp(
+                        _s.time[_r.slice].min(), tz=tz.gettz('UTC'))
+                    new_labels.append(dt.strftime("%Y-%m-%d %H:%M"))
+                    new_ticks.append(_xt)
+                except IndexError:
+                    continue
+            plt.xticks(new_ticks, new_labels, rotation=30,
+                       horizontalalignment='right')
+            cb = plt.colorbar()
+            cb.set_label('Slant column amount SO2 [ppm m]')
+            plt.ylim(ymin, ymax)
+            plt.ylabel(r'Angle [$\circ$]')
+            if savefig is not None:
+                plt.savefig(
+                    savefig, bbox_inches='tight', dpi=300, format='png')
+            else:
+                plt.show()
+
+        else:
+            print 'Plotting %s is has not been implemented yet' % toplot
+
+
 __Spectra = _class_factory('__Spectra',
                            class_attributes=[('instrument_id',
                                               ResourceIdentifier),
@@ -605,8 +705,6 @@ class Spectra(__Spectra):
 __Instrument = _class_factory('__Instrument',
                               class_attributes=[('no_bits', int),
                                                 ('type', str),
-                                                ('spectrometer_ID',
-                                                 ResourceIdentifier),
                                                 ('description', str)])
 
 
@@ -777,9 +875,10 @@ class Retrievals(__Retrievals):
 
 
 __Flux = _class_factory('__Flux',
-                        class_attributes=[('retrieval_id', str),
+                        class_attributes=[('retrieval_id', ResourceIdentifier),
                                           ('slice', slice),
-                                          ('plumevelocity_id', str),
+                                          ('plumevelocity_id',
+                                           ResourceIdentifier),
                                           ('time', np.ndarray),
                                           ('flux', np.ndarray),
                                           ('flux_error', np.ndarray),
