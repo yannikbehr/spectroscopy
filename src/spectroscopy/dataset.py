@@ -1,3 +1,4 @@
+import calendar
 import collections
 from copy import deepcopy
 import datetime
@@ -502,12 +503,12 @@ class Dataset(__Dataset):
         return self._root.set_item(path, value)
 
     @staticmethod
-    def open(filename, format):
+    def open(filename, format, **kargs):
         plugins = get_registered_plugins()
         if format.lower() not in plugins:
             raise Exception('Format %s is not supported.' % format.lower())
         _p = plugins[format.lower()]()
-        return _p.open(filename)
+        return _p.open(filename, **kargs)
 
     def __add__(self, other):
         if not isinstance(other, Dataset):
@@ -549,10 +550,11 @@ class Dataset(__Dataset):
         """
 
         if toplot.lower() == 'retrievals':
-            cmap_name = getattr(kargs, 'cmap_name', 'RdBu_r')
-            log = getattr(kargs, 'log', False)
-            angle_bins = getattr(kargs, 'angle_bins', np.arange(0, 180, 1.0))
-            ncontours = getattr(kargs, 'ncontours', 100)
+            cmap_name = kargs.get('cmap_name', 'RdBu_r')
+            log = kargs.get('log', False)
+            angle_bins = kargs.get('angle_bins', np.arange(0, 180, 1.0))
+            ncontours = kargs.get('ncontours', 100)
+            ts = kargs.get('timeshift', 0.0) * 60. * 60.
             cmap = cm.get_cmap(cmap_name)
             # dicretize all retrievals onto a grid to show a daily plot
             rts = self.retrievals
@@ -580,6 +582,8 @@ class Dataset(__Dataset):
                 _so2_binned = binned_statistic(
                     _angle, _so2, 'mean', angle_bins)
                 m[i, :] = _so2_binned.statistic
+
+            fig = plt.figure()
             if log:
                 z = np.where(m > 0.0, m, 0.1)
                 plt.contourf(range(nretrieval), angle_bins[1:], z.T, ncontours,
@@ -601,6 +605,7 @@ class Dataset(__Dataset):
                     ymax = max(_a.max(), ymax)
                     dt = datetime.datetime.fromtimestamp(
                         _s.time[_r.slice].min(), tz=tz.gettz('UTC'))
+                    dt += datetime.timedelta(seconds=ts)
                     new_labels.append(dt.strftime("%Y-%m-%d %H:%M"))
                     new_ticks.append(_xt)
                 except IndexError:
@@ -614,8 +619,7 @@ class Dataset(__Dataset):
             if savefig is not None:
                 plt.savefig(
                     savefig, bbox_inches='tight', dpi=300, format='png')
-            else:
-                plt.show()
+            return fig
 
         else:
             print 'Plotting %s is has not been implemented yet' % toplot
@@ -795,6 +799,42 @@ class Plumevelocity(__Plumevelocity):
     :type description: str, optional
     :param description: Any additional information that may be relevant.
     """
+
+    def get_velocity(self, longitude, latitude, height, date):
+        """
+        Find plume velocity that is closest to the given location and time.
+
+        :type longitude: float
+        :param longitude: Longitude of the point of interest.
+        :type latitude: float
+        :param latitude: Latitude of the point of interest.
+        :type altitude: float
+        :param altitude: Altitude in meters of the point of interest.
+        :type date: str
+        :param date: Date of interest formatted according to the ISO8601
+            standard.
+        """
+        from scipy.spatial import KDTree
+        from spectroscopy.util import parse_iso_8601
+        _d = parse_iso_8601(date)
+        _ts = calendar.timegm((_d.utctimetuple()))
+        # find nearest point
+        _t = np.atleast_2d(self.time).T
+        # TODO: this needs to be changed to account for regular and irregular
+        # grids
+        a = np.append(self.position, _t, axis=1)
+        tree = KDTree(a, leafsize=a.shape[0] + 1)
+        point = [longitude, latitude, height, _ts]
+        distances, ndx = tree.query([point], k=1)
+        vx = self.vx[ndx[0]]
+        vx_error = self.vx_error[ndx[0]]
+        vy = self.vy[ndx[0]]
+        vy_error = self.vy_error[ndx[0]]
+        vz = self.vz[ndx[0]]
+        vz_error = self.vz_error[ndx[0]]
+        time = self.time[ndx[0]]
+        lon, lat, hght = self.position[ndx[0], :]
+        return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error)
 
 
 __Target = _class_factory('__Target',
