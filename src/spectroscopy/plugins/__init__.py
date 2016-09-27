@@ -3,7 +3,13 @@ import warnings
 import numpy as np
 
 
-class RamNode(object): pass
+class DatasetPluginBaseException(Exception):
+    pass
+
+
+class RamNode(object):
+    pass
+
 
 class DatasetPluginBase(object):
     """
@@ -74,6 +80,7 @@ class DatasetPluginBase(object):
             return c
         return self.getattrec(getattr(c, namelist.pop(0)), namelist)
 
+
 def load_all_plugins():
     """
     Loads all installed spectroscopy dataset plug-ins. Plugins that cannot be loaded
@@ -116,7 +123,7 @@ def load_all_plugins():
     # return to the old working dir
     os.chdir(cur_dir)
 
-    registered_plugins = {DatasetPluginBase.get_format():DatasetPluginBase}
+    registered_plugins = {DatasetPluginBase.get_format(): DatasetPluginBase}
 
     for c in DatasetPluginBase.__subclasses__():
         assert c.get_format() not in registered_plugins
@@ -133,4 +140,3 @@ def get_registered_plugins():
     else:
         get_registered_plugins.registered_plugins = load_all_plugins()
         return get_registered_plugins.registered_plugins
-
