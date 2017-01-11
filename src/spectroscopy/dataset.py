@@ -367,8 +367,9 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
             _property_dict[key] = value
         # Dynamic class attributes that are not set through the plugin
         # interface
-        _attributes = [('resource_id', ResourceIdentifier),
-                       ('_root', DatasetPluginBase)]
+        _attributes = [('_resource_id', ResourceIdentifier),
+                       ('_root', DatasetPluginBase),
+                       ('tag', str)]
         for item in class_contains:
             _attributes.append((item[0], item[1]))
         _attribute_keys = [_i[0] for _i in _attributes]
@@ -376,14 +377,14 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
         for key, value in _attributes:
             _attribute_dict[key] = value
 
-        def __init__(self, plugin_root, *args, **kwargs):
+        def __init__(self, _plugin, *args, **kwargs):
             # Set the plugin entrance point
-            setattr(self, '_root', plugin_root)
+            setattr(self, '_root', _plugin)
             # Ensure the object has a resource_id
-            value = kwargs.get('resource_id', None)
+            value = kwargs.get('_resource_id', None)
             if value is None:
                 value = ResourceIdentifier()
-            setattr(self, 'resource_id', value)
+            setattr(self, '_resource_id', value)
             # Set all property values to None or the kwarg value.
             for key, _ in self._properties:
                 value = kwargs.get(key, None)
@@ -391,6 +392,10 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
             for key, _ in self._attributes[2:]:
                 value = kwargs.get(key, None)
                 setattr(self, key, value)
+
+        @property
+        def resource_id(self):
+            return self._resource_id
 
         def __setattr__(self, name, value):
             # Raise an exception if not a property or attribute
@@ -448,17 +453,7 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
     return base_class
 
 
-__Dataset = _class_factory('__Dataset',
-                           class_contains=[('preferredFluxIDs', list),
-                                           ('spectra', list),
-                                           ('instruments', list),
-                                           ('retrievals', list),
-                                           ('plumevelocities', list),
-                                           ('targets', list),
-                                           ('fluxes', list)])
-
-
-class Dataset(__Dataset):
+class Dataset(object):
     """
     This class is a container for all data describing a spectroscopy analysis
     from the raw measurements, over instruments and information on gas plumes
@@ -482,6 +477,19 @@ class Dataset(__Dataset):
     :type flux: list
     :param flux: List of all flux estimates that are part of the dataset.
     """
+
+    def __init__(self, plugin):
+        self.preferred_fluxes = []
+        self.fluxes = []
+        self.methods = []
+        self.gas_flows = []
+        self.concentrations = []
+        self.raw_data = []
+        self.instruments = []
+        self.targets = []
+        self.raw_data_types = []
+        self.data_quality_types = []
+        self._root = plugin
 
     @staticmethod
     def new(format, filename=None):
@@ -510,24 +518,6 @@ class Dataset(__Dataset):
         _p = plugins[format.lower()]()
         return _p.open(filename, **kargs)
 
-    def __add__(self, other):
-        if not isinstance(other, Dataset):
-            raise TypeError
-        d = {}
-        for _a in self._attribute_keys[2:]:
-            _l1 = getattr(self, _a)
-            _l2 = getattr(other, _a)
-            d[_a] = _l1 + _l2
-        return self.__class__(self._root, **d)
-
-    def __iadd__(self, other):
-        if not isinstance(other, Dataset):
-            raise TypeError
-        for _a in self._attribute_keys[2:]:
-            _l2 = getattr(other, _a)
-            setattr(self, _a, getattr(self, _a) + _l2)
-        return self
-
     def plot(self, toplot='retrievals', savefig=None, **kargs):
         """
         Provide overview plots for data contained in a dataset.
@@ -549,7 +539,7 @@ class Dataset(__Dataset):
 
         """
 
-        if toplot.lower() == 'retrievals':
+        if toplot.lower() == 'concentrations':
             cmap_name = kargs.get('cmap_name', 'RdBu_r')
             log = kargs.get('log', False)
             angle_bins = kargs.get('angle_bins', np.arange(0, 180, 1.0))
@@ -557,16 +547,16 @@ class Dataset(__Dataset):
             ts = kargs.get('timeshift', 0.0) * 60. * 60.
             cmap = cm.get_cmap(cmap_name)
             # dicretize all retrievals onto a grid to show a daily plot
-            rts = self.retrievals
+            rts = self.concentrations
             nretrieval = len(rts)
             m = np.zeros((nretrieval, angle_bins.size - 1))
 
             # first sort retrievals based on start time
             def mycmp(r1, r2):
-                s1 = r1.spectra_id.get_referred_object()
-                t1 = s1.time[r1.slice].min()
-                s2 = r2.spectra_id.get_referred_object()
-                t2 = s2.time[r2.slice].min()
+                s1 = r1.rawdata_id.get_referred_object()
+                t1 = s1.time[r1.rawdata_indices].min()
+                s2 = r2.rawdata_id.get_referred_object()
+                t2 = s2.time[r2.rawdata_indices].min()
                 if t1 < t2:
                     return -1
                 if t1 == t2:
@@ -576,8 +566,8 @@ class Dataset(__Dataset):
             rts.sort(cmp=mycmp)
 
             for i, _r in enumerate(rts):
-                _s = _r.spectra_id.get_referred_object()
-                _angle = _s.angle[_r.slice]
+                _s = _r.rawdata_id.get_referred_object()
+                _angle = _s.angle[_r.rawdata_indices]
                 _so2 = _r.sca
                 _so2_binned = binned_statistic(
                     _angle, _so2, 'mean', angle_bins)
@@ -600,11 +590,11 @@ class Dataset(__Dataset):
                 try:
                     _r = rts[int(_xt)]
                     _s = _r.spectra_id.get_referred_object()
-                    _a = _s.angle[_r.slice]
+                    _a = _s.angle[_r.rawdata_indices]
                     ymin = min(_a.min(), ymin)
                     ymax = max(_a.max(), ymax)
                     dt = datetime.datetime.fromtimestamp(
-                        _s.time[_r.slice].min(), tz=tz.gettz('UTC'))
+                        _s.time[_r.rawdata_indices].min(), tz=tz.gettz('UTC'))
                     dt += datetime.timedelta(seconds=ts)
                     new_labels.append(dt.strftime("%Y-%m-%d %H:%M"))
                     new_ticks.append(_xt)
@@ -625,28 +615,35 @@ class Dataset(__Dataset):
             print 'Plotting %s is has not been implemented yet' % toplot
 
 
-__Spectra = _class_factory('__Spectra',
-                           class_attributes=[('instrument_id',
+__RawData = _class_factory('__RawData',
+                           class_attributes=[('instrument',
                                               ResourceIdentifier),
-                                             ('target_id', ResourceIdentifier),
+                                             ('target', ResourceIdentifier),
+                                             ('type', ResourceIdentifier),
                                              ('angle', np.ndarray),
                                              ('angle_error', np.ndarray),
+                                             ('inc_angle', float),
+                                             ('inc_angle_error', float),
                                              ('bearing', float),
                                              ('bearing_error', float),
                                              ('position', np.ndarray),
                                              ('position_error', np.ndarray),
-                                             ('counts', np.ndarray),
-                                             ('wavelengths', np.ndarray),
-                                             ('time', np.ndarray),
+                                             ('path_length', np.ndarray),
+                                             ('path_length_error', np.ndarray),
+                                             ('d_var', np.ndarray),
+                                             ('ind_var', np.ndarray),
+                                             ('datetime', np.ndarray),
+                                             ('data_quality', list),
+                                             ('data_quality_type', list),
                                              ('integration_time', np.ndarray),
                                              ('no_averages', np.ndarray),
+                                             ('temperature', np.ndarray),
                                              ('creation_time', float),
                                              ('modification_time', float),
-                                             ('type', int),
                                              ('user_notes', str)])
 
 
-class Spectra(__Spectra):
+class _RawData(__RawData):
     """
     This class describes spectra as retrieved from a spectrometer.
 
@@ -705,14 +702,26 @@ class Spectra(__Spectra):
     :param user_notes: Additional notes.
     """
 
+__RawDataType = _class_factory('__RawDataType',
+                               class_attributes=[('tag', str),
+                                                 ('name', str),
+                                                 ('acquisition', str)])
+
+
+class _RawDataType(__RawDataType):
+    """
+    """
+
 
 __Instrument = _class_factory('__Instrument',
                               class_attributes=[('no_bits', int),
+                                                ('sensor_id', str),
+                                                ('location', str),
                                                 ('type', str),
                                                 ('description', str)])
 
 
-class Instrument(__Instrument):
+class _Instrument(__Instrument):
     """
     This class describes the spectrometer.
 
@@ -728,27 +737,31 @@ class Instrument(__Instrument):
     """
 
 
-__Plumevelocity = _class_factory('__Plumevelocity',
-                                 class_attributes=[('vx', np.ndarray),
-                                                   ('vx_error', np.ndarray),
-                                                   ('vy', np.ndarray),
-                                                   ('vy_error', np.ndarray),
-                                                   ('vz', np.ndarray),
-                                                   ('vz_error', np.ndarray),
-                                                   ('position', np.ndarray),
-                                                   ('position_error',
-                                                    np.ndarray),
-                                                   ('grid_bearing', float),
-                                                   ('grid_increments',
-                                                    np.ndarray),
-                                                   ('time', np.ndarray),
-                                                   ('description', str),
-                                                   ('creation_time', float),
-                                                   ('modification_time',
-                                                    float)])
+__GasFlow = _class_factory('__GasFlow',
+                           class_attributes=[('method', ResourceIdentifier),
+                                             ('vx', np.ndarray),
+                                             ('vx_error', np.ndarray),
+                                             ('vy', np.ndarray),
+                                             ('vy_error', np.ndarray),
+                                             ('vz', np.ndarray),
+                                             ('vz_error', np.ndarray),
+                                             ('unit', str),
+                                             ('position', np.ndarray),
+                                             ('position_error',
+                                              np.ndarray),
+                                             ('grid_bearing', float),
+                                             ('grid_increments',
+                                              np.ndarray),
+                                             ('pressure', np.ndarray),
+                                             ('temperature', np.ndarray),
+                                             ('datetime', np.ndarray),
+                                             ('creation_time', float),
+                                             ('modification_time',
+                                              float),
+                                             ('user_notes', str)])
 
 
-class Plumevelocity(__Plumevelocity):
+class _GasFlow(__GasFlow):
     """
     This class describes the plumevelocity, which can be either based on
     meteorological data or direct measurements (e.g. from motion tracking or
@@ -838,11 +851,14 @@ class Plumevelocity(__Plumevelocity):
 
 
 __Target = _class_factory('__Target',
-                          class_attributes=[('position', np.ndarray),
+                          class_attributes=[('target_id', str),
+                                            ('name', str),
+                                            ('position', tuple),
+                                            ('position_error', tuple),
                                             ('description', str)])
 
 
-class Target(__Target):
+class _Target(__Target):
     """
     This class describes a target plume.
 
@@ -855,24 +871,26 @@ class Target(__Target):
     """
 
 
-__Retrievals = _class_factory('__Retrievals',
-                              class_attributes=[('spectra_id',
-                                                 ResourceIdentifier),
-                                                ('slice', slice),
-                                                ('type', str),
-                                                ('gas_species', str),
-                                                ('sca', np.ndarray),
-                                                ('sca_error', np.ndarray),
-                                                ('software_name', str),
-                                                ('software_version', str),
-                                                ('software_settings', str),
-                                                ('analyst_name', str),
-                                                ('creation_time', float),
-                                                ('modification_time', float),
-                                                ('user_notes', str)])
+__Concentration = _class_factory('__Concentration',
+                                 class_attributes=[('method',
+                                                    ResourceIdentifier),
+                                                   ('gasflow',
+                                                    ResourceIdentifier),
+                                                   ('rawdata',
+                                                    ResourceIdentifier),
+                                                   ('rawdata_indices', slice),
+                                                   ('gas_species', str),
+                                                   ('value', np.ndarray),
+                                                   ('value_error', np.ndarray),
+                                                   ('unit', str),
+                                                   ('analyst_contact', str),
+                                                   ('creation_time', float),
+                                                   ('modification_time',
+                                                    float),
+                                                   ('user_notes', str)])
 
 
-class Retrievals(__Retrievals):
+class _Concentration(__Concentration):
     """
     This class describes retrievals based on a specific set of spectra.
 
@@ -915,23 +933,20 @@ class Retrievals(__Retrievals):
 
 
 __Flux = _class_factory('__Flux',
-                        class_attributes=[('retrieval_id', ResourceIdentifier),
-                                          ('slice', slice),
-                                          ('plumevelocity_id',
+                        class_attributes=[('concentration', ResourceIdentifier),
+                                          ('method', ResourceIdentifier),
+                                          ('concentration_indices', list),
+                                          ('gasflow',
                                            ResourceIdentifier),
-                                          ('time', np.ndarray),
-                                          ('flux', np.ndarray),
-                                          ('flux_error', np.ndarray),
-                                          ('software_name', str),
-                                          ('software_version', str),
-                                          ('software_settings', str),
-                                          ('analyst_name', str),
+                                          ('value', np.ndarray),
+                                          ('value_error', np.ndarray),
+                                          ('analyst_contact', str),
                                           ('creation_time', float),
                                           ('modification_time', float),
                                           ('user_notes', str)])
 
 
-class Flux(__Flux):
+class _Flux(__Flux):
     """
     This class stores flux estimates based on a specific set of retrievals.
 
@@ -972,6 +987,24 @@ class Flux(__Flux):
     :param user_notes: Additional notes.
     """
 
+__PreferredFlux = _class_factory('__PreferredFlux',
+                                 class_attributes=[('fluxes', list),
+                                                   ('flux_indices', list),
+                                                   ('method',
+                                                    ResourceIdentifier),
+                                                   ('value', np.ndarray),
+                                                   ('value_error', np.ndarray),
+                                                   ('datetime', np.ndarray),
+                                                   ('analyst_contact', str),
+                                                   ('creation_time', float),
+                                                   ('modification_time',
+                                                    float),
+                                                   ('user_notes', str)])
+
+
+class _PreferredFlux(__PreferredFlux):
+    """
+    """
 
 if __name__ == '__main__':
     import doctest
