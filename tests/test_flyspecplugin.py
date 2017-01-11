@@ -42,10 +42,10 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         d1 = Dataset.open(os.path.join(self.data_dir,
                                        '2016_06_11_0830_TOFP04.txt'),
-                          format='FLYSPEC')
+                          format='FLYSPEC', timeshift=12.0)
         d2 = Dataset.open(os.path.join(self.data_dir,
                                        '2016_06_11_0900_TOFP04.txt'),
-                          format='FLYSPEC')
+                          format='FLYSPEC', timeshift=12.0)
         d3 = d1 + d2
         self.assertEqual(len(d3.retrievals), 25)
         d0 = Dataset.new('FLYSPEC')
@@ -89,7 +89,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         d1 = Dataset.open(os.path.join(self.data_dir,
                                        '2016_06_11_0830_TOFP04.txt'),
-                          format='FLYSPEC')
+                          format='FLYSPEC', timeshift=12.0)
         nretrieval = len(d1.retrievals)
         m = np.zeros((nretrieval, bins.size - 1))
         for i, _r in enumerate(d1.retrievals):
@@ -107,7 +107,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         with self.assertRaises(FlySpecPluginException):
             d1 = Dataset.open(os.path.join(self.data_dir,
                                            '2015_05_03_1630_TOFP04.txt'),
-                              format='FLYSPEC')
+                              format='FLYSPEC', timeshift=12.0)
 
     def test_split_by_scan(self):
         f = FlySpecPlugin()
@@ -166,9 +166,9 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         d = Dataset.open(os.path.join(self.data_dir,
                                       '2012_02_29_1340_CHILE.txt'),
-                         format='FLYSPEC')
+                         format='FLYSPEC', timeshift=12.0)
         with tempfile.TemporaryFile() as fd:
-            d.plot(savefig=fd)
+            d.plot(savefig=fd, timeshift=12.0)
             expected_image = matplotlib.image.imread(
                 os.path.join(self.data_dir, 'chile_retrievals_overview.png'),
                 format='png')
