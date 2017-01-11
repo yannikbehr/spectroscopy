@@ -17,7 +17,16 @@ class FlySpecPluginException(Exception):
 
 class FlySpecPlugin(DatasetPluginBase):
 
-    def open(self, filename, format=None):
+    def open(self, filename, format=None, timeshift=0.0, **kargs):
+        """
+        Load data from FlySpec instruments.
+
+        :param timeshift: float
+        :type timeshift: FlySpecs record data in local time so a timeshift in
+            hours of local time with respect to UTC can be given. For example
+            `timeshift=12.00` will subtract 12 hours from the recorded time.
+
+        """
         # load data and convert southern hemisphere to negative
         # latitudes and western hemisphere to negative longitudes
         def todd(x):
@@ -39,12 +48,13 @@ class FlySpecPlugin(DatasetPluginBase):
             raise FlySpecPluginException(
                 'File %s contains only one data point.'
                 % (os.path.basename(filename)))
-
+        ts = -1. * timeshift * 60. * 60.
         int_times = np.zeros(data[:, :7].shape, dtype='int')
         int_times[:, :6] = data[:, 1:7]
         # convert decimal seconds to milliseconds
         int_times[:, 6] = (data[:, 6] - int_times[:, 5]) * 1000
-        times = [datetime.datetime(*int_times[i, :])
+        times = [datetime.datetime(*int_times[i, :]) +
+                 datetime.timedelta(seconds=ts)
                  for i in range(int_times.shape[0])]
         unix_times = [calendar.timegm(i.utctimetuple()) for i in times]
         latitude = data[:, 8] * data[:, 9]
