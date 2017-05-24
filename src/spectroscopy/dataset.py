@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
 from matplotlib.pyplot import cm
 import numpy as np
+import tables
 from scipy.stats import binned_statistic
 
 from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
@@ -348,11 +349,107 @@ class ResourceIdentifier(object):
         self._uuid = str(uuid4())
 
 
-def _class_factory(class_name, class_attributes=[], class_contains=[]):
+class RetVal(object):
+    """
+    Wrapper to make tables.array.Array read only.
+    """
+
+    def __init__(self, wrapped_object):
+        self.__dict__['_wrapped_object'] = wrapped_object
+        attributes = dir(wrapped_object)
+        for attr in attributes:
+            if hasattr(self, attr):
+                continue
+            self.__dict__[attr] = attr
+
+    def __setitem__(self, key, value):
+        raise AttributeError('Data type is read only.')
+
+    def __setslice__(self, key, value):
+        raise AttributeError('Data type is read only.')
+
+    def __setattr__(self, key, value):
+        raise AttributeError('Data type is read only.')
+
+    def __getattribute__(self, key):
+        if key in ['_wrapped_object', '__dict__', '__class__']:
+            return object.__getattribute__(self, key)
+
+        return getattr(self._wrapped_object, key)
+
+
+class H5Set(set):
+    """
+    An hdf5 set class for tags.
+    """
+
+    def __init__(self, h5node):
+        self.h5node = h5node
+
+    def add(self, val):
+        f = self.h5node._v_file
+        if val in self:
+            return
+        set.add(self, val)
+        try:
+            f.create_earray(
+                '/tags', val, tables.StringAtom(itemsize=60), (0,))
+        except:
+            pass
+        ea = f.root.tags._v_children[val]
+        found = False
+        for i in range(ea.nrows):
+            if ea[i] == '':
+                ea[i] = np.array(
+                    self.h5node._v_attrs['resource_id'], dtype='S60')
+                found = True
+                break
+        if not found:
+            ea.append(
+                np.array([self.h5node._v_attrs['resource_id']], dtype='S60'))
+
+    def remove(self, val):
+        f = self.h5node._v_file
+        set.remove(self, val)
+        ea = f.root.tags._v_children[val]
+        ea[np.where(ea[:] == self.h5node._v_attrs['resource_id'].encode())] = np.array(
+            [''], dtype='S60')
+        if np.all(ea[:] == np.array('', dtype='S60')):
+            f.remove_node('/tags/' + val)
+
+    def pop(self):
+        val = set.pop(self)
+        self.remove(val)
+        return val
+
+    def discard(self, val):
+        try:
+            self.remove(val)
+        except KeyError:
+            pass
+
+    def clear(self):
+        while True:
+            try:
+                self.pop()
+            except:
+                break
+
+    def update(self, vals):
+        for v in vals:
+            self.add(v)
+
+    def difference_update(self, vals):
+        for v in vals:
+            self.discard(v)
+
+
+def _class_factory(class_name, class_type='base', class_attributes=[]):
     """
     Class factory to unify the creation of all the types in the datamodel.
     """
-    class AbstractBaseClass(object):
+
+    class DataElementBase(object):
         """
         A base class with type checking for all elements in the datamodel.
         """
@@ -369,17 +466,26 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
         # interface
         _attributes = [('_resource_id', ResourceIdentifier),
                        ('_root', DatasetPluginBase),
-                       ('tag', str)]
-        for item in class_contains:
-            _attributes.append((item[0], item[1]))
+                       ('_tags', H5Set)]
         _attribute_keys = [_i[0] for _i in _attributes]
         _attribute_dict = {}
         for key, value in _attributes:
             _attribute_dict[key] = value
 
-        def __init__(self, _plugin, *args, **kwargs):
+        def __init__(self, h5node, *args, **kwargs):
             # Set the plugin entrance point
-            setattr(self, '_root', _plugin)
+            self.__dict__['_root'] = h5node
+            self.__dict__['_tags'] = self._attribute_dict['_tags'](h5node)
+             # Ensure the object has a resource_id
+            value = kwargs.get('_resource_id', None)
+            if value is None:
+                value = ResourceIdentifier()
+            self.__dict__['_resource_id'] = value 
+        
+        
+        @staticmethod
+        def create(parent_node,**kwargs):
+                        
             # Ensure the object has a resource_id
             value = kwargs.get('_resource_id', None)
             if value is None:
@@ -394,11 +500,47 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
                 setattr(self, key, value)
 
         @property
-        def resource_id(self):
-            return self._resource_id
+        def tags(self):
+            return self._tags
 
         def __setattr__(self, name, value):
             # Raise an exception if not a property or attribute
+            raise AttributeError(
+                '{} attributes are read only. Use append method instead.'.format(type(self).__name__))
+
+        def __getattr__(self, name):
+            if name in self._attribute_keys:
+
+                if issubclass(self._property_dict[name], ResourceIdentifier):
+                    val = ResourceIdentifier(
+                        getattr(self._root, name)).get_referred_object()
+                if issubclass(self._property_dict[name], np.ndarray):
+                    val = RetVal(getattr(self._root, name))
+                else:
+                    val = getattr(self._root, name).copy()
+                return val
+
+    class ExpandableDataElement(DataElementBase):
+        pass
+
+    class DataElementBuffer(object):
+        # Every element has to have an ID and a reference to the plugin
+        # root node
+        _properties = []
+        for item in class_attributes:
+            _properties.append((item[0], item[1]))
+        _property_keys = [_i[0] for _i in _properties]
+        _property_dict = {}
+        for key, value in _properties:
+            _property_dict[key] = value
+
+        def __init__(self, **kwargs):
+            # Set all property values to None or the kwarg value.
+            for key, _ in self._properties:
+                value = kwargs.get(key, None)
+                setattr(self, key, value)
+
+        def __setattr__(self, name, value):
             try:
                 attrib_type = self._property_dict[name]
             except KeyError:
@@ -409,48 +551,33 @@ def _class_factory(class_name, class_attributes=[], class_contains=[]):
                         "%s is not a property or attribute of class %s" %
                         (name, type(self).__name__))
             # If the value is None or already the correct type just set it.
-            if name == '_root':
-                if (value is not None) and \
-                        (not isinstance(value, attrib_type)):
-                    raise Exception("%s and %s are incompatible types." %
-                                    (type(value), attrib_type))
-            else:
-                if (value is not None) and (type(value) is not attrib_type):
-                    raise Exception("%s and %s are incompatible types." %
-                                    (type(value), attrib_type))
+            if (value is not None) and (type(value) is not attrib_type):
+                raise Exception("%s and %s are incompatible types." %
+                                (type(value), attrib_type))
             if value is None:
                 if attrib_type == list:
                     value = []
                 if attrib_type == np.ndarray:
                     value = np.array([])
-            if name == "resource_id":
-                self.__dict__[name] = value
-                self.resource_id.set_referred_object(self)
-            elif name in self._attribute_keys:
-                self.__dict__[name] = value
-            else:
-                # Construct path as required by the plugin interface
-                xpath = "{}/{}/{}".format(string.lower(type(self).__name__),
-                                          self.resource_id.id,
-                                          name)
-                try:
-                    self._root.set_item(xpath, value)
-                except AttributeError:
-                    self._root.create_item(xpath, value)
+            self.__dict__[name] = value
 
-        def __getattr__(self, name):
-            if name in self._attribute_keys:
-                return self.__dict__[name]
-            # Construct path as required by the plugin interface
-            xpath = "{}/{}/{}".format(string.lower(type(self).__name__),
-                                      self.resource_id.id,
-                                      name)
-            return self._root.get_item(xpath)
-
-    base_class = AbstractBaseClass
+    if class_type == 'base':
+        base_class = DataElementBase
+    elif class_type == 'extendable':
+        base_class = ExpandableDataElement
+    elif class_type == 'buffer':
+        base_class = DataElementBuffer
     # Set the class type name.
     setattr(base_class, "__name__", class_name)
     return base_class
+
+
+class _DataElementWriter(object):
+    
+    def __init__(self):
+        pass
+    
+    
 
 
 class Dataset(object):
@@ -478,7 +605,7 @@ class Dataset(object):
     :param flux: List of all flux estimates that are part of the dataset.
     """
 
-    def __init__(self, plugin):
+    def __init__(self, filename, mode):
         self.preferred_fluxes = []
         self.fluxes = []
         self.methods = []
@@ -489,34 +616,25 @@ class Dataset(object):
         self.targets = []
         self.raw_data_types = []
         self.data_quality_types = []
-        self._root = plugin
+        self._rids = {}
+        self._f = tables.open_file(filename, mode)
 
-    @staticmethod
-    def new(format, filename=None):
-        plugins = get_registered_plugins()
-        if format.lower() not in plugins:
-            raise Exception('Format %s is not supported.' % format.lower())
-        _p = plugins[format.lower()]()
-        _p.new(filename)
-        return Dataset(_p)
+    def new_raw_data(self, rb):
+        pass    
 
-    @property
-    def plugin(self):
-        return self._root
+    def new_target(self,tb):
+        """
+        Create a new target object entry in the HDF5 file.
+        """
+        
 
-    def __getitem__(self, path):
-        return self._root.get_item(path)
-
-    def __setitem__(self, path, value):
-        return self._root.set_item(path, value)
-
-    @staticmethod
-    def open(filename, format, **kargs):
-        plugins = get_registered_plugins()
-        if format.lower() not in plugins:
-            raise Exception('Format %s is not supported.' % format.lower())
-        _p = plugins[format.lower()]()
-        return _p.open(filename, **kargs)
+    def new(self, data_buffer):
+        """
+        Create a new entry in the HDF5 file from the given data buffer.
+        """
+        print type(data_buffer).__name__
+        return ()
+        
 
     def plot(self, toplot='retrievals', savefig=None, **kargs):
         """
@@ -615,17 +733,15 @@ class Dataset(object):
             print 'Plotting %s is has not been implemented yet' % toplot
 
 
-__RawData = _class_factory('__RawData',
+__RawData = _class_factory('__RawData', 'extendable',
                            class_attributes=[('instrument',
                                               ResourceIdentifier),
                                              ('target', ResourceIdentifier),
                                              ('type', ResourceIdentifier),
-                                             ('angle', np.ndarray),
-                                             ('angle_error', np.ndarray),
-                                             ('inc_angle', float),
-                                             ('inc_angle_error', float),
-                                             ('bearing', float),
-                                             ('bearing_error', float),
+                                             ('inc_angle', np.ndarray),
+                                             ('inc_angle_error', np.ndarray),
+                                             ('bearing', np.ndarray),
+                                             ('bearing_error', np.ndarray),
                                              ('position', np.ndarray),
                                              ('position_error', np.ndarray),
                                              ('path_length', np.ndarray),
@@ -641,6 +757,14 @@ __RawData = _class_factory('__RawData',
                                              ('creation_time', float),
                                              ('modification_time', float),
                                              ('user_notes', str)])
+
+__RawDataBuffer = _class_factory(
+    '__RawDataBuffer', 'buffer', __RawData._properties)
+
+
+class RawDataBuffer(__RawDataBuffer):
+    """
+    """
 
 
 class _RawData(__RawData):
@@ -702,10 +826,17 @@ class _RawData(__RawData):
     :param user_notes: Additional notes.
     """
 
-__RawDataType = _class_factory('__RawDataType',
-                               class_attributes=[('tag', str),
-                                                 ('name', str),
+__RawDataType = _class_factory('__RawDataType', 'base',
+                               class_attributes=[('name', str),
                                                  ('acquisition', str)])
+
+__RawDataTypeBuffer = _class_factory(
+    '__RawDataTypeBuffer', 'buffer', __RawDataType._properties)
+
+
+class RawDataTypeBuffer(__RawDataTypeBuffer):
+    """
+    """
 
 
 class _RawDataType(__RawDataType):
@@ -713,12 +844,20 @@ class _RawDataType(__RawDataType):
     """
 
 
-__Instrument = _class_factory('__Instrument',
+__Instrument = _class_factory('__Instrument', 'base',
                               class_attributes=[('no_bits', int),
                                                 ('sensor_id', str),
                                                 ('location', str),
                                                 ('type', str),
                                                 ('description', str)])
+
+__InstrumentBuffer = _class_factory(
+    '__InstrumentBuffer', 'buffer', __Instrument._properties)
+
+
+class InstrumentBuffer(__InstrumentBuffer):
+    """
+    """
 
 
 class _Instrument(__Instrument):
@@ -737,7 +876,7 @@ class _Instrument(__Instrument):
     """
 
 
-__GasFlow = _class_factory('__GasFlow',
+__GasFlow = _class_factory('__GasFlow', 'extendable',
                            class_attributes=[('method', ResourceIdentifier),
                                              ('vx', np.ndarray),
                                              ('vx_error', np.ndarray),
@@ -759,6 +898,14 @@ __GasFlow = _class_factory('__GasFlow',
                                              ('modification_time',
                                               float),
                                              ('user_notes', str)])
+
+__GasFlowBuffer = _class_factory(
+    '__GasFlowBuffer', 'buffer', __GasFlow._properties)
+
+
+class GasFlowBuffer(__GasFlowBuffer):
+    """
+    """
 
 
 class _GasFlow(__GasFlow):
@@ -850,12 +997,20 @@ class _GasFlow(__GasFlow):
         return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error)
 
 
-__Target = _class_factory('__Target',
+__Target = _class_factory('__Target', 'base',
                           class_attributes=[('target_id', str),
                                             ('name', str),
                                             ('position', tuple),
                                             ('position_error', tuple),
                                             ('description', str)])
+
+__TargetBuffer = _class_factory(
+    '__TargetBuffer', 'buffer', __Target._properties)
+
+
+class TargetBuffer(__TargetBuffer):
+    """
+    """
 
 
 class _Target(__Target):
@@ -871,7 +1026,7 @@ class _Target(__Target):
     """
 
 
-__Concentration = _class_factory('__Concentration',
+__Concentration = _class_factory('__Concentration', 'extendable',
                                  class_attributes=[('method',
                                                     ResourceIdentifier),
                                                    ('gasflow',
@@ -888,6 +1043,14 @@ __Concentration = _class_factory('__Concentration',
                                                    ('modification_time',
                                                     float),
                                                    ('user_notes', str)])
+
+__ConcentrationBuffer = _class_factory(
+    '__ConcentrationBuffer', 'buffer', __Concentration._properties)
+
+
+class ConcentrationBuffer(__ConcentrationBuffer):
+    """
+    """
 
 
 class _Concentration(__Concentration):
@@ -932,7 +1095,7 @@ class _Concentration(__Concentration):
     """
 
 
-__Flux = _class_factory('__Flux',
+__Flux = _class_factory('__Flux', 'extendable',
                         class_attributes=[('concentration', ResourceIdentifier),
                                           ('method', ResourceIdentifier),
                                           ('concentration_indices', list),
@@ -944,6 +1107,13 @@ __Flux = _class_factory('__Flux',
                                           ('creation_time', float),
                                           ('modification_time', float),
                                           ('user_notes', str)])
+
+__FluxBuffer = _class_factory('__FluxBuffer', 'buffer', __Flux._properties)
+
+
+class FluxBuffer(__FluxBuffer):
+    """
+    """
 
 
 class _Flux(__Flux):
@@ -987,7 +1157,7 @@ class _Flux(__Flux):
     :param user_notes: Additional notes.
     """
 
-__PreferredFlux = _class_factory('__PreferredFlux',
+__PreferredFlux = _class_factory('__PreferredFlux', 'extendable',
                                  class_attributes=[('fluxes', list),
                                                    ('flux_indices', list),
                                                    ('method',
@@ -1000,6 +1170,14 @@ __PreferredFlux = _class_factory('__PreferredFlux',
                                                    ('modification_time',
                                                     float),
                                                    ('user_notes', str)])
+
+__PreferredFluxBuffer = _class_factory(
+    '__PreferredFluxBuffer', 'buffer', __PreferredFlux._properties)
+
+
+class PreferredFluxBuffer(__PreferredFluxBuffer):
+    """
+    """
 
 
 class _PreferredFlux(__PreferredFlux):
