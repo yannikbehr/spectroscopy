@@ -23,7 +23,16 @@ class DatamodelTestCase(unittest.TestCase):
                           position_error=(0.2, 0.2, 20),
                           description='Main vent in January 2017')
         t = d.new(tb)
-    
+        np.testing.assert_almost_equal(np.squeeze(t.position[:]),np.array([177.2, -37.5, 50]),1)
+        self.assertEqual(t.target_id,'WI001')
+        with self.assertRaises(AttributeError):
+            t.position = (177.2, -37.5, 50)
+        with self.assertRaises(AttributeError):
+            t.target_id = 'WI002'
+        tid = t.target_id
+        tid = 'WI002'
+        self.assertEqual(t.target_id,'WI001')
+
     def test_raw_data(self):
         d = Dataset(tempfile.mktemp(), 'w')
         rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),

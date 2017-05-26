@@ -1,6 +1,6 @@
 import calendar
 import collections
-from copy import deepcopy
+from copy import copy, deepcopy
 import datetime
 import inspect
 import string
@@ -374,8 +374,13 @@ class RetVal(object):
     def __getattribute__(self, key):
         if key in ['_wrapped_object', '__dict__', '__class__']:
             return object.__getattribute__(self, key)
-
         return getattr(self._wrapped_object, key)
+
+    def __getitem__(self,key):
+        return self._wrapped_object.__getitem__(key)
+
+    def __str__(self):
+        return self._wrapped_object.__str__()
 
 
 class H5Set(set):
@@ -401,18 +406,18 @@ class H5Set(set):
         for i in range(ea.nrows):
             if ea[i] == '':
                 ea[i] = np.array(
-                    self.h5node._v_attrs['resource_id'], dtype='S60')
+                    self.h5node._v_name['resource_id'], dtype='S60')
                 found = True
                 break
         if not found:
             ea.append(
-                np.array([self.h5node._v_attrs['resource_id']], dtype='S60'))
+                np.array([self.h5node._v_name['resource_id']], dtype='S60'))
 
     def remove(self, val):
         f = self.h5node._v_file
         set.remove(self, val)
         ea = f.root.tags._v_children[val]
-        ea[np.where(ea[:] == self.h5node._v_attrs['resource_id'].encode())] = np.array(
+        ea[np.where(ea[:] == self.h5node._v_name['resource_id'].encode())] = np.array(
             [''], dtype='S60')
         if np.all(ea[:] == np.array('', dtype='S60')):
             f.remove_node('/tags/' + val)
@@ -451,7 +456,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
 
     class DataElementBase(object):
         """
-        A base class with type checking for all elements in the datamodel.
+        A base class with type checking for non-extendable elements in the datamodel.
         """
         # Every element has to have an ID and a reference to the plugin
         # root node
@@ -462,42 +467,33 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
         _property_dict = {}
         for key, value in _properties:
             _property_dict[key] = value
-        # Dynamic class attributes that are not set through the plugin
-        # interface
-        _attributes = [('_resource_id', ResourceIdentifier),
-                       ('_root', DatasetPluginBase),
-                       ('_tags', H5Set)]
-        _attribute_keys = [_i[0] for _i in _attributes]
-        _attribute_dict = {}
-        for key, value in _attributes:
-            _attribute_dict[key] = value
 
-        def __init__(self, h5node, *args, **kwargs):
-            # Set the plugin entrance point
+        def __init__(self, h5node, data_buffer=None):
+            # Set the parent HDF5 group after type checking
+            if (type(h5node) is not tables.group.Group):
+                raise Exception("%s and %s are incompatible types." %
+                                (type(h5node), tables.group.Group))
             self.__dict__['_root'] = h5node
-            self.__dict__['_tags'] = self._attribute_dict['_tags'](h5node)
-             # Ensure the object has a resource_id
-            value = kwargs.get('_resource_id', None)
-            if value is None:
-                value = ResourceIdentifier()
-            self.__dict__['_resource_id'] = value 
-        
-        
-        @staticmethod
-        def create(parent_node,**kwargs):
-                        
-            # Ensure the object has a resource_id
-            value = kwargs.get('_resource_id', None)
-            if value is None:
-                value = ResourceIdentifier()
-            setattr(self, '_resource_id', value)
-            # Set all property values to None or the kwarg value.
-            for key, _ in self._properties:
-                value = kwargs.get(key, None)
-                setattr(self, key, value)
-            for key, _ in self._attributes[2:]:
-                value = kwargs.get(key, None)
-                setattr(self, key, value)
+            self.__dict__['_tags'] = H5Set(h5node)
+            # Every time a new object is created it gets a new resource ID
+            self.__dict__['_resource_id'] = ResourceIdentifier(oid=h5node._v_name,
+                                                              referred_object=self)
+            if data_buffer is not None:
+                dtp = []
+                vals = {}
+                for key, prop_type in self._property_dict.iteritems():
+                    val = getattr(data_buffer,key,None)
+                    if val is None:
+                        continue
+                    vals[key] = val
+                    dtp.append((key,val.dtype,val.shape))
+                f = h5node._v_file
+                table = f.create_table(h5node,'data', np.dtype(dtp))
+                entry = table.row
+                for key,val in vals.iteritems():
+                    entry[key]  = val
+                entry.append()
+                table.flush() 
 
         @property
         def tags(self):
@@ -509,15 +505,14 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
                 '{} attributes are read only. Use append method instead.'.format(type(self).__name__))
 
         def __getattr__(self, name):
-            if name in self._attribute_keys:
-
-                if issubclass(self._property_dict[name], ResourceIdentifier):
-                    val = ResourceIdentifier(
-                        getattr(self._root, name)).get_referred_object()
-                if issubclass(self._property_dict[name], np.ndarray):
-                    val = RetVal(getattr(self._root, name))
+           if name in self._property_keys:
+                table = getattr(self._root,'data')
+                if issubclass(self._property_dict[name][0], ResourceIdentifier):
+                    val = ResourceIdentifier(table[0][name]).get_referred_object()
+                if issubclass(self._property_dict[name][0], np.ndarray):
+                    val = RetVal(getattr(table.cols,name))
                 else:
-                    val = getattr(self._root, name).copy()
+                    val = copy(getattr(table.cols,name)[0])
                 return val
 
     class ExpandableDataElement(DataElementBase):
@@ -544,21 +539,18 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
             try:
                 attrib_type = self._property_dict[name]
             except KeyError:
-                try:
-                    attrib_type = self._attribute_dict[name]
-                except KeyError:
-                    raise Exception(
-                        "%s is not a property or attribute of class %s" %
-                        (name, type(self).__name__))
+                raise Exception(
+                    "%s is not a property or attribute of class %s" %
+                    (name, type(self).__name__))
             # If the value is None or already the correct type just set it.
-            if (value is not None) and (type(value) is not attrib_type):
-                raise Exception("%s and %s are incompatible types." %
-                                (type(value), attrib_type))
-            if value is None:
-                if attrib_type == list:
-                    value = []
-                if attrib_type == np.ndarray:
-                    value = np.array([])
+            if (value is not None) and (type(value) not in attrib_type):
+                msg = "{:s} is not in the list of compatible types: {}"
+                raise Exception(msg.format(type(value), attrib_type))
+            if value is not None:
+                if attrib_type[0] == np.ndarray:
+                    value = np.array(value)
+                else:
+                    value = attrib_type[0](value)
             self.__dict__[name] = value
 
     if class_type == 'base':
@@ -618,23 +610,34 @@ class Dataset(object):
         self.data_quality_types = []
         self._rids = {}
         self._f = tables.open_file(filename, mode)
+        self.func_table = {'TargetBuffer':self._new_target}
 
-    def new_raw_data(self, rb):
+    def __del__(self):
+        self._f.close()
+
+    def _new_raw_data(self, rb):
         pass    
 
-    def new_target(self,tb):
+    def _new_target(self,tb):
         """
         Create a new target object entry in the HDF5 file.
         """
-        
+        rid = ResourceIdentifier()
+        try:
+            self._f.create_group('/','Target')
+        except tables.NodeError:
+            pass
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self._f.create_group('/Target',str(rid))
 
+        return _Target(getattr(self._f.root.Target,str(rid)),tb)
+        
     def new(self, data_buffer):
         """
         Create a new entry in the HDF5 file from the given data buffer.
         """
-        print type(data_buffer).__name__
-        return ()
-        
+        return self.func_table[type(data_buffer).__name__](data_buffer)
 
     def plot(self, toplot='retrievals', savefig=None, **kargs):
         """
@@ -998,11 +1001,11 @@ class _GasFlow(__GasFlow):
 
 
 __Target = _class_factory('__Target', 'base',
-                          class_attributes=[('target_id', str),
-                                            ('name', str),
-                                            ('position', tuple),
-                                            ('position_error', tuple),
-                                            ('description', str)])
+                          class_attributes=[('target_id', (np.str_,str)),
+                                            ('name', (np.str_,str)),
+                                            ('position', (np.ndarray,list,tuple)),
+                                            ('position_error', (np.ndarray,list,tuple)),
+                                            ('description', (np.str_,str))])
 
 __TargetBuffer = _class_factory(
     '__TargetBuffer', 'buffer', __Target._properties)
