@@ -17,7 +17,7 @@ import tables
 from scipy.stats import binned_statistic
 
 from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
-
+import spectroscopy.util
 
 class ResourceIdentifier(object):
     """
@@ -449,7 +449,7 @@ class H5Set(set):
             self.discard(v)
 
 
-def _class_factory(class_name, class_type='base', class_attributes=[]):
+def _class_factory(class_name, class_type='base', class_attributes=[], class_references=[]):
     """
     Class factory to unify the creation of all the types in the datamodel.
     """
@@ -458,8 +458,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
         """
         A base class with type checking for non-extendable elements in the datamodel.
         """
-        # Every element has to have an ID and a reference to the plugin
-        # root node
+        # Assign properties of the data element including the expected data types
         _properties = []
         for item in class_attributes:
             _properties.append((item[0], item[1]))
@@ -467,6 +466,15 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
         _property_dict = {}
         for key, value in _properties:
             _property_dict[key] = value
+
+        # Assign references to other elements in the datamodel
+        _references = []
+        for item in class_references:
+            _references.append((item[0],item[1]))
+        _reference_keys = [_i[0] for _i in _references] 
+        _reference_dict = {}
+        for key, value in _references:
+            _reference_dict[key] = value 
 
         def __init__(self, h5node, data_buffer=None):
             # Set the parent HDF5 group after type checking
@@ -485,8 +493,19 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
                     val = getattr(data_buffer,key,None)
                     if val is None:
                         continue
+                    if prop_type[0] == datetime.datetime:
+                        datestring = val.isoformat()
+                        vals[key] = datestring
+                        dtp.append((key,np.dtype('S'+str(len(datestring))),()))
+                    else: 
+                        vals[key] = val
+                        dtp.append((key,val.dtype,val.shape))
+                for key in self._reference_keys:
+                    val = getattr(data_buffer,key,None)
+                    if val is None:
+                        continue
                     vals[key] = val
-                    dtp.append((key,val.dtype,val.shape))
+                    dtp.append((key,np.dtype('S'+str(len(val))),()))            
                 f = h5node._v_file
                 table = f.create_table(h5node,'data', np.dtype(dtp))
                 entry = table.row
@@ -509,14 +528,25 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
                 table = getattr(self._root,'data')
                 if issubclass(self._property_dict[name][0], ResourceIdentifier):
                     val = ResourceIdentifier(table[0][name]).get_referred_object()
-                if issubclass(self._property_dict[name][0], np.ndarray):
+                elif issubclass(self._property_dict[name][0], np.ndarray):
                     val = RetVal(getattr(table.cols,name))
+                elif issubclass(self._property_dict[name][0], datetime.datetime):
+                    val = parse_iso_8601(getattr(table.cols,name))
                 else:
                     val = copy(getattr(table.cols,name)[0])
                 return val
+           if name in self._reference_keys:
+                table = getattr(self._root,'data')
+                return ResourceIdentifier(table[0][name]).get_referred_object()
+                
 
     class ExpandableDataElement(DataElementBase):
-        pass
+        """
+        A base class with type checking for extendable elements in the datamodel.
+        """
+
+        def append(self):
+            pass
 
     class DataElementBuffer(object):
         # Every element has to have an ID and a reference to the plugin
@@ -529,28 +559,48 @@ def _class_factory(class_name, class_type='base', class_attributes=[]):
         for key, value in _properties:
             _property_dict[key] = value
 
+        # Assign references to other elements in the datamodel
+        _references = []
+        for item in class_references:
+            _references.append((item[0],item[1]))
+        _reference_keys = [_i[0] for _i in _references] 
+        _reference_dict = {}
+        for key, value in _references:
+            _reference_dict[key] = value 
+
         def __init__(self, **kwargs):
             # Set all property values to None or the kwarg value.
             for key, _ in self._properties:
                 value = kwargs.get(key, None)
+                setattr(self, key, value)
+            for key in self._reference_keys:
+                value = kwargs.get(key,None)
                 setattr(self, key, value)
 
         def __setattr__(self, name, value):
             try:
                 attrib_type = self._property_dict[name]
             except KeyError:
-                raise Exception(
-                    "%s is not a property or attribute of class %s" %
-                    (name, type(self).__name__))
+                try:
+                    attrib_type = self._reference_dict[name]
+                except KeyError:
+                    raise Exception(
+                        "%s is not a property or reference of class %s" %
+                        (name, type(self).__name__))
             # If the value is None or already the correct type just set it.
             if (value is not None) and (type(value) not in attrib_type):
                 msg = "{:s} is not in the list of compatible types: {}"
                 raise Exception(msg.format(type(value), attrib_type))
             if value is not None:
-                if attrib_type[0] == np.ndarray:
-                    value = np.array(value)
+                if name in self._reference_keys:
+                    value = str(getattr(value,'_resource_id'))
                 else:
-                    value = attrib_type[0](value)
+                    if attrib_type[0] == np.ndarray:
+                        value = np.array(value)
+                    elif self._property_dict[name][0] == datetime.datetime:
+                        value = spectroscopy.util.parse_iso_8601(value)
+                    else:
+                        value = attrib_type[0](value)
             self.__dict__[name] = value
 
     if class_type == 'base':
@@ -610,13 +660,24 @@ class Dataset(object):
         self.data_quality_types = []
         self._rids = {}
         self._f = tables.open_file(filename, mode)
-        self.func_table = {'TargetBuffer':self._new_target}
+        self.func_table = {'TargetBuffer': self._new_target,
+                           'RawDataBuffer': self._new_raw_data
+                          }
 
     def __del__(self):
         self._f.close()
 
     def _new_raw_data(self, rb):
-        pass    
+        rid = ResourceIdentifier()
+        try:
+            self._f.create_group('/','RawData')
+        except tables.NodeError:
+            pass
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self._f.create_group('/RawData',str(rid))
+
+        return _RawData(getattr(self._f.root.RawData,str(rid)),rb)
 
     def _new_target(self,tb):
         """
@@ -733,36 +794,117 @@ class Dataset(object):
             return fig
 
         else:
-            print 'Plotting %s is has not been implemented yet' % toplot
+            print 'Plotting %s has not been implemented yet' % toplot
+
+            
+__RawDataType = _class_factory('__RawDataType', 'base',
+                               class_attributes=[('name', (np.str_,str)),
+                                                 ('acquisition', (np.str_,str))])
+
+__RawDataTypeBuffer = _class_factory(
+    '__RawDataTypeBuffer', 'buffer', __RawDataType._properties)
+
+
+class RawDataTypeBuffer(__RawDataTypeBuffer):
+    """
+    """
+
+
+class _RawDataType(__RawDataType):
+    """
+    """
+
+
+
+
+__Target = _class_factory('__Target', 'base',
+    class_attributes=[
+        ('target_id', (np.str_,str)),
+        ('name', (np.str_,str)),
+        ('position', (np.ndarray,list,tuple)),
+        ('position_error', (np.ndarray,list,tuple)),
+        ('description', (np.str_,str)),
+        ('creation_time', (np.str_,str))])
+
+__TargetBuffer = _class_factory(
+    '__TargetBuffer', 'buffer', __Target._properties)
+
+
+class TargetBuffer(__TargetBuffer):
+    """
+    """
+
+
+class _Target(__Target):
+    """
+    This class describes a target plume.
+
+    :type position: :class:`numpy.ndarray`
+    :param position: Position of a plume in decimal degrees for longitude and
+        latitude and m above sea level for elevation.
+    :type description: str, optional
+    :param description: Any additional information on the plume that may be
+        relevant.
+    """
+
+__Instrument = _class_factory('__Instrument', 'base',
+                              class_attributes=[('no_bits', (np.int32,int)),
+                                                ('sensor_id', (np.str_,str)),
+                                                ('location', (np.str_,str)),
+                                                ('type', (np.str_,str)),
+                                                ('description', (np.str_,str))])
+
+__InstrumentBuffer = _class_factory(
+    '__InstrumentBuffer', 'buffer', __Instrument._properties)
+
+
+class InstrumentBuffer(__InstrumentBuffer):
+    """
+    """
+
+
+class _Instrument(__Instrument):
+    """
+    This class describes the spectrometer.
+
+    :type no_bits: int
+    :param no_bits: The number of bits used by the analog-to-digital converter.
+    :type type: str
+    :param type: The spectrometer type (e.g. FlySpec, MiniDOAS, etc.)
+    :type spectrometer_ID: str
+    :param spectrometer_ID: The spectrometer's ID as given by the manufacturer.
+    :type description: str, optional
+    :param description: Any additional information on the instrument that may
+        be relevant.
+    """
 
 
 __RawData = _class_factory('__RawData', 'extendable',
-                           class_attributes=[('instrument',
-                                              ResourceIdentifier),
-                                             ('target', ResourceIdentifier),
-                                             ('type', ResourceIdentifier),
-                                             ('inc_angle', np.ndarray),
-                                             ('inc_angle_error', np.ndarray),
-                                             ('bearing', np.ndarray),
-                                             ('bearing_error', np.ndarray),
-                                             ('position', np.ndarray),
-                                             ('position_error', np.ndarray),
-                                             ('path_length', np.ndarray),
-                                             ('path_length_error', np.ndarray),
-                                             ('d_var', np.ndarray),
-                                             ('ind_var', np.ndarray),
-                                             ('datetime', np.ndarray),
-                                             ('data_quality', list),
-                                             ('data_quality_type', list),
-                                             ('integration_time', np.ndarray),
-                                             ('no_averages', np.ndarray),
-                                             ('temperature', np.ndarray),
-                                             ('creation_time', float),
-                                             ('modification_time', float),
-                                             ('user_notes', str)])
+                           class_attributes=[('inc_angle', (float,)),
+                                             ('inc_angle_error', (float,)),
+                                             ('bearing', (float,)),
+                                             ('bearing_error', (float,)),
+                                             ('position', (float,)),
+                                             ('position_error', (float,)),
+                                             ('path_length', (float,)),
+                                             ('path_length_error', (float,)),
+                                             ('d_var', (np.ndarray,list,tuple)),
+                                             ('ind_var', (np.ndarray,list,tuple)),
+                                             ('datetime', (datetime.datetime,np.str_,str)),
+                                             ('data_quality', (np.ndarray,list,tuple)),
+                                             ('data_quality_type', (np.ndarray,list,tuple)),
+                                             ('integration_time', (float,)),
+                                             ('no_averages', (float,)),
+                                             ('temperature', (float,)),
+                                             ('creation_time', (datetime.datetime,np.str_,str)),
+                                             ('modification_time', (datetime.datetime,np.str_,str)),
+                                             ('user_notes', (np.str_,str))],
+                          class_references=[('instrument',(_Instrument,)),
+                                            ('target',(_Target,)),
+                                            ('type',(_RawDataType,))])
 
 __RawDataBuffer = _class_factory(
-    '__RawDataBuffer', 'buffer', __RawData._properties)
+    '__RawDataBuffer', 'buffer', __RawData._properties, __RawData._references)
 
 
 class RawDataBuffer(__RawDataBuffer):
@@ -829,81 +971,28 @@ class _RawData(__RawData):
     :param user_notes: Additional notes.
     """
 
-__RawDataType = _class_factory('__RawDataType', 'base',
-                               class_attributes=[('name', str),
-                                                 ('acquisition', str)])
-
-__RawDataTypeBuffer = _class_factory(
-    '__RawDataTypeBuffer', 'buffer', __RawDataType._properties)
-
-
-class RawDataTypeBuffer(__RawDataTypeBuffer):
-    """
-    """
-
-
-class _RawDataType(__RawDataType):
-    """
-    """
-
-
-__Instrument = _class_factory('__Instrument', 'base',
-                              class_attributes=[('no_bits', int),
-                                                ('sensor_id', str),
-                                                ('location', str),
-                                                ('type', str),
-                                                ('description', str)])
-
-__InstrumentBuffer = _class_factory(
-    '__InstrumentBuffer', 'buffer', __Instrument._properties)
-
-
-class InstrumentBuffer(__InstrumentBuffer):
-    """
-    """
-
-
-class _Instrument(__Instrument):
-    """
-    This class describes the spectrometer.
-
-    :type no_bits: int
-    :param no_bits: The number of bits used by the analog-to-digital converter.
-    :type type: str
-    :param type: The spectrometer type (e.g. FlySpec, MiniDOAS, etc.)
-    :type spectrometer_ID: str
-    :param spectrometer_ID: The spectrometer's ID as given by the manufacturer.
-    :type description: str, optional
-    :param description: Any additional information on the instrument that may
-        be relevant.
-    """
-
-
 __GasFlow = _class_factory('__GasFlow', 'extendable',
-                           class_attributes=[('method', ResourceIdentifier),
-                                             ('vx', np.ndarray),
-                                             ('vx_error', np.ndarray),
-                                             ('vy', np.ndarray),
-                                             ('vy_error', np.ndarray),
-                                             ('vz', np.ndarray),
-                                             ('vz_error', np.ndarray),
-                                             ('unit', str),
-                                             ('position', np.ndarray),
-                                             ('position_error',
-                                              np.ndarray),
-                                             ('grid_bearing', float),
-                                             ('grid_increments',
-                                              np.ndarray),
-                                             ('pressure', np.ndarray),
-                                             ('temperature', np.ndarray),
-                                             ('datetime', np.ndarray),
-                                             ('creation_time', float),
-                                             ('modification_time',
-                                              float),
-                                             ('user_notes', str)])
+                           class_attributes=[('vx', (np.ndarray,list,tuple)),
+                                             ('vx_error', (np.ndarray,list,tuple)),
+                                             ('vy', (np.ndarray,list,tuple)),
+                                             ('vy_error', (np.ndarray,list,tuple)),
+                                             ('vz', (np.ndarray,list,tuple)),
+                                             ('vz_error', (np.ndarray,list,tuple)),
+                                             ('unit', (np.str_,str)),
+                                             ('position', (np.ndarray,list,tuple)),
+                                             ('position_error', (np.ndarray,list,tuple)),
+                                             ('grid_bearing', (float,)),
+                                             ('grid_increments', (np.ndarray,list,tuple)),
+                                             ('pressure', (np.ndarray,list,tuple)),
+                                             ('temperature', (np.ndarray,list,tuple)),
+                                             ('datetime', (np.ndarray,list,tuple)),
+                                             ('creation_time', (float,)),
+                                             ('modification_time', (float,)),
+                                             ('user_notes', (np.str_,str))],
+                          class_references=[('methods',(np.ndarray,list,tuple))])
 
 __GasFlowBuffer = _class_factory(
-    '__GasFlowBuffer', 'buffer', __GasFlow._properties)
+    '__GasFlowBuffer', 'buffer', __GasFlow._properties, __GasFlow._references)
 
 
 class GasFlowBuffer(__GasFlowBuffer):
@@ -999,53 +1088,40 @@ class _GasFlow(__GasFlow):
         lon, lat, hght = self.position[ndx[0], :]
         return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error)
 
+__Method = _class_factory('__Method', 'base',
+                          class_attributes=[('name',(np.str_,str)),
+                                           ('description',(np.str_,str)),
+                                           ('settings',(np.str_,str)),
+                                           ('reference',(np.str_,str)),
+                                           ('creation_time',(np.str_,str))],
+                          class_references=[('raw_data',_RawData)])
 
-__Target = _class_factory('__Target', 'base',
-                          class_attributes=[('target_id', (np.str_,str)),
-                                            ('name', (np.str_,str)),
-                                            ('position', (np.ndarray,list,tuple)),
-                                            ('position_error', (np.ndarray,list,tuple)),
-                                            ('description', (np.str_,str))])
+__MethodBuffer = _class_factory('__MethodBuffer', 'buffer',
+                                __Method._properties, __Method._references)
 
-__TargetBuffer = _class_factory(
-    '__TargetBuffer', 'buffer', __Target._properties)
-
-
-class TargetBuffer(__TargetBuffer):
+class MethodBuffer(__MethodBuffer):
     """
-    """
-
-
-class _Target(__Target):
-    """
-    This class describes a target plume.
-
-    :type position: :class:`numpy.ndarray`
-    :param position: Position of a plume in decimal degrees for longitude and
-        latitude and m above sea level for elevation.
-    :type description: str, optional
-    :param description: Any additional information on the plume that may be
-        relevant.
+    Description of the analysis method.
     """
 
+class _Method(__Method):
+    """
+    """
 
 __Concentration = _class_factory('__Concentration', 'extendable',
-                                 class_attributes=[('method',
-                                                    ResourceIdentifier),
-                                                   ('gasflow',
-                                                    ResourceIdentifier),
-                                                   ('rawdata',
-                                                    ResourceIdentifier),
-                                                   ('rawdata_indices', slice),
-                                                   ('gas_species', str),
-                                                   ('value', np.ndarray),
-                                                   ('value_error', np.ndarray),
-                                                   ('unit', str),
-                                                   ('analyst_contact', str),
-                                                   ('creation_time', float),
-                                                   ('modification_time',
-                                                    float),
-                                                   ('user_notes', str)])
+                                 class_attributes=[('rawdata_indices', (slice,np.ndarray,list,tuple)),
+                                                   ('gas_species', (np.str_, str)),
+                                                   ('value', (np.ndarray,list,tuple)),
+                                                   ('value_error', (np.ndarray,list,tuple)),
+                                                   ('unit', (np.str_,str)),
+                                                   ('analyst_contact', (np.str_,str)),
+                                                   ('creation_time', (np.str_,str)),
+                                                   ('modification_time', (np.str_,str)),
+                                                   ('user_notes', (np.str_,str))],
+                                class_references=[('method',(_Method,)),
+                                                  ('gasflow',(_GasFlow,)),
+                                                  ('rawdata',(_RawData,))])
+
 
 __ConcentrationBuffer = _class_factory(
     '__ConcentrationBuffer', 'buffer', __Concentration._properties)

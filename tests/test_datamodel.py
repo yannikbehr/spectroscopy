@@ -36,9 +36,22 @@ class DatamodelTestCase(unittest.TestCase):
     def test_raw_data(self):
         d = Dataset(tempfile.mktemp(), 'w')
         rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime=np.array(np.datetime64('2017-01-10T15:23:00')))
-        r = d.new_raw_data(rb)
-        self.assertTrue(np.alltrue(r.d_var < 1))
+                           datetime='2017-01-10T15:23:00')
+        r = d.new(rb)
+        self.assertTrue(np.alltrue(r.d_var[:] < 1))
+
+    def test_ResourceIdentifiers(self):
+        d = Dataset(tempfile.mktemp(),'w')
+        tb = TargetBuffer(target_id='WI001', name='White Island main vent',
+                          position=(177.2, -37.5, 50),
+                          position_error=(0.2, 0.2, 20),
+                          description='Main vent in January 2017')
+        t = d.new(tb)
+        rb = RawDataBuffer(target=t,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                           datetime='2017-01-10T15:23:00')
+        r = d.new(rb)
+        self.assertEqual(r.target.target_id,'WI001')
+
 
     def test_sum(self):
         d1 = Dataset(tempfile.mktemp(), 'w')
