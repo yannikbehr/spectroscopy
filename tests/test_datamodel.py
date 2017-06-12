@@ -4,12 +4,12 @@ import unittest
 
 import numpy as np
 
-from spectroscopy.dataset import (Dataset, RawDataBuffer, TargetBuffer,
+from spectroscopy.datamodel import (RawDataBuffer, TargetBuffer,
                                   InstrumentBuffer, RawDataTypeBuffer,
                                   ConcentrationBuffer, GasFlowBuffer,
                                   FluxBuffer, PreferredFluxBuffer,
                                   _Target)
-
+from spectroscopy.dataset import Dataset
 
 class DatamodelTestCase(unittest.TestCase):
 
