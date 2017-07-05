@@ -547,3 +547,6 @@ class DataQualityTypeBuffer(__DataQualityTypeBuffer):
 class _DataQualityType(__DataQualityType):
 	'''
 	'''
+
+
+all_classes = [_Instrument, _Target, _RawDataType, _RawData, _GasFlow, _Method, _Concentration, _PreferredFlux, _Flux, _DataQualityType]
