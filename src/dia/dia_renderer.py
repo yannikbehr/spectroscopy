@@ -248,6 +248,18 @@ class MyPyRenderer(ObjRenderer):
         fh.write(self.to_build[key]['code'])
         self.built.append(key)
 
+    def footer(self):
+        s = "\n\n"
+        s += "all_classes = ["
+        i = 0
+        for k in self.built:
+            i += 1
+            s += "{:s}".format(k)
+            if i < len(self.built):
+                s += ", "
+        s += "]\n"
+        return s
+
     def end_render(self):
         f = open(self.filename,'w')
         f.write(self.header())
@@ -255,6 +267,7 @@ class MyPyRenderer(ObjRenderer):
             self.to_build["_{:s}".format(sk)] = self.build_classes(self.klasses[sk])
         for k in self.to_build.keys():
             self.tree_build(f, k)
+        f.write(self.footer())
         f.close()
         self.to_build = {}
         self.built = []
