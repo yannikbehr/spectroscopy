@@ -505,14 +505,20 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     if val is None:
                         continue
                     vals[key] = val
-                    dtp.append((key,np.dtype('S'+str(len(val))),()))            
-                f = h5node._v_file
-                table = f.create_table(h5node,'data', np.dtype(dtp))
-                entry = table.row
-                for key,val in vals.iteritems():
-                    entry[key]  = val
-                entry.append()
-                table.flush() 
+                    # Allow for additional postfix which get appended if
+                    # an element get copied
+                    # ToDo: allow for variable size string or make string
+                    # long enough to allow more than one copy
+                    dtp.append((key,np.dtype('S'+str(len(val)+10)),()))            
+                # Allow to create empty elements for testing
+                if len(dtp) > 0:
+                    f = h5node._v_file
+                    table = f.create_table(h5node,'data', np.dtype(dtp))
+                    entry = table.row
+                    for key,val in vals.iteritems():
+                        entry[key]  = val
+                    entry.append()
+                    table.flush() 
 
         @property
         def tags(self):
@@ -526,6 +532,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         def __getattr__(self, name):
            if name in self._property_keys:
                 table = getattr(self._root,'data')
+                # ToDo: remove as obsolete
                 if issubclass(self._property_dict[name][0], ResourceIdentifier):
                     val = ResourceIdentifier(table[0][name]).get_referred_object()
                 elif issubclass(self._property_dict[name][0], np.ndarray):
