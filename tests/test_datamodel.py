@@ -55,25 +55,40 @@ class DatamodelTestCase(unittest.TestCase):
 
     def test_sum(self):
         d1 = Dataset(tempfile.mktemp(), 'w')
-        rb = RawDataBuffer()
-        r = d1.new_raw_data(rb)
+        tb = TargetBuffer(target_id='WI001', name='White Island main vent',
+                          position=(177.2, -37.5, 50),
+                          position_error=(0.2, 0.2, 20),
+                          description='Main vent in January 2017')
+        t = d1.new(tb)
+        rb = RawDataBuffer(target=t,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                           datetime='2017-01-10T15:23:00')
+        r = d1.new(rb)
         d2 = Dataset(tempfile.mktemp(), 'w')
-        d2.new_raw_data(rb)
+        d2.new(rb)
         with self.assertRaises(AttributeError):
             d3 = d1 + d2
         d3 = Dataset(tempfile.mktemp(), 'w')
         d3 += d1
         d3 += d2
-        self.assertEqual(len(d3.raw_data), 2)
-        self.assertNotEqual(d3.raw_data[0], d1.raw_data[0])
-        tmp = {}
-        tmp.update(d1._rids)
-        tmp.update(d2._rids)
-        self.assertTrue(tmp == d3._rids)
-        self.assertTrue(d3._tags == d1._tags + d2._tags)
-        with self.assertRaises(TypeError):
+        self.assertEqual(len(d3.elements['RawData']), 2)
+        rc3 = d3.elements['RawData'][0]
+        rc1 = d1.elements['RawData'][0]
+        # Check that the references are not the same anymore...
+        self.assertNotEqual(getattr(rc3._root.data.cols,'target')[0],
+                            getattr(rc1._root.data.cols,'target')[0])
+        # ...but that the copied elements contain the same information
+        self.assertEqual(rc3.target.target_id,rc1.target.target_id)
+        # ToDo: not sure what the _rids feature was there for 
+        #tmp = {}
+        #tmp.update(d1._rids)
+        #tmp.update(d2._rids)
+        #self.assertTrue(tmp == d3._rids)
+        #self.assertTrue(d3._tags == d1._tags + d2._tags)
+        with self.assertRaises(AttributeError):
             d4 = d1 + rb
-        d1 += d2
+        # ToDo: also not sure what behaviour we expected from
+        # the following line
+        # d1 += d2
         with self.assertRaises(ValueError):
             d1 += d1
 
