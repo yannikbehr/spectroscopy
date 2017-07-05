@@ -14,12 +14,14 @@ from matplotlib.colors import Normalize, LogNorm
 from matplotlib.pyplot import cm
 import numpy as np
 import tables
+from tables.group import Group
+from tables.exceptions import NoSuchNodeError
 from scipy.stats import binned_statistic
 
 from spectroscopy.class_factory import ResourceIdentifier
 from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
 import spectroscopy.util
-from spectroscopy.datamodel import (_Target, _RawData)
+from spectroscopy.datamodel import (_Target, _RawData, all_classes)
 
 
 class Dataset(object):
@@ -48,57 +50,144 @@ class Dataset(object):
     """
 
     def __init__(self, filename, mode):
-        self.preferred_fluxes = []
-        self.fluxes = []
-        self.methods = []
-        self.gas_flows = []
-        self.concentrations = []
-        self.raw_data = []
-        self.instruments = []
-        self.targets = []
-        self.raw_data_types = []
-        self.data_quality_types = []
+        self.elements = {}
+        self.base_elements = {}
+        for c in all_classes:
+            name = c.__name__.strip('_') 
+            self.elements[name] = []
+            self.base_elements[name+'Buffer'] = c
         self._rids = {}
         self._f = tables.open_file(filename, mode)
-        self.func_table = {'TargetBuffer': self._new_target,
-                           'RawDataBuffer': self._new_raw_data
-                          }
 
     def __del__(self):
         self._f.close()
+    
+    def __add__(self, other):
+        msg = "__add__ is undefined as the return value would "
+        msg += "be a new hdf5 file with unknown filename."
+        raise AttributeError(msg)                             
 
-    def _new_raw_data(self, rb):
-        rid = ResourceIdentifier()
-        try:
-            self._f.create_group('/','RawData')
-        except tables.NodeError:
-            pass
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            self._f.create_group('/RawData',str(rid))
+    def __iadd__(self, other):
+        if self._f == other._f:
+            raise ValueError("You can't add a dataset to itself.")
+        update_refs = []
+        postfix = self._gen_sc3_id(datetime.datetime.now())
+        for e in other.elements.keys():
+            for k in other.elements[e]:
+                ne = self._copy_children(k, postfix)
+                self.elements[e].append(ne)
+                update_refs.append(ne)
 
-        return _RawData(getattr(self._f.root.RawData,str(rid)),rb)
+        for ne in update_refs:
+            for k in ne._reference_keys:
+                table = getattr(ne._root,'data',None)
+                if table is not None:
+                    ref = getattr(ne._root.data.cols,k,None)
+                    if ref is not None:
+                        ref[0] += postfix
+        return self
 
-    def _new_target(self,tb):
+    def _gen_sc3_id(self, dt, numenc=6, sym="abcdefghijklmnopqrstuvwxyz"):
         """
-        Create a new target object entry in the HDF5 file.
-        """
-        rid = ResourceIdentifier()
-        try:
-            self._f.create_group('/','Target')
-        except tables.NodeError:
-            pass
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            self._f.create_group('/Target',str(rid))
+        Generate an event ID following the SeisComP3 convention. By default it
+        divides a year into 26^6 intervals assigning each a unique combination of
+        characters.
 
-        return _Target(getattr(self._f.root.Target,str(rid)),tb)
-        
+        >>> import datetime 
+        >>> import tempfile
+        >>> d = Dataset(tempfile.mktemp(), 'w')
+        >>> print d.gen_sc3_id(datetime.datetime(2015, 8, 18, 10, 55, 51, 367580))
+        2015qffasl
+        """
+        numsym = len(sym)
+        julday = int(dt.strftime('%j'))
+        x = (((((julday - 1) * 24) + dt.hour) * 60 + dt.minute) *
+             60 + dt.second) * 1000 + dt.microsecond / 1000
+        dx = (((370 * 24) * 60) * 60) * 1000
+        rng = numsym ** numenc
+        w = int(dx / rng)
+        if w == 0:
+            w = 1
+
+        if dx >= rng:
+            x = int(x / w)
+        else:
+            x = x * int(rng / dx)
+        enc = ''
+        for _ in range(numenc):
+            r = x % numsym
+            enc += sym[r]
+            x = int(x / numsym)
+        return '%d%s' % (dt.year, enc[::-1])
+
+    def _newdst_group(self, dstgroup, title='', filters=None):
+        """
+        Create the destination group in a new HDF5 file.
+        """
+        group = self._f.root
+        # Now, create the new group. This works even if dstgroup == '/'
+        for nodename in dstgroup.split('/'):
+            if nodename == '':
+                continue
+            # First try if possible intermediate groups already exist.
+            try:
+                group2 = self._f.get_node(group, nodename)
+            except NoSuchNodeError:
+                # The group does not exist. Create it.
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
+                    group2 = self._f.create_group(group, nodename,
+                                                title=title,
+                                                filters=filters)
+            group = group2
+        return group
+
+    def _copy_children(self, src, postfix, title='', recursive=True,
+                       filters=None, copyuserattrs=False,
+                       overwrtnodes=False):
+        """
+        Copy the children from source group to destination group
+        """
+        srcgroup = src._root
+        dstgroup = srcgroup._v_pathname + postfix
+        created_dstgroup = False
+        # Create the new group
+        dstgroup = self._newdst_group(dstgroup, title, filters)
+
+        # Copy the attributes to dstgroup, if needed
+        if copyuserattrs:
+            srcgroup._v_attrs._f_copy(dstgroup)
+
+        # Finally, copy srcgroup children to dstgroup
+        try:
+            srcgroup._f_copy_children(
+                dstgroup, recursive=recursive, filters=filters,
+                copyuserattrs=copyuserattrs, overwrite=overwrtnodes)
+        except:
+            msg = "Problems doing the copy of '{:s}'.".format(dstgroup)
+            msg += "Please check that the node names are not "
+            msg += "duplicated in destination, and if so, enable "
+            msg += "overwriting nodes if desired."
+            raise RuntimeError(msg)
+        return type(src)(dstgroup)
+
     def new(self, data_buffer):
         """
         Create a new entry in the HDF5 file from the given data buffer.
         """
-        return self.func_table[type(data_buffer).__name__](data_buffer)
+        _C = self.base_elements[type(data_buffer).__name__]
+        group_name = _C.__name__.strip('_')
+        rid = ResourceIdentifier()
+        try:
+            self._f.create_group('/',group_name)
+        except tables.NodeError:
+            pass
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            group = self._f.create_group('/'+group_name,str(rid))
+        e = _C(group,data_buffer)
+        self.elements[group_name].append(e)
+        return e         
 
     def plot(self, toplot='retrievals', savefig=None, **kargs):
         """
