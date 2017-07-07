@@ -1,15 +1,17 @@
 import numpy as np
+import datetime
 from spectroscopy.class_factory import _class_factory
 
 
 __Instrument = _class_factory('__Instrument', 'base',
 	class_attributes=[
-		('sensor_id',(np.str_, str)),
-		('location',(np.str_, str)),
-		('no_bits',(int,)),
-		('type',(np.str_, str)),
-		('description',(np.str_, str)),
-		('creation_time',(np.str_, str))],
+		('tags',(set,)),
+		('sensor_id',(np.str_,)),
+		('location',(np.str_,)),
+		('no_bits',(np.int_,)),
+		('type',(np.str_,)),
+		('description',(np.str_,)),
+		('creation_time',(datetime.datetime,))],
 	class_references=[])
 
 
@@ -37,8 +39,8 @@ class InstrumentBuffer(__InstrumentBuffer):
 	:param type: The spectrometer type (e.g. DOAS, FlySpec, etc.).
 	:type description: str
 	:param description: Any additional information on the instrument that may be relevant.
-	:type creation_time: str
-	:param creation_time: Date Time of object creation
+	:type creation_time: datetime
+	:param creation_time: Date Time of object creation in ISO 8601 format.
 	'''
 
 class _Instrument(__Instrument):
@@ -48,12 +50,13 @@ class _Instrument(__Instrument):
 
 __Target = _class_factory('__Target', 'base',
 	class_attributes=[
-		('target_id',(np.str_, str)),
-		('name',(np.str_, str)),
-		('position',(np.ndarray, list, tuple)),
-		('postion_error',(np.ndarray, list, tuple)),
-		('description',(np.str_, str)),
-		('creation_time',(np.str_, str))],
+		('tags',(set,)),
+		('target_id',(np.str_,)),
+		('name',(np.str_,)),
+		('position',(np.ndarray, np.float_)),
+		('postion_error',(np.ndarray, np.float_)),
+		('description',(np.str_,)),
+		('creation_time',(datetime.datetime,))],
 	class_references=[])
 
 
@@ -81,8 +84,8 @@ class TargetBuffer(__TargetBuffer):
 	:type description: str
 	:param description: Any additional information on the plume that may be relevant.
 
-	:type creation_time: str
-	:param creation_time: Date Time of object creation
+	:type creation_time: datetime
+	:param creation_time: Date Time of object creation in ISO 8601 format.
 	'''
 
 class _Target(__Target):
@@ -92,11 +95,12 @@ class _Target(__Target):
 
 __RawDataType = _class_factory('__RawDataType', 'base',
 	class_attributes=[
-		('d_var_unit',(np.str_, str)),
-		('ind_var_unit',(np.str_, str)),
-		('name',(np.str_, str)),
-		('acquisition',(np.str_, str)),
-		('creation_time',(np.str_, str))],
+		('tags',(set,)),
+		('d_var_unit',(np.str_,)),
+		('ind_var_unit',(np.str_,)),
+		('name',(np.str_,)),
+		('acquisition',(np.str_,)),
+		('creation_time',(datetime.datetime,))],
 	class_references=[])
 
 
@@ -121,8 +125,8 @@ class RawDataTypeBuffer(__RawDataTypeBuffer):
 	:param name: Descriptive name (e.g. dark, offset, measurement, raw retrieval)
 	:type acquisition: str
 	:param acquisition: The type of acquisition (e.g. mobile, stationary)
-	:type creation_time: str
-	:param creation_time: Date Time of object creation
+	:type creation_time: datetime
+	:param creation_time: Date Time of object creation in ISO 8601 format. 
 	'''
 
 class _RawDataType(__RawDataType):
@@ -130,31 +134,67 @@ class _RawDataType(__RawDataType):
 	'''
 
 
+__DataQualityType = _class_factory('__DataQualityType', 'base',
+	class_attributes=[
+		('tags',(set,)),
+		('name',(np.str_,)),
+		('reference',(np.str_,)),
+		('creation_time',(datetime.datetime,))],
+	class_references=[])
+
+
+__DataQualityTypeBuffer = _class_factory(
+	'__DataQualityTypeBuffer', 'buffer',
+	__DataQualityType._properties, __DataQualityType._references)
+
+
+class DataQualityTypeBuffer(__DataQualityTypeBuffer):
+	'''
+	A data quality description.
+
+	:type resource_id: str
+	:param resource_id: Unique ID
+	:type tags: set
+	:param tags: List of human readable IDs
+	:type name: str
+	:param name: Descriptive name (e.g. Intensity of the light source)
+	:type reference: str
+	:param reference: Reference to more detailed description
+	:type creation_time: datetime
+	:param creation_time: Date Time of object creation in ISO 8601 format.
+	'''
+
+class _DataQualityType(__DataQualityType):
+	'''
+	'''
+
+
 __RawData = _class_factory('__RawData', 'extendable',
 	class_attributes=[
-		('inc_angle',(float,)),
-		('inc_angle_error',(float,)),
-		('bearing',(float,)),
-		('bearing_error',(float,)),
-		('position',(float,)),
-		('position_error',(float,)),
-		('path_length',(float,)),
-		('path_length_error',(float,)),
-		('d_var',(np.ndarray, list, tuple)),
-		('ind_var',(np.ndarray, list, tuple)),
-		('datetime',(np.str_, str)),
-		('data_quality',(np.ndarray, list, tuple)),
-		('integration_time',(float,)),
-		('no_averages',(float,)),
-		('temperature',(float,)),
-		('creation_time',(np.str_, str)),
-		('modification_time',(np.str_, str)),
-		('user_notes',(np.str_, str))],
+		('tags',(set,)),
+		('inc_angle',(np.float_,)),
+		('inc_angle_error',(np.float_,)),
+		('bearing',(np.float_,)),
+		('bearing_error',(np.float_,)),
+		('position',(np.float_,)),
+		('position_error',(np.float_,)),
+		('path_length',(np.float_,)),
+		('path_length_error',(np.float_,)),
+		('d_var',(np.ndarray, np.float_)),
+		('ind_var',(np.ndarray, np.float_)),
+		('datetime',(datetime.datetime,)),
+		('data_quality',(np.ndarray, np.float_)),
+		('integration_time',(np.float_,)),
+		('no_averages',(np.float_,)),
+		('temperature',(np.float_,)),
+		('creation_time',(datetime.datetime,)),
+		('modification_time',(datetime.datetime,)),
+		('user_notes',(np.str_,))],
 	class_references=[
 		('instrument',(_Instrument,)),
 		('target',(_Target,)),
 		('type',(_RawDataType,)),
-		('data_quality_type',(np.ndarray, list, tuple))])
+		('data_quality_type',(np.ndarray, _DataQualityType))])
 
 
 __RawDataBuffer = _class_factory(
@@ -197,8 +237,8 @@ class RawDataBuffer(__RawDataBuffer):
 	:param d_var: Dependent variable e.g. measured spectra, concentration
 	:type ind_var: :class:`numpy.ndarray`
 	:param ind_var: Independent variable e.g. wavelengths, time
-	:type datetime: str
-	:param datetime: Date Time of recording
+	:type datetime: datetime
+	:param datetime: Date Time of recording in ISO 8601 format.
 	:type data_quality: :class:`numpy.ndarray`
 	:param data_quality: Data quality parameters.
 	:type data_quality_type: :class:`numpy.ndarray`
@@ -209,10 +249,10 @@ class RawDataBuffer(__RawDataBuffer):
 	:param no_averages: Number/time measurements are averaged over.
 	:type temperature: float
 	:param temperature: Temperature at the site or in the instrument [degC].
-	:type creation_time: str
-	:param creation_time: Date-time of object creation
-	:type modification_time: str
-	:param modification_time: Date-time of latest object modification.
+	:type creation_time: datetime
+	:param creation_time: Date-time of object creation in ISO 8601 format.
+	:type modification_time: datetime
+	:param modification_time: Date-time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information relevant to the measurements.
 	'''
@@ -222,27 +262,72 @@ class _RawData(__RawData):
 	'''
 
 
+__Method = _class_factory('__Method', 'base',
+	class_attributes=[
+		('tags',(set,)),
+		('name',(np.str_,)),
+		('description',(np.str_,)),
+		('settings',(np.str_,)),
+		('reference',(np.str_,)),
+		('raw_data',(np.str_,)),
+		('creation_time',(datetime.datetime,))],
+	class_references=[])
+
+
+__MethodBuffer = _class_factory(
+	'__MethodBuffer', 'buffer',
+	__Method._properties, __Method._references)
+
+
+class MethodBuffer(__MethodBuffer):
+	'''
+	Desription of analysis methods.
+
+	:type resource_id: str
+	:param resource_id: Unique ID
+	:type tags: set
+	:param tags: List of human readable tags
+	:type name: str
+	:param name: Name of software/method
+	:type description: str
+	:param description: Short method summary
+	:type settings: json
+	:param settings: Settings/setup relevant to reproduce results in JSON format.
+	:type reference: str
+	:param reference: URI  to more detailed method description.
+	:type raw_data: str
+	:param raw_data: Reference to raw data used in this method
+	:type creation_time: datetime
+	:param creation_time: Date Time of object creation in ISO 8601 format.
+	'''
+
+class _Method(__Method):
+	'''
+	'''
+
+
 __GasFlow = _class_factory('__GasFlow', 'base',
 	class_attributes=[
-		('methods',(np.str_, str)),
-		('vx',(float,)),
-		('vx_error',(float,)),
-		('vy',(float,)),
-		('vy_error',(float,)),
-		('vz',(float,)),
-		('vz_error',(float,)),
-		('unit',(np.str_, str)),
-		('position',(float,)),
-		('position_error',(float,)),
-		('grid_bearing',(float,)),
-		('grid_increments',(float,)),
-		('pressure',(float,)),
-		('temperature',(float,)),
-		('datetime',(np.str_, str)),
-		('creation_time',(np.str_, str)),
-		('modification_time',(np.str_, str)),
-		('user_notes',(np.str_, str))],
-	class_references=[])
+		('tags',(set,)),
+		('vx',(np.float_,)),
+		('vx_error',(np.float_,)),
+		('vy',(np.float_,)),
+		('vy_error',(np.float_,)),
+		('vz',(np.float_,)),
+		('vz_error',(np.float_,)),
+		('unit',(np.str_,)),
+		('position',(np.float_,)),
+		('position_error',(np.float_,)),
+		('grid_bearing',(np.float_,)),
+		('grid_increments',(np.float_,)),
+		('pressure',(np.float_,)),
+		('temperature',(np.float_,)),
+		('datetime',(datetime.datetime,)),
+		('creation_time',(datetime.datetime,)),
+		('modification_time',(datetime.datetime,)),
+		('user_notes',(np.str_,))],
+	class_references=[
+		('methods',(np.ndarray, _Method))])
 
 
 __GasFlowBuffer = _class_factory(
@@ -258,7 +343,7 @@ class GasFlowBuffer(__GasFlowBuffer):
 	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
-	:type methods: str
+	:type methods: :class:`numpy.ndarray`
 	:param methods: List of references to methods used to compute gas flow
 	:type vx: float
 	:param vx: x component of gas flow vector (wrt local grid or east) 
@@ -286,12 +371,12 @@ class GasFlowBuffer(__GasFlowBuffer):
 	:param pressure: Atmospheric pressure [Pa]
 	:type temperature: float
 	:param temperature: Temperature [degC]
-	:type datetime: str
-	:param datetime: Date Time [UTC]
-	:type creation_time: str
-	:param creation_time: Date Time of object creation
-	:type modification_time: str
-	:param modification_time: Date Time of latest object modification
+	:type datetime: datetime
+	:param datetime: Date Time [UTC] in ISO 8601 format
+	:type creation_time: datetime
+	:param creation_time: Date Time of object creation in ISO 8601 format.
+	:type modification_time: datetime
+	:param modification_time: Date Time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information that may be relevant.
 	'''
@@ -301,60 +386,18 @@ class _GasFlow(__GasFlow):
 	'''
 
 
-__Method = _class_factory('__Method', 'base',
-	class_attributes=[
-		('name',(np.str_, str)),
-		('description',(np.str_, str)),
-		('settings',(np.str_, str)),
-		('reference',(np.str_, str)),
-		('raw_data',(np.str_, str)),
-		('creation_time',(np.str_, str))],
-	class_references=[])
-
-
-__MethodBuffer = _class_factory(
-	'__MethodBuffer', 'buffer',
-	__Method._properties, __Method._references)
-
-
-class MethodBuffer(__MethodBuffer):
-	'''
-	Desription of analysis methods.
-
-	:type resource_id: str
-	:param resource_id: Unique ID
-	:type tags: set
-	:param tags: List of human readable tags
-	:type name: str
-	:param name: Name of software/method
-	:type description: str
-	:param description: Short method summary
-	:type settings: str
-	:param settings: Settings/setup relevant to reproduce results
-	:type reference: str
-	:param reference: Reference to more detailed method description
-	:type raw_data: str
-	:param raw_data: Reference to raw data used in this method
-	:type creation_time: str
-	:param creation_time: Date Time of object creation
-	'''
-
-class _Method(__Method):
-	'''
-	'''
-
-
 __Concentration = _class_factory('__Concentration', 'extendable',
 	class_attributes=[
-		('rawdata_indices',(np.ndarray, list, tuple)),
-		('gas_species',(np.str_, str)),
-		('value',(float,)),
-		('value_error',(float,)),
-		('unit',(np.str_, str)),
-		('analyst_contact',(np.str_, str)),
-		('creation_time',(np.str_, str)),
-		('modification_time',(np.str_, str)),
-		('user_notes',(np.str_, str))],
+		('tags',(set,)),
+		('rawdata_indices',(np.ndarray, np.int_)),
+		('gas_species',(np.str_,)),
+		('value',(np.float_,)),
+		('value_error',(np.float_,)),
+		('unit',(np.str_,)),
+		('analyst_contact',(np.str_,)),
+		('creation_time',(datetime.datetime,)),
+		('modification_time',(datetime.datetime,)),
+		('user_notes',(np.str_,))],
 	class_references=[
 		('method',(_Method,)),
 		('gasflow',(_GasFlow,)),
@@ -392,10 +435,10 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	:param unit: Unit of gas concentration.
 	:type analyst_contact: str
 	:param analyst_contact: Contact (e.g. email) of person running software
-	:type creation_time: str
-	:param creation_time: Date-time of object creation
-	:type modification_time: str
-	:param modification_time: Date-time of latest object modification
+	:type creation_time: datetime
+	:param creation_time: Date-time of object creation in ISO 8601 format.
+	:type modification_time: datetime
+	:param modification_time: Date-time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information that may be relevant.
 	'''
@@ -405,68 +448,17 @@ class _Concentration(__Concentration):
 	'''
 
 
-__PreferredFlux = _class_factory('__PreferredFlux', 'base',
-	class_attributes=[
-		('flux_indices',(np.ndarray, list, tuple)),
-		('date',(np.ndarray, list, tuple)),
-		('value',(float,)),
-		('value_error',(float,)),
-		('creation_time',(np.str_, str)),
-		('modification_time',(np.str_, str)),
-		('user_notes',(np.str_, str))],
-	class_references=[
-		('flux_ids',(np.ndarray, list, tuple)),
-		('method_id',(_Method,))])
-
-
-__PreferredFluxBuffer = _class_factory(
-	'__PreferredFluxBuffer', 'buffer',
-	__PreferredFlux._properties, __PreferredFlux._references)
-
-
-class PreferredFluxBuffer(__PreferredFluxBuffer):
-	'''
-	Derived flux values either by selecting a subset or by integrating/averaging. These values would overlap with what is currently stored in FITS.
-
-	:type resource_id: str
-	:param resource_id: Unique identifier
-	:type tags: set
-	:param tags: List of human readable tags
-	:type flux_ids: :class:`numpy.ndarray`
-	:param flux_ids: References to flux estimates used to compute derived flux
-	:type flux_indices: :class:`numpy.ndarray`
-	:param flux_indices: Indices of flux values used to compute derived flux
-	:type date: :class:`numpy.ndarray`
-	:param date: Dates of derived flux values
-	:type value: float
-	:param value: Derived flux value
-	:type value_error: float
-	:param value_error: Flux value error
-	:type method_id: reference to Method
-	:param method_id: Reference to method
-	:type creation_time: str
-	:param creation_time: Date-time of object creation
-	:type modification_time: str
-	:param modification_time: Date-time of latest object modification
-	:type user_notes: str
-	:param user_notes: Comments relevant for reproducing preferred fluxes
-	'''
-
-class _PreferredFlux(__PreferredFlux):
-	'''
-	'''
-
-
 __Flux = _class_factory('__Flux', 'extendable',
 	class_attributes=[
-		('concentration_indices',(np.ndarray, list, tuple)),
-		('value',(np.ndarray, list, tuple)),
-		('value_error',(np.ndarray, list, tuple)),
-		('unit',(np.str_, str)),
-		('analyst_contact',(np.str_, str)),
-		('creation_time',(np.str_, str)),
-		('modification_time',(np.str_, str)),
-		('user_notes',(np.str_, str))],
+		('tags',(set,)),
+		('concentration_indices',(np.ndarray, np.int_)),
+		('value',(np.ndarray, np.float_)),
+		('value_error',(np.ndarray, np.float_)),
+		('unit',(np.str_,)),
+		('analyst_contact',(np.str_,)),
+		('creation_time',(datetime.datetime,)),
+		('modification_time',(datetime.datetime,)),
+		('user_notes',(np.str_,))],
 	class_references=[
 		('method',(_Method,)),
 		('concentration',(_Concentration,)),
@@ -502,10 +494,10 @@ class FluxBuffer(__FluxBuffer):
 	:param unit: Physical unit of flux.
 	:type analyst_contact: str
 	:param analyst_contact: Contact (e.g. email) of person running software
-	:type creation_time: str
-	:param creation_time: Date-time of object creation
-	:type modification_time: str
-	:param modification_time: Date-time of latest object modification
+	:type creation_time: datetime
+	:param creation_time: Date-time of object creation in ISO 8601 format.
+	:type modification_time: datetime
+	:param modification_time: Date-time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information that may be relevant.
 	'''
@@ -515,38 +507,57 @@ class _Flux(__Flux):
 	'''
 
 
-__DataQualityType = _class_factory('__DataQualityType', 'base',
+__PreferredFlux = _class_factory('__PreferredFlux', 'base',
 	class_attributes=[
-		('name',(np.str_, str)),
-		('reference',(np.str_, str)),
-		('creation_time',(np.str_, str))],
-	class_references=[])
+		('tags',(set,)),
+		('flux_indices',(np.ndarray, np.int_)),
+		('date',(np.ndarray, datetime.datetime)),
+		('value',(np.float_,)),
+		('value_error',(np.float_,)),
+		('creation_time',(datetime.datetime,)),
+		('modification_time',(datetime.datetime,)),
+		('user_notes',(np.str_,))],
+	class_references=[
+		('flux_ids',(np.ndarray, _Flux)),
+		('method_id',(_Method,))])
 
 
-__DataQualityTypeBuffer = _class_factory(
-	'__DataQualityTypeBuffer', 'buffer',
-	__DataQualityType._properties, __DataQualityType._references)
+__PreferredFluxBuffer = _class_factory(
+	'__PreferredFluxBuffer', 'buffer',
+	__PreferredFlux._properties, __PreferredFlux._references)
 
 
-class DataQualityTypeBuffer(__DataQualityTypeBuffer):
+class PreferredFluxBuffer(__PreferredFluxBuffer):
 	'''
-	A data quality description.
+	Derived flux values either by selecting a subset or by integrating/averaging. These values would overlap with what is currently stored in FITS.
 
 	:type resource_id: str
-	:param resource_id: Unique ID
+	:param resource_id: Unique identifier
 	:type tags: set
-	:param tags: List of human readable IDs
-	:type name: str
-	:param name: Descriptive name (e.g. Intensity of the light source)
-	:type reference: str
-	:param reference: Reference to more detailed description
-	:type creation_time: str
-	:param creation_time: Date Time of object creation
+	:param tags: List of human readable tags
+	:type flux_ids: :class:`numpy.ndarray`
+	:param flux_ids: References to flux estimates used to compute derived flux
+	:type flux_indices: :class:`numpy.ndarray`
+	:param flux_indices: Indices of flux values used to compute derived flux
+	:type date: :class:`numpy.ndarray`
+	:param date: Dates of derived flux values in ISO 8601 format.
+	:type value: float
+	:param value: Derived flux value
+	:type value_error: float
+	:param value_error: Flux value error
+	:type method_id: reference to Method
+	:param method_id: Reference to method
+	:type creation_time: datetime
+	:param creation_time: Date-time of object creation in ISO 8601 format.
+	:type modification_time: datetime
+	:param modification_time: Date-time of latest object modification in ISO 8601 format.
+	:type user_notes: str
+	:param user_notes: Comments relevant for reproducing preferred fluxes
 	'''
 
-class _DataQualityType(__DataQualityType):
+class _PreferredFlux(__PreferredFlux):
 	'''
 	'''
 
 
-all_classes = [_Instrument, _Target, _RawDataType, _RawData, _GasFlow, _Method, _Concentration, _PreferredFlux, _Flux, _DataQualityType]
+all_classes = [_Instrument, _Target, _RawDataType, _DataQualityType, _RawData, _Method, _GasFlow, _Concentration, _Flux, _PreferredFlux]

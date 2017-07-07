@@ -395,29 +395,51 @@ class H5Set(set):
         f = self.h5node._v_file
         if val in self:
             return
-        set.add(self, val)
         try:
-            f.create_earray(
-                '/tags', val, tables.StringAtom(itemsize=60), (0,))
-        except:
-            pass
-        ea = f.root.tags._v_children[val]
+            super(H5Set,self).add(val)
+        except Exception,e:
+            print val
+            raise e
+        # ToDo: Discuss with Nial. I've disabled the following
+        # to have an easy mechanism to check that tags are always
+        # typed correctly: by first having to register a tag
+        # you won't be able to add another tag with typos or
+        # different capitalisation
+        #try:
+        #    f.create_earray(
+        #        '/tags', val, tables.StringAtom(itemsize=60), (0,))
+        #except:
+        #    pass
+        try:
+            ea = f.root.tags._v_children[val]
+        except KeyError:
+            msg = "Tag {:s} has not been registered yet."
+            msg += "Use the 'Dataset.register_tags' function first."
+            raise ValueError(msg.format(val))
         found = False
         for i in range(ea.nrows):
             if ea[i] == '':
                 ea[i] = np.array(
-                    self.h5node._v_name['resource_id'], dtype='S60')
+                    self.h5node._v_name, dtype='S60')
                 found = True
                 break
         if not found:
             ea.append(
-                np.array([self.h5node._v_name['resource_id']], dtype='S60'))
+                np.array([self.h5node._v_name], dtype='S60'))
+
+    def append(self, val):
+        """
+        Append a tag to the list of existing tags.
+        """
+        # ToDo: What happens if you add the same element multiple times to the same 
+        # tag?
+        self.add(val)
 
     def remove(self, val):
         f = self.h5node._v_file
-        set.remove(self, val)
+        super(H5Set,self).remove(val)
         ea = f.root.tags._v_children[val]
-        ea[np.where(ea[:] == self.h5node._v_name['resource_id'].encode())] = np.array(
+        ea[np.where(ea[:] == self.h5node._v_name.encode())] = np.array(
             [''], dtype='S60')
         if np.all(ea[:] == np.array('', dtype='S60')):
             f.remove_node('/tags/' + val)
@@ -493,10 +515,13 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     val = getattr(data_buffer,key,None)
                     if val is None:
                         continue
+                    if key == 'tags':
+                        for _v in val:
+                            self._tags.add(_v)
+                        continue
                     if prop_type[0] == datetime.datetime:
-                        datestring = val.isoformat()
-                        vals[key] = datestring
-                        dtp.append((key,np.dtype('S'+str(len(datestring))),()))
+                        vals[key] = val 
+                        dtp.append((key,np.dtype('S'+str(len(val))),()))
                     else: 
                         vals[key] = val
                         dtp.append((key,val.dtype,val.shape))
@@ -538,7 +563,11 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                 elif issubclass(self._property_dict[name][0], np.ndarray):
                     val = RetVal(getattr(table.cols,name))
                 elif issubclass(self._property_dict[name][0], datetime.datetime):
-                    val = parse_iso_8601(getattr(table.cols,name))
+                    #ToDo: this currently returns a string for a date as 
+                    # pytables can't store datetime objects. This way the return
+                    # type for a single date is consistent with the return type
+                    # of an array of dates
+                    val = copy(getattr(table.cols,name)[0])
                 else:
                     val = copy(getattr(table.cols,name)[0])
                 return val
@@ -594,20 +623,45 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     raise Exception(
                         "%s is not a property or reference of class %s" %
                         (name, type(self).__name__))
-            # If the value is None or already the correct type just set it.
-            if (value is not None) and (type(value) not in attrib_type):
-                msg = "{:s} is not in the list of compatible types: {}"
-                raise Exception(msg.format(type(value), attrib_type))
+            
+            # Try to convert values into the specified datatypes 
             if value is not None:
-                if name in self._reference_keys:
-                    value = str(getattr(value,'_resource_id'))
-                else:
-                    if attrib_type[0] == np.ndarray:
-                        value = np.array(value)
-                    elif self._property_dict[name][0] == datetime.datetime:
-                        value = spectroscopy.util.parse_iso_8601(value)
+                try:
+                    if name in self._reference_keys:
+                        # check type for references
+                        if attrib_type[0] == np.ndarray:
+                            _t = []
+                            for n in value:
+                                if type(n) is not attrib_type[1]:
+                                    msg = "{:s} has to be of type: {}"
+                                    raise ValueError(msg.format(name, attrib_type[0]))
+                                _t.append(n)
+                            value = np.array(_t)
+                        else:
+                            if type(value) is not attrib_type[0]:
+                                msg = "{:s} has to be of type: {}"
+                                raise ValueError(msg.format(name, attrib_type[0]))
+                            value = str(getattr(value,'_resource_id'))
                     else:
-                        value = attrib_type[0](value)
+                        if attrib_type[0] == np.ndarray:
+                            # if the array contains datetime we need to convert
+                            # it into strings as pytables can't handle datetime
+                            # objects
+                            if attrib_type[1] == datetime.datetime:
+                                _vals = []
+                                for v in value:
+                                    _vals.append(spectroscopy.util.parse_iso_8601(v).isoformat())
+                                value = np.array(_vals)
+                            else:
+                                value = np.array(value).astype(attrib_type[1])
+                        elif self._property_dict[name][0] == datetime.datetime:
+                            value = spectroscopy.util.parse_iso_8601(value).isoformat()
+                        else:
+                            value = attrib_type[0](value)
+                except ValueError:
+                    msg = "'{:s}' can't be converted to: {}"
+                    raise ValueError(msg.format(name, attrib_type))
+ 
             self.__dict__[name] = value
 
     if class_type == 'base':

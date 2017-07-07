@@ -2,7 +2,6 @@ import datetime
 import math
 
 import numpy as np
-from bokeh.tests.test_driving import phi
 
 
 def bearing2vec(bearing, norm=1.0):

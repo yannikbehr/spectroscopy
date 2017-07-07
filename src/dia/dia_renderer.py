@@ -130,6 +130,7 @@ class MyPyRenderer(ObjRenderer):
     def header(self):
         s = ""
         s += "import numpy as np\n"
+        s += "import datetime\n"
         s += "from spectroscopy.class_factory import _class_factory\n" 
         return s
 
@@ -159,24 +160,27 @@ class MyPyRenderer(ObjRenderer):
         Generate the code that calls the class factory function and 
         builds the different variety of classes from the datamodel.
         """
+        type_lookup = {'float':'np.float_', 'integer':'np.int_', 
+                       'string':'np.str_', 'datetime':'datetime.datetime',
+                       'json':'np.str_', 'set':'set'}
         d = {}
         s = "\n\n"
         s += "__{0:s} = _class_factory('__{0:s}', '{1:s}',\n".format(k.name,k.stereotype)
         s += "\tclass_attributes=[\n"
         attributes = []
         for n,att in k.attributes:
-            if n in ['resource_id', 'tags']:
+            if n in ['resource_id']:
                 continue
             if att[0].find('reference') != -1:
                 continue
             if att[0].find('array') != -1:
-                dt = "(np.ndarray, list, tuple)"
-            elif att[0].find('string') != -1:
-                dt = "(np.str_, str)"
-            elif att[0].find('integer') != -1:
-                dt = "(int,)"
+                try:
+                    dtp = re.match('array of (\w+)s',att[0]).group(1)
+                except Exception,e:
+                    raise Exception("Can't match {:s}".format(att[0]))
+                dt = "(np.ndarray, {:s})".format(type_lookup[dtp])
             else:
-                dt = "({0:s},)".format(att[0])
+                dt = "({:s},)".format(type_lookup[att[0].strip()])
             attributes.append("('{0:s}',{1:s})".format(n,dt))
         i = 0
         for a in attributes:
@@ -193,7 +197,9 @@ class MyPyRenderer(ObjRenderer):
         for n,att in k.attributes:
             if att[0].find('reference') != -1:
                 if att[0].startswith('array'):
-                    dt = "(np.ndarray, list, tuple)"
+                    dtp = re.match('array of references to (\w+)',att[0]).group(1)
+                    dt = "(np.ndarray, _{:s})".format(dtp)
+                    dependencies.append("_{:s}".format(dtp))
                 else:
                     try:
                         ref_class = re.match("reference to (\S*)",att[0]).group(1)

@@ -15,7 +15,7 @@ from matplotlib.pyplot import cm
 import numpy as np
 import tables
 from tables.group import Group
-from tables.exceptions import NoSuchNodeError
+from tables.exceptions import NoSuchNodeError, NodeError
 from scipy.stats import binned_statistic
 
 from spectroscopy.class_factory import ResourceIdentifier
@@ -189,6 +189,34 @@ class Dataset(object):
         self.elements[group_name].append(e)
         return e         
 
+    def register_tags(self, tags):
+        """
+        Register one or more tag names.
+        """
+        try:
+            self._f.create_group('/','tags')
+        except NodeError:
+            pass
+        for tag in tags:
+            try:
+                self._f.create_earray('/tags', tag, tables.StringAtom(itemsize=60), (0,))
+            except NodeError:
+                raise ValueError("Tag '{:s}' has already been registered".format(tag))
+
+    def remove_tags(self, tags):
+        """
+        Remove one or more tag names. This will also remove the tag from every
+        element that had been tagged.
+        """
+        for tag in tags:
+            try:
+                ea = self._f.root.tags._v_children[tag]
+                for rid in ea[:]:
+                    e = ResourceIdentifier(rid).get_referred_object()
+                    e.tags.remove(tag)
+            except (KeyError, NoSuchNodeError):
+                warnings.warn("Can't remove tag {} as it doesn't exist.".format(tag)) 
+                
     def plot(self, toplot='retrievals', savefig=None, **kargs):
         """
         Provide overview plots for data contained in a dataset.

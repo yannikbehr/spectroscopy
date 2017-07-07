@@ -1,6 +1,6 @@
 import tempfile
 import unittest
-
+import warnings
 
 import numpy as np
 
@@ -33,12 +33,36 @@ class DatamodelTestCase(unittest.TestCase):
         tid = 'WI002'
         self.assertEqual(t.target_id,'WI001')
 
-    def test_raw_data(self):
+    def test_typechecking(self):
+        """
+        Test the type checking and conversion functionality.
+        """
+        with self.assertRaises(ValueError):
+            tb1 = TargetBuffer(target_id='WI001', name='White Island main vent',
+                              position=('a', -37.5, 50))
+        d = Dataset(tempfile.mktemp(),'w')
+        tb2 = TargetBuffer(target_id='WI001', name='White Island main vent',
+                          position=(177.2, -37.5, 50),
+                          position_error=(0.2, 0.2, 20),
+                          description='Main vent in January 2017')
+        t = d.new(tb2)
+        with self.assertRaises(ValueError):
+            rb = RawDataBuffer(instrument=t,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                               datetime='2017-01-10T15:23:00')
+
+    def test_RawData(self):
         d = Dataset(tempfile.mktemp(), 'w')
         rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime='2017-01-10T15:23:00', inc_angle=90.)
         r = d.new(rb)
         self.assertTrue(np.alltrue(r.d_var[:] < 1))
+        self.assertEqual(r.datetime,'2017-01-10T15:23:00')
+
+    def test_PreferredFlux(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        pfb = PreferredFluxBuffer(date=['2017-01-10T15:23:00','2017-01-11T15:23:00'])
+        pf = d.new(pfb)
+        np.testing.assert_array_equal(pf.date[:],[['2017-01-10T15:23:00', '2017-01-11T15:23:00']])
 
     def test_ResourceIdentifiers(self):
         d = Dataset(tempfile.mktemp(),'w')
@@ -174,20 +198,27 @@ class DatamodelTestCase(unittest.TestCase):
             rb.append(rb2)
 
     def test_tagging(self):
+        """
+        Test the tagging of data elements.
+        """
         d = Dataset(tempfile.mktemp(), 'w')
         d.register_tags(['measurement'])
         with self.assertRaises(ValueError):
             d.register_tags(['measurement'])
-        tb = TargetBuffer(tags=['WI001', 'Eruption16'],
-                          name='White Island main vent',
-                          position=(177.2, -37.5, 50),
-                          position_error=(0.2, 0.2, 20),
-                          description='Main vent in January 2017')
-        t = d.new_target(tb)
+
+        tb = TargetBuffer(tags=['WI001', 'Eruption16'])
+        with self.assertRaises(ValueError):
+            t = d.new(tb)
+
+        d.register_tags(['WI001','Eruption16'])
+        t = d.new(tb)
+        d.register_tags(['SomethingElse'])
         t.tags.append('SomethingElse')
         t.tags.remove('WI001')
-        d.remove_tag('Eruption16')
-        self.assertEqual(t.tags, ['SomethingElse'])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            d.remove_tags(['Eruption16','blub'])
+        self.assertEqual(list(t.tags), ['SomethingElse'])
 
     def test_dtbuffer(self):
         d = Dataset(tempfile.mktemp(), 'w')
