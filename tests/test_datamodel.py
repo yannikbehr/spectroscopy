@@ -265,10 +265,10 @@ class DatamodelTestCase(unittest.TestCase):
     def test_times(self):
         d = Dataset(tempfile.mktemp(), 'w')
         rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime=np.array(np.datetime64('2017-01-10T15:23:00')))
-        r = d.new_raw_data(rb)
+                           datetime='2017-01-10T15:23:00')
+        r = d.new(rb)
         rb1 = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                            datetime=np.array(np.datetime64('2017-01-10T15:23:01')))
+                            datetime='2017-01-10T15:23:01')
         self.assertEqual(r.creation_time, r.modification_time)
         ct = r.creation_time
         r.append(rb1)
