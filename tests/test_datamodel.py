@@ -24,14 +24,14 @@ class DatamodelTestCase(unittest.TestCase):
                           description='Main vent in January 2017')
         t = d.new(tb)
         np.testing.assert_almost_equal(np.squeeze(t.position[:]),np.array([177.2, -37.5, 50]),1)
-        self.assertEqual(t.target_id,'WI001')
+        self.assertEqual(t.target_id[0],'WI001')
         with self.assertRaises(AttributeError):
             t.position = (177.2, -37.5, 50)
         with self.assertRaises(AttributeError):
             t.target_id = 'WI002'
         tid = t.target_id
         tid = 'WI002'
-        self.assertEqual(t.target_id,'WI001')
+        self.assertEqual(t.target_id[0],'WI001')
 
     def test_typechecking(self):
         """
@@ -56,7 +56,7 @@ class DatamodelTestCase(unittest.TestCase):
                            datetime='2017-01-10T15:23:00', inc_angle=90.)
         r = d.new(rb)
         self.assertTrue(np.alltrue(r.d_var[:] < 1))
-        self.assertEqual(r.datetime,'2017-01-10T15:23:00')
+        self.assertEqual(r.datetime[0],'2017-01-10T15:23:00')
 
     def test_PreferredFlux(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -74,7 +74,7 @@ class DatamodelTestCase(unittest.TestCase):
         rb = RawDataBuffer(target=t,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
                            datetime='2017-01-10T15:23:00')
         r = d.new(rb)
-        self.assertEqual(r.target.target_id,'WI001')
+        self.assertEqual(r.target.target_id[:],'WI001')
 
 
     def test_sum(self):
@@ -101,7 +101,7 @@ class DatamodelTestCase(unittest.TestCase):
         self.assertNotEqual(getattr(rc3._root.data.cols,'target')[0],
                             getattr(rc1._root.data.cols,'target')[0])
         # ...but that the copied elements contain the same information
-        self.assertEqual(rc3.target.target_id,rc1.target.target_id)
+        self.assertEqual(rc3.target.target_id[:],rc1.target.target_id[:])
         # ToDo: not sure what the _rids feature was there for 
         #tmp = {}
         #tmp.update(d1._rids)
@@ -164,24 +164,27 @@ class DatamodelTestCase(unittest.TestCase):
                           position=(177.2, -37.5, 50),
                           position_error=(0.2, 0.2, 20),
                           description='Main vent in January 2017')
-        t = d.new_target(tb)
+        t = d.new(tb)
         ib = InstrumentBuffer(tag='MD01', sensor_id='F00975',
                               location='West rim',
                               no_bits=16, type='DOAS',
                               description='GeoNet permanent instrument')
-        i = d.new_instrument(ib)
+        i = d.new(ib)
         rdtb = RawDataTypeBuffer(tag='measurement',
                                  name='1st round measurements',
                                  acquisition='stationary')
-        rdt = d.new_raw_data_type(rdtb)
+        rdt = d.new(rdtb)
         rb = RawDataBuffer(target=t, instrument=i, datatype=rdt,
                            d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime=np.array(np.datetime64('2017-01-10T15:23:00')))
-        r = d.new_raw_data(rb)
+                           datetime='2017-01-10T15:23:00')
+        r = d.new(rb)
         rb1 = RawDataBuffer(target=t, instrument=i, datatype=rdt,
                             d_var=np.ones((1, 2048)), ind_var=np.arange(2048),
-                            datetime=np.array(np.datetime64('2017-01-10T15:23:01')))
+                            datetime='2017-01-10T15:23:01')
         r.append(rb1)
+        self.assertEqual(r.ind_var[:].size,4096)
+        self.assertTrue(np.alltrue(r.d_var[:] < 2))
+        np.testing.assert_array_equal(r.datetime[:],['2017-01-10T15:23:00','2017-01-10T15:23:01'])
         with self.assertRaises(ValueError):
             r.append(rb1)
         with self.assertRaises(AttributeError):
@@ -190,11 +193,11 @@ class DatamodelTestCase(unittest.TestCase):
                            position=(177.1, -37.4, 50),
                            position_error=(0.2, 0.2, 20),
                            description='Donald Duck vent in January 2010')
-        t1 = d.new_target(tb1)
+        t1 = d.new(tb1)
         rb2 = RawDataBuffer(target=t1, instrument=i, datatype=rdt,
                             d_var=np.ones((1, 2048)), ind_var=np.arange(2048),
-                            datetime=np.array(np.datetime64('2017-01-10T15:23:02')))
-        with self.assertRaises(ValueError):
+                            datetime='2017-01-10T15:23:02')
+        with self.assertRaises(AttributeError):
             rb.append(rb2)
 
     def test_tagging(self):
@@ -226,20 +229,23 @@ class DatamodelTestCase(unittest.TestCase):
                           position=(177.2, -37.5, 50),
                           position_error=(0.2, 0.2, 20),
                           description='Main vent in January 2017')
-        t = d.new_target(tb)
+        with self.assertRaises(ValueError):
+            t = d.new(tb)
+        d.register_tags(['WI001','MD01','measurement'])
+        t = d.new(tb)
         ib = InstrumentBuffer(tags=['MD01'], sensor_id='F00975',
                               location='West rim',
                               no_bits=16, type='DOAS',
                               description='GeoNet permanent instrument')
-        i = d.new_instrument(ib)
+        i = d.new(ib)
         rdtb = RawDataTypeBuffer(tags=['measurement'],
                                  name='1st round measurements',
                                  acquisition='stationary')
-        rdt = d.new_raw_data_type(rdtb)
+        rdt = d.new(rdtb)
         rb = RawDataBuffer(target=t, instrument=i, datatype=rdt,
                            d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime=np.array(np.datetime64('2017-01-10T15:23:00')))
-        r = d.new_raw_data(rb)
+                           datetime='2017-01-10T15:23:00')
+        r = d.new(rb)
         self.assertTrue(r.target == t)
         self.assertTrue(r.instrument == i)
         self.assertTrue(r.dtype == rdt)
@@ -251,7 +257,7 @@ class DatamodelTestCase(unittest.TestCase):
         rb1.target = t
         rb1.instrument = i
         rb1.datatype = rdt
-        r1 = d.new_raw_data(rb1)
+        r1 = d.new(rb1)
 
     def test_times(self):
         d = Dataset(tempfile.mktemp(), 'w')

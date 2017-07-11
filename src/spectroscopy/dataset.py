@@ -21,7 +21,7 @@ from scipy.stats import binned_statistic
 from spectroscopy.class_factory import ResourceIdentifier
 from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
 import spectroscopy.util
-from spectroscopy.datamodel import (_Target, _RawData, all_classes)
+from spectroscopy.datamodel import all_classes
 
 
 class Dataset(object):

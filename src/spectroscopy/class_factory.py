@@ -2,6 +2,7 @@ import calendar
 import collections
 from copy import copy, deepcopy
 import datetime
+import hashlib
 import inspect
 import string
 from uuid import uuid4
@@ -412,8 +413,8 @@ class H5Set(set):
         #    pass
         try:
             ea = f.root.tags._v_children[val]
-        except KeyError:
-            msg = "Tag {:s} has not been registered yet."
+        except (KeyError,tables.NoSuchNodeError):
+            msg = "Tag {:s} has not been registered yet. "
             msg += "Use the 'Dataset.register_tags' function first."
             raise ValueError(msg.format(val))
         found = False
@@ -535,13 +536,18 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     # ToDo: allow for variable size string or make string
                     # long enough to allow more than one copy
                     dtp.append((key,np.dtype('S'+str(len(val)+10)),()))            
+                # Add a hash column to avoid adding the same entries more than once
+                dtp.append(('hash','S20',()))
                 # Allow to create empty elements for testing
                 if len(dtp) > 0:
+                    s = hashlib.sha1()
                     f = h5node._v_file
                     table = f.create_table(h5node,'data', np.dtype(dtp))
                     entry = table.row
                     for key,val in vals.iteritems():
                         entry[key]  = val
+                        s.update('{}'.format(val))
+                    entry['hash'] = s.digest()
                     entry.append()
                     table.flush() 
 
@@ -567,13 +573,19 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     # pytables can't store datetime objects. This way the return
                     # type for a single date is consistent with the return type
                     # of an array of dates
-                    val = copy(getattr(table.cols,name)[0])
+                    val = RetVal(getattr(table.cols,name))
                 else:
-                    val = copy(getattr(table.cols,name)[0])
+                    val = RetVal(getattr(table.cols,name))
                 return val
            if name in self._reference_keys:
                 table = getattr(self._root,'data')
                 return ResourceIdentifier(table[0][name]).get_referred_object()
+
+        def append(self,databuffer):
+            """
+            A base element can't be extended.
+            """
+            raise AttributeError("A base element can't be extended")
                 
 
     class ExpandableDataElement(DataElementBase):
@@ -581,8 +593,21 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         A base class with type checking for extendable elements in the datamodel.
         """
 
-        def append(self):
-            pass
+        def append(self, databuffer):
+            table = getattr(self._root, 'data')
+            s = hashlib.sha1()
+            entry = table.row
+            for key,val in databuffer.__dict__.iteritems():
+                if val is not None:
+                    entry[key] = val
+                    s.update('{}'.format(val))
+            h = s.digest()
+            if h in table[:]['hash']:
+                raise ValueError('Entry already exists.')
+            entry['hash'] = h
+            entry.append()
+            table.flush()
+
 
     class DataElementBuffer(object):
         # Every element has to have an ID and a reference to the plugin
