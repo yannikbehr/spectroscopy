@@ -224,6 +224,9 @@ class DatamodelTestCase(unittest.TestCase):
         self.assertEqual(list(t.tags), ['SomethingElse'])
 
     def test_dtbuffer(self):
+        """
+        Testing the behaviour of buffer elements.
+        """
         d = Dataset(tempfile.mktemp(), 'w')
         tb = TargetBuffer(tags=['WI001'], name='White Island main vent',
                           position=(177.2, -37.5, 50),
@@ -242,21 +245,21 @@ class DatamodelTestCase(unittest.TestCase):
                                  name='1st round measurements',
                                  acquisition='stationary')
         rdt = d.new(rdtb)
-        rb = RawDataBuffer(target=t, instrument=i, datatype=rdt,
+        rb = RawDataBuffer(target=t, instrument=i, type=rdt,
                            d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
                            datetime='2017-01-10T15:23:00')
         r = d.new(rb)
         self.assertTrue(r.target == t)
         self.assertTrue(r.instrument == i)
-        self.assertTrue(r.dtype == rdt)
+        self.assertTrue(r.type == rdt)
 
         rb1 = RawDataBuffer()
         rb1.d_var = np.zeros((1, 2048))
         rb1.ind_var = np.arange(2048),
-        rb1.datetime = np.array(np.datetime64('2017-01-10T15:23:00'))
+        rb1.datetime = '2017-01-10T15:23:00'
         rb1.target = t
         rb1.instrument = i
-        rb1.datatype = rdt
+        rb1.type = rdt
         r1 = d.new(rb1)
 
     def test_times(self):
