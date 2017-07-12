@@ -142,6 +142,8 @@ class MyPyRenderer(ObjRenderer):
         s = "\t'''\n"
         s += "\t{:s}\n\n".format(k.comment)
         for n,att in k.attributes:
+            if n in ['resource_id', 'creation_time', 'modification_time']:
+                continue
             if att[0].find('array') != -1:
                 dt = ":class:`numpy.ndarray`"
             elif att[0].find('string') != -1:
@@ -169,7 +171,7 @@ class MyPyRenderer(ObjRenderer):
         s += "\tclass_attributes=[\n"
         attributes = []
         for n,att in k.attributes:
-            if n in ['resource_id']:
+            if n in ['resource_id', 'creation_time', 'modification_time']:
                 continue
             if att[0].find('reference') != -1:
                 continue
