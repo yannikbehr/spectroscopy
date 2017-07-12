@@ -366,7 +366,7 @@ class RetVal(object):
     def __setitem__(self, key, value):
         raise AttributeError('Data type is read only.')
 
-    def __setslice__(self, key, value):
+    def __setslice__(self, i, j, value):
         raise AttributeError('Data type is read only.')
 
     def __setattr__(self, key, value):
@@ -499,7 +499,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         for key, value in _references:
             _reference_dict[key] = value 
 
-        def __init__(self, h5node, data_buffer=None):
+        def __init__(self, h5node, data_buffer=None, pedantic=False):
             # Set the parent HDF5 group after type checking
             if (type(h5node) is not tables.group.Group):
                 raise Exception("%s and %s are incompatible types." %
@@ -509,6 +509,9 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             # Every time a new object is created it gets a new resource ID
             self.__dict__['_resource_id'] = ResourceIdentifier(oid=h5node._v_name,
                                                               referred_object=self)
+            self.__dict__['creation_time'] = datetime.datetime.utcnow().isoformat()
+            h5node._v_attrs.creation_time = self.creation_time
+
             if data_buffer is not None:
                 dtp = []
                 vals = {}
@@ -537,17 +540,25 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     # long enough to allow more than one copy
                     dtp.append((key,np.dtype('S'+str(len(val)+10)),()))            
                 # Add a hash column to avoid adding the same entries more than once
-                dtp.append(('hash','S20',()))
+                dtp.append(('hash','S28',()))
                 # Allow to create empty elements for testing
                 if len(dtp) > 0:
-                    s = hashlib.sha1()
+                    s = hashlib.sha224()
                     f = h5node._v_file
                     table = f.create_table(h5node,'data', np.dtype(dtp))
                     entry = table.row
                     for key,val in vals.iteritems():
                         entry[key]  = val
                         s.update('{}'.format(val))
-                    entry['hash'] = s.digest()
+                    h = s.digest()
+                    entry['hash'] = h
+                    f = self._root._v_file
+                    ea = f.root.hash
+                    if pedantic and h in ea:
+                        msg = "You can't add the same dataset "
+                        msg += "more than once if 'pedantic=True'."
+                        raise ValueError(msg)
+                    ea.append(np.array([h],dtype='S28'))
                     entry.append()
                     table.flush() 
 
@@ -592,6 +603,10 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         """
         A base class with type checking for extendable elements in the datamodel.
         """
+        def __init__(self, h5node, data_buffer=None, pedantic=False):
+            super(ExpandableDataElement,self).__init__(h5node,data_buffer,pedantic)
+            self.__dict__['modification_time'] = self.creation_time 
+            h5node._v_attrs.modification_time = self.modification_time
 
         def append(self, databuffer):
             table = getattr(self._root, 'data')
@@ -607,6 +622,8 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             entry['hash'] = h
             entry.append()
             table.flush()
+            self.__dict__['modification_time'] = datetime.datetime.utcnow().isoformat()
+            self._root._v_attrs.modification_time = self.modification_time
 
 
     class DataElementBuffer(object):
@@ -632,11 +649,17 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         def __init__(self, **kwargs):
             # Set all property values to None or the kwarg value.
             for key, _ in self._properties:
-                value = kwargs.get(key, None)
+                value = kwargs.pop(key, None)
                 setattr(self, key, value)
             for key in self._reference_keys:
-                value = kwargs.get(key,None)
+                value = kwargs.pop(key,None)
                 setattr(self, key, value)
+            
+            if len(kwargs.keys()) > 0:
+                msg = "The following names are not a "
+                msg += "property or reference of class {:s}: "
+                msg += ",".join(kwargs.keys())
+                raise AttributeError(msg.format(type(self).__name__))
 
         def __setattr__(self, name, value):
             try:
@@ -645,7 +668,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                 try:
                     attrib_type = self._reference_dict[name]
                 except KeyError:
-                    raise Exception(
+                    raise AttributeError(
                         "%s is not a property or reference of class %s" %
                         (name, type(self).__name__))
             

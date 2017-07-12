@@ -10,8 +10,7 @@ __Instrument = _class_factory('__Instrument', 'base',
 		('location',(np.str_,)),
 		('no_bits',(np.int_,)),
 		('type',(np.str_,)),
-		('description',(np.str_,)),
-		('creation_time',(datetime.datetime,))],
+		('description',(np.str_,))],
 	class_references=[])
 
 
@@ -24,8 +23,6 @@ class InstrumentBuffer(__InstrumentBuffer):
 	'''
 	Description of the spectrometer.
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type sensor_id: str
@@ -39,8 +36,6 @@ class InstrumentBuffer(__InstrumentBuffer):
 	:param type: The spectrometer type (e.g. DOAS, FlySpec, etc.).
 	:type description: str
 	:param description: Any additional information on the instrument that may be relevant.
-	:type creation_time: datetime
-	:param creation_time: Date Time of object creation in ISO 8601 format.
 	'''
 
 class _Instrument(__Instrument):
@@ -54,9 +49,8 @@ __Target = _class_factory('__Target', 'base',
 		('target_id',(np.str_,)),
 		('name',(np.str_,)),
 		('position',(np.ndarray, np.float_)),
-		('postion_error',(np.ndarray, np.float_)),
-		('description',(np.str_,)),
-		('creation_time',(datetime.datetime,))],
+		('position_error',(np.ndarray, np.float_)),
+		('description',(np.str_,))],
 	class_references=[])
 
 
@@ -69,8 +63,6 @@ class TargetBuffer(__TargetBuffer):
 	'''
 	Description of the plume location.
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type target_id: str
@@ -79,13 +71,11 @@ class TargetBuffer(__TargetBuffer):
 	:param name: Descriptive name
 	:type position: :class:`numpy.ndarray`
 	:param position: Position of a plume in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).
-	:type postion_error: :class:`numpy.ndarray`
-	:param postion_error: Errors [degrees,degrees, m]
+	:type position_error: :class:`numpy.ndarray`
+	:param position_error: Errors [degrees,degrees, m]
 	:type description: str
 	:param description: Any additional information on the plume that may be relevant.
 
-	:type creation_time: datetime
-	:param creation_time: Date Time of object creation in ISO 8601 format.
 	'''
 
 class _Target(__Target):
@@ -99,8 +89,7 @@ __RawDataType = _class_factory('__RawDataType', 'base',
 		('d_var_unit',(np.str_,)),
 		('ind_var_unit',(np.str_,)),
 		('name',(np.str_,)),
-		('acquisition',(np.str_,)),
-		('creation_time',(datetime.datetime,))],
+		('acquisition',(np.str_,))],
 	class_references=[])
 
 
@@ -113,8 +102,6 @@ class RawDataTypeBuffer(__RawDataTypeBuffer):
 	'''
 	
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type d_var_unit: str
@@ -125,8 +112,6 @@ class RawDataTypeBuffer(__RawDataTypeBuffer):
 	:param name: Descriptive name (e.g. dark, offset, measurement, raw retrieval)
 	:type acquisition: str
 	:param acquisition: The type of acquisition (e.g. mobile, stationary)
-	:type creation_time: datetime
-	:param creation_time: Date Time of object creation in ISO 8601 format. 
 	'''
 
 class _RawDataType(__RawDataType):
@@ -138,8 +123,7 @@ __DataQualityType = _class_factory('__DataQualityType', 'base',
 	class_attributes=[
 		('tags',(set,)),
 		('name',(np.str_,)),
-		('reference',(np.str_,)),
-		('creation_time',(datetime.datetime,))],
+		('reference',(np.str_,))],
 	class_references=[])
 
 
@@ -152,16 +136,12 @@ class DataQualityTypeBuffer(__DataQualityTypeBuffer):
 	'''
 	A data quality description.
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable IDs
 	:type name: str
 	:param name: Descriptive name (e.g. Intensity of the light source)
 	:type reference: str
 	:param reference: Reference to more detailed description
-	:type creation_time: datetime
-	:param creation_time: Date Time of object creation in ISO 8601 format.
 	'''
 
 class _DataQualityType(__DataQualityType):
@@ -187,8 +167,6 @@ __RawData = _class_factory('__RawData', 'extendable',
 		('integration_time',(np.float_,)),
 		('no_averages',(np.float_,)),
 		('temperature',(np.float_,)),
-		('creation_time',(datetime.datetime,)),
-		('modification_time',(datetime.datetime,)),
 		('user_notes',(np.str_,))],
 	class_references=[
 		('instrument',(_Instrument,)),
@@ -206,8 +184,6 @@ class RawDataBuffer(__RawDataBuffer):
 	'''
 	Raw data is data that requires further processing to become meaningful for gaschemistry analysis. It can be, for example, spectra recorded by a spectrometer or unscaled concentration measured by a laser diode. If an instrument provides pre-processed data, this element may only hold meta information about the raw data but not the raw data itself (e.g. electro-chemical sensors). 
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type instrument: reference to Instrument
@@ -249,10 +225,6 @@ class RawDataBuffer(__RawDataBuffer):
 	:param no_averages: Number/time measurements are averaged over.
 	:type temperature: float
 	:param temperature: Temperature at the site or in the instrument [degC].
-	:type creation_time: datetime
-	:param creation_time: Date-time of object creation in ISO 8601 format.
-	:type modification_time: datetime
-	:param modification_time: Date-time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information relevant to the measurements.
 	'''
@@ -269,8 +241,7 @@ __Method = _class_factory('__Method', 'base',
 		('description',(np.str_,)),
 		('settings',(np.str_,)),
 		('reference',(np.str_,)),
-		('raw_data',(np.str_,)),
-		('creation_time',(datetime.datetime,))],
+		('raw_data',(np.str_,))],
 	class_references=[])
 
 
@@ -283,8 +254,6 @@ class MethodBuffer(__MethodBuffer):
 	'''
 	Desription of analysis methods.
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type name: str
@@ -297,8 +266,6 @@ class MethodBuffer(__MethodBuffer):
 	:param reference: URI  to more detailed method description.
 	:type raw_data: str
 	:param raw_data: Reference to raw data used in this method
-	:type creation_time: datetime
-	:param creation_time: Date Time of object creation in ISO 8601 format.
 	'''
 
 class _Method(__Method):
@@ -323,8 +290,6 @@ __GasFlow = _class_factory('__GasFlow', 'base',
 		('pressure',(np.float_,)),
 		('temperature',(np.float_,)),
 		('datetime',(datetime.datetime,)),
-		('creation_time',(datetime.datetime,)),
-		('modification_time',(datetime.datetime,)),
 		('user_notes',(np.str_,))],
 	class_references=[
 		('methods',(np.ndarray, _Method))])
@@ -339,8 +304,6 @@ class GasFlowBuffer(__GasFlowBuffer):
 	'''
 	Can either contain estimates of plume velocity or wind speed. Plume velocity estimates can either come from direct measurements (e.g. image processing) or meteorological observations (e.g. wind speed). Wind speed estimates can be either from direct measurements (e.g. weather stations) or meteorological models. Both, plume velocity and wind speed can be either described on a regular 4D local cartesian grid or at a single point. Grids are assumed to be right-handed Cartesian coordinate systems with uniform grid point spacing along any direction.
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type methods: :class:`numpy.ndarray`
@@ -373,10 +336,6 @@ class GasFlowBuffer(__GasFlowBuffer):
 	:param temperature: Temperature [degC]
 	:type datetime: datetime
 	:param datetime: Date Time [UTC] in ISO 8601 format
-	:type creation_time: datetime
-	:param creation_time: Date Time of object creation in ISO 8601 format.
-	:type modification_time: datetime
-	:param modification_time: Date Time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information that may be relevant.
 	'''
@@ -395,8 +354,6 @@ __Concentration = _class_factory('__Concentration', 'extendable',
 		('value_error',(np.float_,)),
 		('unit',(np.str_,)),
 		('analyst_contact',(np.str_,)),
-		('creation_time',(datetime.datetime,)),
-		('modification_time',(datetime.datetime,)),
 		('user_notes',(np.str_,))],
 	class_references=[
 		('method',(_Method,)),
@@ -413,8 +370,6 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	'''
 	Describes different types of gas concentration such as path concentration as inferred from spectrometers or volumetric concentration as measured by electro-chemical sensors.
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type method: reference to Method
@@ -435,10 +390,6 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	:param unit: Unit of gas concentration.
 	:type analyst_contact: str
 	:param analyst_contact: Contact (e.g. email) of person running software
-	:type creation_time: datetime
-	:param creation_time: Date-time of object creation in ISO 8601 format.
-	:type modification_time: datetime
-	:param modification_time: Date-time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information that may be relevant.
 	'''
@@ -456,8 +407,6 @@ __Flux = _class_factory('__Flux', 'extendable',
 		('value_error',(np.ndarray, np.float_)),
 		('unit',(np.str_,)),
 		('analyst_contact',(np.str_,)),
-		('creation_time',(datetime.datetime,)),
-		('modification_time',(datetime.datetime,)),
 		('user_notes',(np.str_,))],
 	class_references=[
 		('method',(_Method,)),
@@ -474,8 +423,6 @@ class FluxBuffer(__FluxBuffer):
 	'''
 	Flux estimates based on concentration estimates and a gas flow model.
 
-	:type resource_id: str
-	:param resource_id: Unique ID
 	:type tags: set
 	:param tags: List of human readable tags
 	:type method: reference to Method
@@ -494,10 +441,6 @@ class FluxBuffer(__FluxBuffer):
 	:param unit: Physical unit of flux.
 	:type analyst_contact: str
 	:param analyst_contact: Contact (e.g. email) of person running software
-	:type creation_time: datetime
-	:param creation_time: Date-time of object creation in ISO 8601 format.
-	:type modification_time: datetime
-	:param modification_time: Date-time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Any additional information that may be relevant.
 	'''
@@ -514,8 +457,6 @@ __PreferredFlux = _class_factory('__PreferredFlux', 'base',
 		('date',(np.ndarray, datetime.datetime)),
 		('value',(np.float_,)),
 		('value_error',(np.float_,)),
-		('creation_time',(datetime.datetime,)),
-		('modification_time',(datetime.datetime,)),
 		('user_notes',(np.str_,))],
 	class_references=[
 		('flux_ids',(np.ndarray, _Flux)),
@@ -531,8 +472,6 @@ class PreferredFluxBuffer(__PreferredFluxBuffer):
 	'''
 	Derived flux values either by selecting a subset or by integrating/averaging. These values would overlap with what is currently stored in FITS.
 
-	:type resource_id: str
-	:param resource_id: Unique identifier
 	:type tags: set
 	:param tags: List of human readable tags
 	:type flux_ids: :class:`numpy.ndarray`
@@ -547,10 +486,6 @@ class PreferredFluxBuffer(__PreferredFluxBuffer):
 	:param value_error: Flux value error
 	:type method_id: reference to Method
 	:param method_id: Reference to method
-	:type creation_time: datetime
-	:param creation_time: Date-time of object creation in ISO 8601 format.
-	:type modification_time: datetime
-	:param modification_time: Date-time of latest object modification in ISO 8601 format.
 	:type user_notes: str
 	:param user_notes: Comments relevant for reproducing preferred fluxes
 	'''

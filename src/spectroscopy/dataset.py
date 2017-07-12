@@ -2,6 +2,7 @@ import calendar
 import collections
 from copy import copy, deepcopy
 import datetime
+import hashlib
 import inspect
 import string
 from uuid import uuid4
@@ -58,6 +59,8 @@ class Dataset(object):
             self.base_elements[name+'Buffer'] = c
         self._rids = {}
         self._f = tables.open_file(filename, mode)
+        # Create an array of sha224 hash values
+        self._f.create_earray('/','hash',tables.StringAtom(itemsize=28),(0,))
 
     def __del__(self):
         self._f.close()
@@ -171,10 +174,24 @@ class Dataset(object):
             raise RuntimeError(msg)
         return type(src)(dstgroup)
 
-    def new(self, data_buffer):
+    def new(self, data_buffer, pedantic=False):
         """
         Create a new entry in the HDF5 file from the given data buffer.
         """
+        if pedantic:
+            s = hashlib.sha224()
+            # If data buffer is empty raise an exception
+            empty = True
+            for k,v in data_buffer.__dict__.iteritems():
+                if k == 'tags':
+                    continue
+                if v is not None:
+                    if k in data_buffer._property_dict.keys():
+                        s.update('{}'.format(v))
+                    empty = False
+            if empty:
+                raise ValueError("You can't add empty buffers if 'pedantic=True'.")
+
         _C = self.base_elements[type(data_buffer).__name__]
         group_name = _C.__name__.strip('_')
         rid = ResourceIdentifier()
@@ -185,7 +202,7 @@ class Dataset(object):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             group = self._f.create_group('/'+group_name,str(rid))
-        e = _C(group,data_buffer)
+        e = _C(group,data_buffer, pedantic=pedantic)
         self.elements[group_name].append(e)
         return e         
 
