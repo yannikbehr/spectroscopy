@@ -401,16 +401,6 @@ class H5Set(set):
         except Exception,e:
             print val
             raise e
-        # ToDo: Discuss with Nial. I've disabled the following
-        # to have an easy mechanism to check that tags are always
-        # typed correctly: by first having to register a tag
-        # you won't be able to add another tag with typos or
-        # different capitalisation
-        #try:
-        #    f.create_earray(
-        #        '/tags', val, tables.StringAtom(itemsize=60), (0,))
-        #except:
-        #    pass
         try:
             ea = f.root.tags._v_children[val]
         except (KeyError,tables.NoSuchNodeError):
@@ -536,8 +526,6 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     vals[key] = val
                     # Allow for additional postfix which get appended if
                     # an element get copied
-                    # ToDo: allow for variable size string or make string
-                    # long enough to allow more than one copy
                     dtp.append((key,np.dtype('S'+str(len(val)+10)),()))            
                 # Add a hash column to avoid adding the same entries more than once
                 dtp.append(('hash','S28',()))
@@ -572,25 +560,15 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                 '{} attributes are read only. Use append method instead.'.format(type(self).__name__))
 
         def __getattr__(self, name):
-           if name in self._property_keys:
-                table = getattr(self._root,'data')
-                # ToDo: remove as obsolete
-                if issubclass(self._property_dict[name][0], ResourceIdentifier):
-                    val = ResourceIdentifier(table[0][name]).get_referred_object()
-                elif issubclass(self._property_dict[name][0], np.ndarray):
-                    val = RetVal(getattr(table.cols,name))
-                elif issubclass(self._property_dict[name][0], datetime.datetime):
-                    #ToDo: this currently returns a string for a date as 
-                    # pytables can't store datetime objects. This way the return
-                    # type for a single date is consistent with the return type
-                    # of an array of dates
-                    val = RetVal(getattr(table.cols,name))
-                else:
-                    val = RetVal(getattr(table.cols,name))
+            table = getattr(self._root,'data')
+            if name in self._property_keys:
+                val = RetVal(getattr(table.cols,name))
                 return val
-           if name in self._reference_keys:
-                table = getattr(self._root,'data')
+            elif name in self._reference_keys:
                 return ResourceIdentifier(table[0][name]).get_referred_object()
+            else:
+                msg = "{0:s} is not a property or reference of class {1:s}"
+                raise AttributeError(msg.format(name, type(self).__name__))
 
         def append(self,databuffer):
             """

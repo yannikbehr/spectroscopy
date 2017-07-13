@@ -128,12 +128,6 @@ class DatamodelTestCase(unittest.TestCase):
         t = d.new(tb)
         with self.assertRaises(AttributeError):
             t.position = (1, 1, 1)
-        # ToDo: I can't remember what the following test 
-        # was for so I've disabled it for now
-        #with self.assertRaises(AttributeError):
-        #    d.raw_data = []
-        #d.raw_data[0] = 5
-        #self.assertNotEqual(d.raw_data[0], 5)
         rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
                            datetime='2017-01-10T15:23:00')
         r = d.new(rb)
@@ -143,6 +137,8 @@ class DatamodelTestCase(unittest.TestCase):
             r.d_var[0:2] = 1
         with self.assertRaises(AttributeError):
             r.d_var = np.ones((1, 2048))
+        with self.assertRaises(AttributeError):
+            r.blub
 
         np.testing.assert_array_equal(np.zeros(2048), np.array(r.d_var[0][0]))
 
