@@ -21,6 +21,6 @@ setup(
     package_dir={'': 'src'},
     install_requires=['pyinotify'],
     packages=['spectroscopy', 'spectroscopy.flux', 'spectroscopy.doas',
-                'spectroscopy.plugins', 'spectroscopy.util'],
+                'spectroscopy.plugins'],
     package_data={"spectroscopy.flux": ["flyspec_config.cfg"]},
 )
