@@ -350,8 +350,8 @@ __Concentration = _class_factory('__Concentration', 'extendable',
 		('tags',(set,)),
 		('rawdata_indices',(np.ndarray, np.int_)),
 		('gas_species',(np.str_,)),
-		('value',(np.float_,)),
-		('value_error',(np.float_,)),
+		('value',(np.ndarray, np.float_)),
+		('value_error',(np.ndarray, np.float_)),
 		('unit',(np.str_,)),
 		('analyst_contact',(np.str_,)),
 		('user_notes',(np.str_,))],
@@ -382,9 +382,9 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	:param rawdata_indices: Range of raw data used to estimate concentration
 	:type gas_species: str
 	:param gas_species: Gas type (e.g. SO2)
-	:type value: float
+	:type value: :class:`numpy.ndarray`
 	:param value: Concentration estimate.
-	:type value_error: float
+	:type value_error: :class:`numpy.ndarray`
 	:param value_error: Concentration uncertainty.
 	:type unit: str
 	:param unit: Unit of gas concentration.

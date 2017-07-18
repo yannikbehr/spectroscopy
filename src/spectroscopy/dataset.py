@@ -20,7 +20,7 @@ from tables.exceptions import NoSuchNodeError, NodeError
 from scipy.stats import binned_statistic
 
 from spectroscopy.class_factory import ResourceIdentifier
-from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
+from spectroscopy.plugins import get_registered_plugins
 import spectroscopy.util
 from spectroscopy.datamodel import all_classes
 
@@ -205,6 +205,14 @@ class Dataset(object):
         e = _C(group,data_buffer, pedantic=pedantic)
         self.elements[group_name].append(e)
         return e         
+
+    def read(self, filename, ftype, **kwargs):
+        """
+        Read in a datafile.
+        """
+        plugins = get_registered_plugins()
+        pg = plugins[ftype.lower()]()
+        pg.read(self,filename,**kwargs)
 
     def register_tags(self, tags):
         """

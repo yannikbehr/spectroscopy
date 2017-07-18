@@ -7,9 +7,8 @@ import os
 
 import numpy as np
 
-from spectroscopy.dataset import Dataset, Spectra, ResourceIdentifier, Retrievals
+from spectroscopy.datamodel import RawDataBuffer, ConcentrationBuffer
 from spectroscopy.plugins import DatasetPluginBase
-
 
 class FlySpecPluginException(Exception):
     pass
@@ -17,7 +16,7 @@ class FlySpecPluginException(Exception):
 
 class FlySpecPlugin(DatasetPluginBase):
 
-    def open(self, filename, format=None, timeshift=0.0, **kargs):
+    def read(self, dataset, filename, timeshift=0.0, **kargs):
         """
         Load data from FlySpec instruments.
 
@@ -51,40 +50,42 @@ class FlySpecPlugin(DatasetPluginBase):
         ts = -1. * timeshift * 60. * 60.
         int_times = np.zeros(data[:, :7].shape, dtype='int')
         int_times[:, :6] = data[:, 1:7]
-        # convert decimal seconds to milliseconds
-        int_times[:, 6] = (data[:, 6] - int_times[:, 5]) * 1000
+        # convert decimal seconds to microseconds
+        int_times[:, 6] = (data[:, 6] - int_times[:, 5]) * 1e6
+        # ToDo: handle timezones properly
         times = [datetime.datetime(*int_times[i, :]) +
                  datetime.timedelta(seconds=ts)
                  for i in range(int_times.shape[0])]
-        unix_times = [calendar.timegm(i.utctimetuple()) for i in times]
+        unix_times = [i.isoformat() for i in times]
         latitude = data[:, 8] * data[:, 9]
         longitude = data[:, 10] * data[:, 11]
         elevation = data[:, 12]
         so2 = data[:, 16]
         angles = data[:, 17]
-        s = Spectra(self, angle=np.zeros(angles.shape),
-                    position=np.zeros((latitude.size, 3)),
-                    time=np.zeros(angles.shape))
         slice_start = 0
         slice_end = slice_start
-        self.d = Dataset(self, spectra=[s])
+        r = None
         for a in self._split_by_scan(angles, unix_times, longitude,
                                      latitude, elevation, so2):
+            for i in xrange(a[0].size):
+                rb = RawDataBuffer(inc_angle=a[0][i],
+                                   position=(a[2][i],a[3][i],a[4][i]),
+                                   datetime=a[1][i])
+                if r is None:
+                    r = dataset.new(rb)
+                else:
+                    try:
+                        r.append(rb)
+                    except:
+                        print "{0:s}, {1:f}, {2:}".format(rb.datetime,rb.inc_angle,rb.position)
             slice_end = slice_start + a[0].size
-            s.angle[slice_start:slice_end] = a[0]
-            s.time[slice_start:slice_end] = a[1]
-            position = np.vstack((a[2], a[3], a[4])).T
-            s.position[slice_start:slice_end, :] = position
-            r = Retrievals(self,
-                           spectra_id=ResourceIdentifier(s.resource_id.id),
-                           type='FlySpec', gas_species='SO2',
-                           slice=slice(slice_start, slice_end), sca=a[5])
-            self.d.retrievals.append(r)
+            cb = ConcentrationBuffer(rawdata=r, gas_species='SO2',
+                                     rawdata_indices=(slice_start, slice_end),
+                                     value=a[5])
+            c = dataset.new(cb)
             slice_start = slice_end
         # Consistency check to make sure no data was dropped during slicing
-        assert s.angle.std() == angles.std()
-
-        return self.d
+        assert r.inc_angle[:].std() == angles.std()
 
     def _array_multi_sort(self, *arrays):
         """
@@ -181,26 +182,6 @@ class FlySpecPlugin(DatasetPluginBase):
 
     def close(self, filename):
         raise Exception('Close is undefined for the FlySpec backend')
-
-    def get_item(self, path):
-        _e = path.split('/')
-        id = _e[1]
-        name = _e[2]
-        ref_o = ResourceIdentifier(id).get_referred_object()
-        return ref_o.__dict__[name]
-
-    def set_item(self, path, value):
-        _e = path.split('/')
-        id = _e[1]
-        name = _e[2]
-        ref_o = ResourceIdentifier(id).get_referred_object()
-        ref_o.__dict__[name] = value
-
-    def create_item(self, path, value):
-        pass
-
-    def new(self, filename=None):
-        self._root = FlySpecPlugin()
 
     @staticmethod
     def get_format():

@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 from scipy.stats import binned_statistic
 
-from spectroscopy.dataset import Dataset, Spectra
+from spectroscopy.dataset import Dataset
 from spectroscopy.plugins.flyspec import FlySpecPlugin
 from spectroscopy.plugins.flyspec import FlySpecPluginException
 
@@ -29,8 +29,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
     def test_add(self):
         d = Dataset.new('FLYSPEC')
-        d1 = Dataset.open(os.path.join(self.data_dir,
-                                       '2012_02_29_1340_CHILE.txt'),
+        d1 = Dataset.open(os.path.join(self.data_dir, '2012_02_29_1340_CHILE.txt'),
                           format='FLYSPEC')
         d += d1
         r = d.retrievals[3]
@@ -53,30 +52,33 @@ class FlySpecPluginTestCase(unittest.TestCase):
         d0 += d2
         self.assertEqual(len(d0.retrievals), 25)
 
-    def test_open(self):
-        d = Dataset.open(os.path.join(self.data_dir,
-                                      '2012_02_29_1340_CHILE.txt'),
-                         format='FLYSPEC')
-        s = d.spectra[0]
-        self.assertEqual(s.time.shape, (4600,))
-        self.assertEqual(s.angle[0], 135.140)
-        r = d.retrievals[3]
-        s1 = r.spectra_id.get_referred_object()
-        angle = s1.angle[r.slice]
-        id_max = np.argmax(r.sca)
+    def test_read(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        #d.read(os.path.join(self.data_dir,'2016_06_11_0830_TOFP04.txt'),ftype='FLYSPEC')
+        d.read(os.path.join(self.data_dir,'2012_02_29_1340_CHILE.txt'),
+               ftype='FLYSPEC')
+        r = d.elements['RawData'][0]
+        self.assertEqual(r.datetime.shape, (4600,))
+        self.assertEqual(r.inc_angle[0], 135.140)
+        c = d.elements['Concentration'][3]
+        r1 = c.rawdata
+        angle = r1.inc_angle[c.rawdata_indices[0][0]:c.rawdata_indices[0][1]]
+        id_max = np.argmax(c.value[:])
         np.testing.assert_almost_equal(angle[id_max], 168.04, 2)
-        self.assertEqual(len(d.retrievals), 36)
-        np.testing.assert_array_almost_equal(s1.position[0, :],
+        self.assertEqual(len(d.elements['Concentration']), 36)
+        np.testing.assert_array_almost_equal(r1.position[:][0],
                                              [-67.8047, -23.3565, 3927.], 2)
 
         # dicretize all retrievals onto a grid to show a daily plot
         bins = np.arange(0, 180, 1.0)
-        nretrieval = len(d.retrievals)
+        nretrieval = len(d.elements['Concentration'])
         m = np.zeros((nretrieval, bins.size - 1))
-        for i, _r in enumerate(d.retrievals):
-            _s = _r.spectra_id.get_referred_object()
-            _angle = _s.angle[_r.slice]
-            _so2 = _r.sca
+        for i, _c in enumerate(d.elements['Concentration']):
+            _r = _c.rawdata
+            id0 = _c.rawdata_indices[0][0]
+            id1 = _c.rawdata_indices[0][1]
+            _angle = _r.inc_angle[:][id0:id1]
+            _so2 = _c.value[:]
             _so2_binned = binned_statistic(_angle, _so2, 'mean', bins)
             m[i, :] = _so2_binned.statistic
         ids = np.argmax(np.ma.masked_invalid(m), axis=1)
@@ -87,15 +89,17 @@ class FlySpecPluginTestCase(unittest.TestCase):
                            164., 164., 164., 161.])
         np.testing.assert_array_almost_equal(maxima, bins[ids], 2)
 
-        d1 = Dataset.open(os.path.join(self.data_dir,
-                                       '2016_06_11_0830_TOFP04.txt'),
-                          format='FLYSPEC', timeshift=12.0)
-        nretrieval = len(d1.retrievals)
+        d1 = Dataset(tempfile.mktemp(), 'w')
+        d1.read(os.path.join(self.data_dir, '2016_06_11_0830_TOFP04.txt'),
+                          ftype='FLYSPEC', timeshift=12.0)
+        nretrieval = len(d1.elements['Concentration'])
         m = np.zeros((nretrieval, bins.size - 1))
-        for i, _r in enumerate(d1.retrievals):
-            _s = _r.spectra_id.get_referred_object()
-            _angle = _s.angle[_r.slice]
-            _so2 = _r.sca
+        for i, _c in enumerate(d1.elements['Concentration']):
+            _r = _c.rawdata
+            id0 = _c.rawdata_indices[0][0]
+            id1 = _c.rawdata_indices[0][1]
+            _angle = _r.inc_angle[:][id0:id1]
+            _so2 = _c.value[:]
             _so2_binned = binned_statistic(_angle, _so2, 'mean', bins)
             m[i, :] = _so2_binned.statistic
         ids = np.argmax(np.ma.masked_invalid(m), axis=1)

@@ -422,8 +422,6 @@ class H5Set(set):
         """
         Append a tag to the list of existing tags.
         """
-        # ToDo: What happens if you add the same element multiple times to the same 
-        # tag?
         self.add(val)
 
     def remove(self, val):
@@ -477,8 +475,8 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             _properties.append((item[0], item[1]))
         _property_keys = [_i[0] for _i in _properties]
         _property_dict = {}
-        for key, value in _properties:
-            _property_dict[key] = value
+        for key, val in _properties:
+            _property_dict[key] = val
 
         # Assign references to other elements in the datamodel
         _references = []
@@ -486,8 +484,8 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             _references.append((item[0],item[1]))
         _reference_keys = [_i[0] for _i in _references] 
         _reference_dict = {}
-        for key, value in _references:
-            _reference_dict[key] = value 
+        for key, val in _references:
+            _reference_dict[key] = val 
 
         def __init__(self, h5node, data_buffer=None, pedantic=False):
             # Set the parent HDF5 group after type checking
