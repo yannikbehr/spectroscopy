@@ -1,0 +1,586 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>spectroscopy.datamodel &#8212; SpectroscoPy 0.1.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for spectroscopy.datamodel</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">spectroscopy.class_factory</span> <span class="k">import</span> <span class="n">_class_factory</span>
+
+
+<span class="n">__Instrument</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Instrument&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;sensor_id&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;no_bits&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[])</span>
+
+
+<span class="n">__InstrumentBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__InstrumentBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__Instrument</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__Instrument</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="InstrumentBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.InstrumentBuffer">[docs]</a><span class="k">class</span> <span class="nc">InstrumentBuffer</span><span class="p">(</span><span class="n">__InstrumentBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Description of the spectrometer.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type sensor_id: str</span>
+<span class="sd">	:param sensor_id: Serial number</span>
+<span class="sd">	:type location: str</span>
+<span class="sd">	:param location: Name of sensor location</span>
+<span class="sd">	:type no_bits: int</span>
+<span class="sd">	:param no_bits: The number of bits used by the analog-to-digital converter.</span>
+
+<span class="sd">	:type type: str</span>
+<span class="sd">	:param type: The spectrometer type (e.g. DOAS, FlySpec, etc.).</span>
+<span class="sd">	:type description: str</span>
+<span class="sd">	:param description: Any additional information on the instrument that may be relevant.</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_Instrument</span><span class="p">(</span><span class="n">__Instrument</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__Target</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Target&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;target_id&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[])</span>
+
+
+<span class="n">__TargetBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__TargetBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__Target</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__Target</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TargetBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.TargetBuffer">[docs]</a><span class="k">class</span> <span class="nc">TargetBuffer</span><span class="p">(</span><span class="n">__TargetBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Description of the plume location.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type target_id: str</span>
+<span class="sd">	:param target_id: A unique, human readable ID</span>
+<span class="sd">	:type name: str</span>
+<span class="sd">	:param name: Descriptive name</span>
+<span class="sd">	:type position: :class:`numpy.ndarray`</span>
+<span class="sd">	:param position: Position of a plume in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).</span>
+<span class="sd">	:type position_error: :class:`numpy.ndarray`</span>
+<span class="sd">	:param position_error: Errors [degrees,degrees, m]</span>
+<span class="sd">	:type description: str</span>
+<span class="sd">	:param description: Any additional information on the plume that may be relevant.</span>
+
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_Target</span><span class="p">(</span><span class="n">__Target</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__RawDataType</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__RawDataType&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;d_var_unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;ind_var_unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;acquisition&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[])</span>
+
+
+<span class="n">__RawDataTypeBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__RawDataTypeBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__RawDataType</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__RawDataType</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RawDataTypeBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.RawDataTypeBuffer">[docs]</a><span class="k">class</span> <span class="nc">RawDataTypeBuffer</span><span class="p">(</span><span class="n">__RawDataTypeBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type d_var_unit: str</span>
+<span class="sd">	:param d_var_unit: Unit of dependent variable</span>
+<span class="sd">	:type ind_var_unit: str</span>
+<span class="sd">	:param ind_var_unit: Unit of independent variable</span>
+<span class="sd">	:type name: str</span>
+<span class="sd">	:param name: Descriptive name (e.g. dark, offset, measurement, raw retrieval)</span>
+<span class="sd">	:type acquisition: str</span>
+<span class="sd">	:param acquisition: The type of acquisition (e.g. mobile, stationary)</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_RawDataType</span><span class="p">(</span><span class="n">__RawDataType</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__DataQualityType</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__DataQualityType&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[])</span>
+
+
+<span class="n">__DataQualityTypeBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__DataQualityTypeBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__DataQualityType</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__DataQualityType</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DataQualityTypeBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.DataQualityTypeBuffer">[docs]</a><span class="k">class</span> <span class="nc">DataQualityTypeBuffer</span><span class="p">(</span><span class="n">__DataQualityTypeBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	A data quality description.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable IDs</span>
+<span class="sd">	:type name: str</span>
+<span class="sd">	:param name: Descriptive name (e.g. Intensity of the light source)</span>
+<span class="sd">	:type reference: str</span>
+<span class="sd">	:param reference: Reference to more detailed description</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_DataQualityType</span><span class="p">(</span><span class="n">__DataQualityType</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__RawData</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__RawData&#39;</span><span class="p">,</span> <span class="s1">&#39;extendable&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;inc_angle&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;inc_angle_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;bearing&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;bearing_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;path_length&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;path_length_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;d_var&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;ind_var&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;data_quality&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;integration_time&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;no_averages&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;temperature&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;instrument&#39;</span><span class="p">,(</span><span class="n">_Instrument</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;target&#39;</span><span class="p">,(</span><span class="n">_Target</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,(</span><span class="n">_RawDataType</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;data_quality_type&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">_DataQualityType</span><span class="p">))])</span>
+
+
+<span class="n">__RawDataBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__RawDataBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__RawData</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__RawData</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RawDataBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.RawDataBuffer">[docs]</a><span class="k">class</span> <span class="nc">RawDataBuffer</span><span class="p">(</span><span class="n">__RawDataBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Raw data is data that requires further processing to become meaningful for gaschemistry analysis. It can be, for example, spectra recorded by a spectrometer or unscaled concentration measured by a laser diode. If an instrument provides pre-processed data, this element may only hold meta information about the raw data but not the raw data itself (e.g. electro-chemical sensors). </span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type instrument: reference to Instrument</span>
+<span class="sd">	:param instrument: Reference to the instrument recording the data.</span>
+<span class="sd">	:type target: reference to Target</span>
+<span class="sd">	:param target: Reference to the target plume.</span>
+<span class="sd">	:type type: reference to RawDataType</span>
+<span class="sd">	:param type: Reference to the raw-data-type.</span>
+<span class="sd">	:type inc_angle: float</span>
+<span class="sd">	:param inc_angle: Inclinitation of measurement direction from vertical. For a transect all angles would typically be the same, e.g. 0.0 if the spectrometer was pointing up.</span>
+
+<span class="sd">	:type inc_angle_error: float</span>
+<span class="sd">	:param inc_angle_error: Uncertainty of inclination angle in degrees.</span>
+<span class="sd">	:type bearing: float</span>
+<span class="sd">	:param bearing: Bearing of the scan plane in degrees from grid north.</span>
+<span class="sd">	:type bearing_error: float</span>
+<span class="sd">	:param bearing_error: Scan bearing uncertainty.</span>
+<span class="sd">	:type position: float</span>
+<span class="sd">	:param position: The position of the spectrometer in decimal longitude, latitude, and elevation in m above sea level  (lon, lat, elev).</span>
+<span class="sd">	:type position_error: float</span>
+<span class="sd">	:param position_error: Instrument location uncertainty.</span>
+<span class="sd">	:type path_length: float</span>
+<span class="sd">	:param path_length: Path length of a scan [m].</span>
+<span class="sd">	:type path_length_error: float</span>
+<span class="sd">	:param path_length_error: Path length uncertainty.</span>
+<span class="sd">	:type d_var: :class:`numpy.ndarray`</span>
+<span class="sd">	:param d_var: Dependent variable e.g. measured spectra, concentration</span>
+<span class="sd">	:type ind_var: :class:`numpy.ndarray`</span>
+<span class="sd">	:param ind_var: Independent variable e.g. wavelengths, time</span>
+<span class="sd">	:type datetime: datetime</span>
+<span class="sd">	:param datetime: Date Time of recording in ISO 8601 format.</span>
+<span class="sd">	:type data_quality: :class:`numpy.ndarray`</span>
+<span class="sd">	:param data_quality: Data quality parameters.</span>
+<span class="sd">	:type data_quality_type: :class:`numpy.ndarray`</span>
+<span class="sd">	:param data_quality_type: List of references to data-quality-type.</span>
+<span class="sd">	:type integration_time: float</span>
+<span class="sd">	:param integration_time: Exposure time [s].</span>
+<span class="sd">	:type no_averages: float</span>
+<span class="sd">	:param no_averages: Number/time measurements are averaged over.</span>
+<span class="sd">	:type temperature: float</span>
+<span class="sd">	:param temperature: Temperature at the site or in the instrument [degC].</span>
+<span class="sd">	:type user_notes: str</span>
+<span class="sd">	:param user_notes: Any additional information relevant to the measurements.</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_RawData</span><span class="p">(</span><span class="n">__RawData</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__Method</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Method&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;settings&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;raw_data&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[])</span>
+
+
+<span class="n">__MethodBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__MethodBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__Method</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__Method</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MethodBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.MethodBuffer">[docs]</a><span class="k">class</span> <span class="nc">MethodBuffer</span><span class="p">(</span><span class="n">__MethodBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Desription of analysis methods.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type name: str</span>
+<span class="sd">	:param name: Name of software/method</span>
+<span class="sd">	:type description: str</span>
+<span class="sd">	:param description: Short method summary</span>
+<span class="sd">	:type settings: json</span>
+<span class="sd">	:param settings: Settings/setup relevant to reproduce results in JSON format.</span>
+<span class="sd">	:type reference: str</span>
+<span class="sd">	:param reference: URI  to more detailed method description.</span>
+<span class="sd">	:type raw_data: str</span>
+<span class="sd">	:param raw_data: Reference to raw data used in this method</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_Method</span><span class="p">(</span><span class="n">__Method</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__GasFlow</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__GasFlow&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;vx&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;vx_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;vy&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;vy_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;vz&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;vz_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;grid_bearing&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;grid_increments&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;pressure&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;temperature&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;methods&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">_Method</span><span class="p">))])</span>
+
+
+<span class="n">__GasFlowBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__GasFlowBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__GasFlow</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__GasFlow</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="GasFlowBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.GasFlowBuffer">[docs]</a><span class="k">class</span> <span class="nc">GasFlowBuffer</span><span class="p">(</span><span class="n">__GasFlowBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Can either contain estimates of plume velocity or wind speed. Plume velocity estimates can either come from direct measurements (e.g. image processing) or meteorological observations (e.g. wind speed). Wind speed estimates can be either from direct measurements (e.g. weather stations) or meteorological models. Both, plume velocity and wind speed can be either described on a regular 4D local cartesian grid or at a single point. Grids are assumed to be right-handed Cartesian coordinate systems with uniform grid point spacing along any direction.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type methods: :class:`numpy.ndarray`</span>
+<span class="sd">	:param methods: List of references to methods used to compute gas flow</span>
+<span class="sd">	:type vx: float</span>
+<span class="sd">	:param vx: x component of gas flow vector (wrt local grid or east) </span>
+<span class="sd">	:type vx_error: float</span>
+<span class="sd">	:param vx_error: x component error</span>
+<span class="sd">	:type vy: float</span>
+<span class="sd">	:param vy: y component of gas flow vector (wrt local grid or east)</span>
+<span class="sd">	:type vy_error: float</span>
+<span class="sd">	:param vy_error: y component error</span>
+<span class="sd">	:type vz: float</span>
+<span class="sd">	:param vz: z component of gas flow vector (wrt local grid or east)</span>
+<span class="sd">	:type vz_error: float</span>
+<span class="sd">	:param vz_error: z component error</span>
+<span class="sd">	:type unit: str</span>
+<span class="sd">	:param unit: Physical unit of gas flow vector</span>
+<span class="sd">	:type position: float</span>
+<span class="sd">	:param position: Measurement location or grid origin in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).</span>
+<span class="sd">	:type position_error: float</span>
+<span class="sd">	:param position_error: Location uncertainty</span>
+<span class="sd">	:type grid_bearing: float</span>
+<span class="sd">	:param grid_bearing: X-axis angle from grid north in decimal degrees.</span>
+<span class="sd">	:type grid_increments: float</span>
+<span class="sd">	:param grid_increments: Grid increments along the x-, y-, and z-axis </span>
+<span class="sd">	:type pressure: float</span>
+<span class="sd">	:param pressure: Atmospheric pressure [Pa]</span>
+<span class="sd">	:type temperature: float</span>
+<span class="sd">	:param temperature: Temperature [degC]</span>
+<span class="sd">	:type datetime: datetime</span>
+<span class="sd">	:param datetime: Date Time [UTC] in ISO 8601 format</span>
+<span class="sd">	:type user_notes: str</span>
+<span class="sd">	:param user_notes: Any additional information that may be relevant.</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_GasFlow</span><span class="p">(</span><span class="n">__GasFlow</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__Concentration</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Concentration&#39;</span><span class="p">,</span> <span class="s1">&#39;extendable&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;rawdata_indices&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;gas_species&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;value_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;analyst_contact&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,(</span><span class="n">_Method</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;gasflow&#39;</span><span class="p">,(</span><span class="n">_GasFlow</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;rawdata&#39;</span><span class="p">,(</span><span class="n">_RawData</span><span class="p">,))])</span>
+
+
+<span class="n">__ConcentrationBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__ConcentrationBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__Concentration</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__Concentration</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ConcentrationBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.ConcentrationBuffer">[docs]</a><span class="k">class</span> <span class="nc">ConcentrationBuffer</span><span class="p">(</span><span class="n">__ConcentrationBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Describes different types of gas concentration such as path concentration as inferred from spectrometers or volumetric concentration as measured by electro-chemical sensors.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type method: reference to Method</span>
+<span class="sd">	:param method: Reference to the method used to obtain concentration estimates.</span>
+<span class="sd">	:type gasflow: reference to GasFlow</span>
+<span class="sd">	:param gasflow: Reference to gas flow model (if applicable).</span>
+<span class="sd">	:type rawdata: reference to RawData</span>
+<span class="sd">	:param rawdata: Reference to raw measurements (if applicable).</span>
+<span class="sd">	:type rawdata_indices: :class:`numpy.ndarray`</span>
+<span class="sd">	:param rawdata_indices: Range of raw data used to estimate concentration</span>
+<span class="sd">	:type gas_species: str</span>
+<span class="sd">	:param gas_species: Gas type (e.g. SO2)</span>
+<span class="sd">	:type value: :class:`numpy.ndarray`</span>
+<span class="sd">	:param value: Concentration estimate.</span>
+<span class="sd">	:type value_error: :class:`numpy.ndarray`</span>
+<span class="sd">	:param value_error: Concentration uncertainty.</span>
+<span class="sd">	:type unit: str</span>
+<span class="sd">	:param unit: Unit of gas concentration.</span>
+<span class="sd">	:type analyst_contact: str</span>
+<span class="sd">	:param analyst_contact: Contact (e.g. email) of person running software</span>
+<span class="sd">	:type user_notes: str</span>
+<span class="sd">	:param user_notes: Any additional information that may be relevant.</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_Concentration</span><span class="p">(</span><span class="n">__Concentration</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__Flux</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Flux&#39;</span><span class="p">,</span> <span class="s1">&#39;extendable&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;concentration_indices&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;value_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;analyst_contact&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,(</span><span class="n">_Method</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;concentration&#39;</span><span class="p">,(</span><span class="n">_Concentration</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;gasflow&#39;</span><span class="p">,(</span><span class="n">_GasFlow</span><span class="p">,))])</span>
+
+
+<span class="n">__FluxBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__FluxBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__Flux</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__Flux</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="FluxBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.FluxBuffer">[docs]</a><span class="k">class</span> <span class="nc">FluxBuffer</span><span class="p">(</span><span class="n">__FluxBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Flux estimates based on concentration estimates and a gas flow model.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type method: reference to Method</span>
+<span class="sd">	:param method: Reference to software used</span>
+<span class="sd">	:type concentration: reference to Concentration</span>
+<span class="sd">	:param concentration: </span>
+<span class="sd">	:type concentration_indices: :class:`numpy.ndarray`</span>
+<span class="sd">	:param concentration_indices: Indices of concentrations</span>
+<span class="sd">	:type gasflow: reference to GasFlow</span>
+<span class="sd">	:param gasflow: </span>
+<span class="sd">	:type value: :class:`numpy.ndarray`</span>
+<span class="sd">	:param value: Flux estimates</span>
+<span class="sd">	:type value_error: :class:`numpy.ndarray`</span>
+<span class="sd">	:param value_error: Flux estimate errors</span>
+<span class="sd">	:type unit: str</span>
+<span class="sd">	:param unit: Physical unit of flux.</span>
+<span class="sd">	:type analyst_contact: str</span>
+<span class="sd">	:param analyst_contact: Contact (e.g. email) of person running software</span>
+<span class="sd">	:type user_notes: str</span>
+<span class="sd">	:param user_notes: Any additional information that may be relevant.</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_Flux</span><span class="p">(</span><span class="n">__Flux</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">__PreferredFlux</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__PreferredFlux&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;flux_indices&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;value_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
+		<span class="p">(</span><span class="s1">&#39;flux_ids&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">_Flux</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;method_id&#39;</span><span class="p">,(</span><span class="n">_Method</span><span class="p">,))])</span>
+
+
+<span class="n">__PreferredFluxBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
+	<span class="s1">&#39;__PreferredFluxBuffer&#39;</span><span class="p">,</span> <span class="s1">&#39;buffer&#39;</span><span class="p">,</span>
+	<span class="n">__PreferredFlux</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">__PreferredFlux</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PreferredFluxBuffer"><a class="viewcode-back" href="../../dataset.html#spectroscopy.datamodel.PreferredFluxBuffer">[docs]</a><span class="k">class</span> <span class="nc">PreferredFluxBuffer</span><span class="p">(</span><span class="n">__PreferredFluxBuffer</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Derived flux values either by selecting a subset or by integrating/averaging. These values would overlap with what is currently stored in FITS.</span>
+
+<span class="sd">	:type tags: set</span>
+<span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type flux_ids: :class:`numpy.ndarray`</span>
+<span class="sd">	:param flux_ids: References to flux estimates used to compute derived flux</span>
+<span class="sd">	:type flux_indices: :class:`numpy.ndarray`</span>
+<span class="sd">	:param flux_indices: Indices of flux values used to compute derived flux</span>
+<span class="sd">	:type date: :class:`numpy.ndarray`</span>
+<span class="sd">	:param date: Dates of derived flux values in ISO 8601 format.</span>
+<span class="sd">	:type value: float</span>
+<span class="sd">	:param value: Derived flux value</span>
+<span class="sd">	:type value_error: float</span>
+<span class="sd">	:param value_error: Flux value error</span>
+<span class="sd">	:type method_id: reference to Method</span>
+<span class="sd">	:param method_id: Reference to method</span>
+<span class="sd">	:type user_notes: str</span>
+<span class="sd">	:param user_notes: Comments relevant for reproducing preferred fluxes</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+
+<span class="k">class</span> <span class="nc">_PreferredFlux</span><span class="p">(</span><span class="n">__PreferredFlux</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+<span class="n">all_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">_Instrument</span><span class="p">,</span> <span class="n">_Target</span><span class="p">,</span> <span class="n">_RawDataType</span><span class="p">,</span> <span class="n">_DataQualityType</span><span class="p">,</span> <span class="n">_RawData</span><span class="p">,</span> <span class="n">_Method</span><span class="p">,</span> <span class="n">_GasFlow</span><span class="p">,</span> <span class="n">_Concentration</span><span class="p">,</span> <span class="n">_Flux</span><span class="p">,</span> <span class="n">_PreferredFlux</span><span class="p">]</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Nial Peters, Yannik Behr.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
