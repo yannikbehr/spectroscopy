@@ -8,7 +8,7 @@
     
     <title>Datamodel for spectroscopy &#8212; SpectroscoPy 0.1.1 documentation</title>
     
-    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -27,58 +27,16 @@
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="SpectroscoPy documentation" href="index.html" /> 
+    <link rel="prev" title="Spectroscopy documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
   </head>
   <body role="document">
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="index.html" title="SpectroscoPy documentation"
-             accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">SpectroscoPy 0.1.1 documentation</a> &#187;</li> 
-      </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Datamodel for spectroscopy</a><ul>
-<li><a class="reference internal" href="#example">Example</a></li>
-<li><a class="reference internal" href="#uml">UML</a></li>
-<li><a class="reference internal" href="#module-spectroscopy.dataset">Classes &amp; Functions</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">SpectroscoPy documentation</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/dataset.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-</div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
+  
 
     <div class="document">
       <div class="documentwrapper">
@@ -89,24 +47,26 @@
 <h1>Datamodel for spectroscopy<a class="headerlink" href="#datamodel-for-spectroscopy" title="Permalink to this headline">¶</a></h1>
 <p>The datamodel is intended to store raw spectroscopy data, analysis results, and
 the corresponding processing flows. The general idea is that a file contains
-all the information required to reproduce the final flux measurements. It was
-designed with the HDF5 format in mind for I/O but plugins can also be written
-for storing datasets in a database or XML files.</p>
+all the information required to reproduce the final flux measurements. This
+implementation of the datamodel is based on HDF5 but other implementations may,
+for example, use the datamodel as a database or XML scheme.</p>
 <div class="section" id="example">
 <h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
 <p>The following shows an example on how the <code class="docutils literal"><span class="pre">Dataset</span></code> type, which implements
 the datamodel, can be used to get a quick overview of the data contained in a
 FlySpec file:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">spectroscopy.dataset</span> <span class="k">import</span> <span class="n">Dataset</span>
-<span class="n">d</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;testfile&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;FLYSPEC&#39;</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">mktemp</span><span class="p">(),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;testfile&#39;</span><span class="p">,</span> <span class="n">ftype</span><span class="o">=</span><span class="s1">&#39;FLYSPEC&#39;</span><span class="p">)</span>
 <span class="n">d</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 </pre></div>
 </div>
 <a class="reference internal image-reference" href="_images/chile_retrievals_overview.png"><img alt="_images/chile_retrievals_overview.png" class="align-center" src="_images/chile_retrievals_overview.png" style="width: 922.8px; height: 713.2px;" /></a>
 </div>
-<div class="section" id="uml">
-<h2>UML<a class="headerlink" href="#uml" title="Permalink to this headline">¶</a></h2>
-<img alt="_images/datamodel.svg" src="_images/datamodel.svg" /></div>
+<div class="section" id="simplified-datamodel">
+<h2>Simplified datamodel<a class="headerlink" href="#simplified-datamodel" title="Permalink to this headline">¶</a></h2>
+<img alt="_images/datamodel_simple.svg" src="_images/datamodel_simple.svg" /></div>
 <div class="section" id="module-spectroscopy.dataset">
 <span id="classes-functions"></span><h2>Classes &amp; Functions<a class="headerlink" href="#module-spectroscopy.dataset" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
@@ -142,6 +102,12 @@ dataset.</li>
 </dd></dl>
 
 <dl class="method">
+<dt id="spectroscopy.dataset.Dataset.read">
+<code class="descname">read</code><span class="sig-paren">(</span><em>filename</em>, <em>ftype</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read in a datafile.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="spectroscopy.dataset.Dataset.register_tags">
 <code class="descname">register_tags</code><span class="sig-paren">(</span><em>tags</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.register_tags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.register_tags" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register one or more tag names.</p>
@@ -156,7 +122,7 @@ element that had been tagged.</p>
 
 <dl class="method">
 <dt id="spectroscopy.dataset.Dataset.plot">
-<code class="descname">plot</code><span class="sig-paren">(</span><em>toplot='retrievals'</em>, <em>savefig=None</em>, <em>**kargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.plot" title="Permalink to this definition">¶</a></dt>
+<code class="descname">plot</code><span class="sig-paren">(</span><em>toplot='concentrations'</em>, <em>savefig=None</em>, <em>**kargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.plot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Provide overview plots for data contained in a dataset.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -186,6 +152,258 @@ retrievals are discretized to.</li>
 
 </dd></dl>
 
+<span class="target" id="module-spectroscopy.datamodel"></span><dl class="class">
+<dt id="spectroscopy.datamodel.InstrumentBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">InstrumentBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#InstrumentBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.InstrumentBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description of the spectrometer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>sensor_id</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Serial number</li>
+<li><strong>location</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of sensor location</li>
+<li><strong>no_bits</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The number of bits used by the analog-to-digital converter.</li>
+<li><strong>type</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The spectrometer type (e.g. DOAS, FlySpec, etc.).</li>
+<li><strong>description</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information on the instrument that may be relevant.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.TargetBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">TargetBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#TargetBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.TargetBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description of the plume location.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>target_id</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; A unique, human readable ID</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Descriptive name</li>
+<li><strong>position</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Position of a plume in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).</li>
+<li><strong>position_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Errors [degrees,degrees, m]</li>
+<li><strong>description</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information on the plume that may be relevant.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.RawDataTypeBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">RawDataTypeBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#RawDataTypeBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.RawDataTypeBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>d_var_unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Unit of dependent variable</li>
+<li><strong>ind_var_unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Unit of independent variable</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Descriptive name (e.g. dark, offset, measurement, raw retrieval)</li>
+<li><strong>acquisition</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The type of acquisition (e.g. mobile, stationary)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.DataQualityTypeBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">DataQualityTypeBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#DataQualityTypeBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.DataQualityTypeBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A data quality description.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable IDs</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Descriptive name (e.g. Intensity of the light source)</li>
+<li><strong>reference</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Reference to more detailed description</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.RawDataBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">RawDataBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#RawDataBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.RawDataBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raw data is data that requires further processing to become meaningful for gaschemistry analysis. It can be, for example, spectra recorded by a spectrometer or unscaled concentration measured by a laser diode. If an instrument provides pre-processed data, this element may only hold meta information about the raw data but not the raw data itself (e.g. electro-chemical sensors).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>instrument</strong> (<em>reference to Instrument</em>) &#8211; Reference to the instrument recording the data.</li>
+<li><strong>target</strong> (<em>reference to Target</em>) &#8211; Reference to the target plume.</li>
+<li><strong>type</strong> (<em>reference to RawDataType</em>) &#8211; Reference to the raw-data-type.</li>
+<li><strong>inc_angle</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Inclinitation of measurement direction from vertical. For a transect all angles would typically be the same, e.g. 0.0 if the spectrometer was pointing up.</li>
+<li><strong>inc_angle_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Uncertainty of inclination angle in degrees.</li>
+<li><strong>bearing</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Bearing of the scan plane in degrees from grid north.</li>
+<li><strong>bearing_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Scan bearing uncertainty.</li>
+<li><strong>position</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; The position of the spectrometer in decimal longitude, latitude, and elevation in m above sea level  (lon, lat, elev).</li>
+<li><strong>position_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Instrument location uncertainty.</li>
+<li><strong>path_length</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Path length of a scan [m].</li>
+<li><strong>path_length_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Path length uncertainty.</li>
+<li><strong>d_var</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Dependent variable e.g. measured spectra, concentration</li>
+<li><strong>ind_var</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Independent variable e.g. wavelengths, time</li>
+<li><strong>datetime</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/datetime.html#module-datetime" title="(in Python v2.7)"><em>datetime</em></a>) &#8211; Date Time of recording in ISO 8601 format.</li>
+<li><strong>data_quality</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Data quality parameters.</li>
+<li><strong>data_quality_type</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; List of references to data-quality-type.</li>
+<li><strong>integration_time</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Exposure time [s].</li>
+<li><strong>no_averages</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Number/time measurements are averaged over.</li>
+<li><strong>temperature</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Temperature at the site or in the instrument [degC].</li>
+<li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information relevant to the measurements.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.MethodBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">MethodBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#MethodBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.MethodBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Desription of analysis methods.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of software/method</li>
+<li><strong>description</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Short method summary</li>
+<li><strong>settings</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/json.html#module-json" title="(in Python v2.7)"><em>json</em></a>) &#8211; Settings/setup relevant to reproduce results in JSON format.</li>
+<li><strong>reference</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; URI  to more detailed method description.</li>
+<li><strong>raw_data</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Reference to raw data used in this method</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.GasFlowBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">GasFlowBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#GasFlowBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.GasFlowBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Can either contain estimates of plume velocity or wind speed. Plume velocity estimates can either come from direct measurements (e.g. image processing) or meteorological observations (e.g. wind speed). Wind speed estimates can be either from direct measurements (e.g. weather stations) or meteorological models. Both, plume velocity and wind speed can be either described on a regular 4D local cartesian grid or at a single point. Grids are assumed to be right-handed Cartesian coordinate systems with uniform grid point spacing along any direction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>methods</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; List of references to methods used to compute gas flow</li>
+<li><strong>vx</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; x component of gas flow vector (wrt local grid or east)</li>
+<li><strong>vx_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; x component error</li>
+<li><strong>vy</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; y component of gas flow vector (wrt local grid or east)</li>
+<li><strong>vy_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; y component error</li>
+<li><strong>vz</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; z component of gas flow vector (wrt local grid or east)</li>
+<li><strong>vz_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; z component error</li>
+<li><strong>unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Physical unit of gas flow vector</li>
+<li><strong>position</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Measurement location or grid origin in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).</li>
+<li><strong>position_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Location uncertainty</li>
+<li><strong>grid_bearing</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; X-axis angle from grid north in decimal degrees.</li>
+<li><strong>grid_increments</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Grid increments along the x-, y-, and z-axis</li>
+<li><strong>pressure</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Atmospheric pressure [Pa]</li>
+<li><strong>temperature</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Temperature [degC]</li>
+<li><strong>datetime</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/datetime.html#module-datetime" title="(in Python v2.7)"><em>datetime</em></a>) &#8211; Date Time [UTC] in ISO 8601 format</li>
+<li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information that may be relevant.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.ConcentrationBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">ConcentrationBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#ConcentrationBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.ConcentrationBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes different types of gas concentration such as path concentration as inferred from spectrometers or volumetric concentration as measured by electro-chemical sensors.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>method</strong> (<em>reference to Method</em>) &#8211; Reference to the method used to obtain concentration estimates.</li>
+<li><strong>gasflow</strong> (<em>reference to GasFlow</em>) &#8211; Reference to gas flow model (if applicable).</li>
+<li><strong>rawdata</strong> (<em>reference to RawData</em>) &#8211; Reference to raw measurements (if applicable).</li>
+<li><strong>rawdata_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Range of raw data used to estimate concentration</li>
+<li><strong>gas_species</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Gas type (e.g. SO2)</li>
+<li><strong>value</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Concentration estimate.</li>
+<li><strong>value_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Concentration uncertainty.</li>
+<li><strong>unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Unit of gas concentration.</li>
+<li><strong>analyst_contact</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Contact (e.g. email) of person running software</li>
+<li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information that may be relevant.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.FluxBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">FluxBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#FluxBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.FluxBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flux estimates based on concentration estimates and a gas flow model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>method</strong> (<em>reference to Method</em>) &#8211; Reference to software used</li>
+<li><strong>concentration</strong> (<em>reference to Concentration</em>) &#8211; </li>
+<li><strong>concentration_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Indices of concentrations</li>
+<li><strong>gasflow</strong> (<em>reference to GasFlow</em>) &#8211; </li>
+<li><strong>value</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Flux estimates</li>
+<li><strong>value_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Flux estimate errors</li>
+<li><strong>unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Physical unit of flux.</li>
+<li><strong>analyst_contact</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Contact (e.g. email) of person running software</li>
+<li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information that may be relevant.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="spectroscopy.datamodel.PreferredFluxBuffer">
+<em class="property">class </em><code class="descclassname">spectroscopy.datamodel.</code><code class="descname">PreferredFluxBuffer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/datamodel.html#PreferredFluxBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.datamodel.PreferredFluxBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derived flux values either by selecting a subset or by integrating/averaging. These values would overlap with what is currently stored in FITS.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>flux_ids</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; References to flux estimates used to compute derived flux</li>
+<li><strong>flux_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Indices of flux values used to compute derived flux</li>
+<li><strong>date</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Dates of derived flux values in ISO 8601 format.</li>
+<li><strong>value</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Derived flux value</li>
+<li><strong>value_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Flux value error</li>
+<li><strong>method_id</strong> (<em>reference to Method</em>) &#8211; Reference to method</li>
+<li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Comments relevant for reproducing preferred fluxes</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 </div>
 
@@ -193,26 +411,60 @@ retrievals are discretized to.</li>
           </div>
         </div>
       </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Datamodel for spectroscopy</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#simplified-datamodel">Simplified datamodel</a></li>
+<li><a class="reference internal" href="#module-spectroscopy.dataset">Classes &amp; Functions</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Spectroscopy documentation</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/dataset.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
       <div class="clearer"></div>
     </div>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="index.html" title="SpectroscoPy documentation"
-             >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">SpectroscoPy 0.1.1 documentation</a> &#187;</li> 
-      </ul>
+    <div class="footer">
+      &copy;2016, Nial Peters, Yannik Behr.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/dataset.rst.txt"
+          rel="nofollow">Page source</a>
     </div>
-    <div class="footer" role="contentinfo">
-        &#169; Copyright 2016, Nial Peters, Yannik Behr.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.
-    </div>
+
+    
+
+    
   </body>
 </html>
