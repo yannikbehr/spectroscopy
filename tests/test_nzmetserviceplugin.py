@@ -19,7 +19,7 @@ class NZMetservicePluginTestCase(unittest.TestCase):
         self.data_dir = os.path.join(os.path.dirname(os.path.abspath(
             inspect.getfile(inspect.currentframe()))), "data")
 
-    def test_open(self):
+    def test_read(self):
         d = Dataset(tempfile.mktemp(), 'w')
         d.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20160921_0630.txt'),
               ftype='NZMETSERVICE')
@@ -32,6 +32,8 @@ class NZMetservicePluginTestCase(unittest.TestCase):
         v = math.sqrt(vx * vx + vy * vy)
         self.assertAlmostEqual(v / 0.514444, 17, 6)
         self.assertAlmostEqual(70., vec2bearing(vx, vy), 6)
+        m = gf.methods[0]
+        self.assertEqual(m.name[:][0],'gfs')
 
 
 def suite():

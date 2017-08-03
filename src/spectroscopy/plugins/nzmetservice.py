@@ -11,8 +11,8 @@ import numpy as np
 import pyproj
 from pytz import timezone
 
-from spectroscopy.datamodel import GasFlowBuffer
-from spectroscopy.plugins import DatasetPluginBase, DatasetPluginBaseException
+from spectroscopy.datamodel import GasFlowBuffer, MethodBuffer
+from spectroscopy.plugins import DatasetPluginBase
 from spectroscopy.util import bearing2vec
 
 
@@ -185,7 +185,9 @@ class NZMetservicePlugin(DatasetPluginBase):
             time[_i] = t.isoformat()
         description = 'Wind measurements and forecasts by NZ metservice \
         for selected sites.'
-        gfb = GasFlowBuffer(vx=vx, vx_error=vx_error, vy=vy,
+        mb = MethodBuffer(name=_mod)
+        m = dataset.new(mb)
+        gfb = GasFlowBuffer(methods=[m], vx=vx, vx_error=vx_error, vy=vy,
                            vy_error=vy_error, vz=vz, vz_error=vz_error,
                            position=position, position_error=position_error,
                            datetime=time, user_notes=description)

@@ -517,14 +517,17 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     else: 
                         vals[key] = val
                         dtp.append((key,val.dtype,val.shape))
-                for key in self._reference_keys:
+                for key, prop_type in self._reference_dict.iteritems():
                     val = getattr(data_buffer,key,None)
                     if val is None:
                         continue
                     vals[key] = val
-                    # Allow for additional postfix which get appended if
-                    # an element get copied
-                    dtp.append((key,np.dtype('S'+str(len(val)+10)),()))            
+                    if prop_type[0] == np.ndarray:
+                        dtp.append((key,val.dtype,val.shape))
+                    else:
+                        # Allow for additional postfix which gets appended if
+                        # an element gets copied
+                        dtp.append((key,np.dtype('S'+str(len(val)+10)),()))            
                 # Add a hash column to avoid adding the same entries more than once
                 dtp.append(('hash','S28',()))
                 # Allow to create empty elements for testing
@@ -563,7 +566,13 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                 val = RetVal(getattr(table.cols,name))
                 return val
             elif name in self._reference_keys:
-                return ResourceIdentifier(table[0][name]).get_referred_object()
+                if self._reference_dict[name][0] == np.ndarray:
+                    _t = []
+                    for val in table[0][name]:
+                        _t.append(ResourceIdentifier(val).get_referred_object())
+                    return _t
+                else:
+                    return ResourceIdentifier(table[0][name]).get_referred_object()
             else:
                 msg = "{0:s} is not a property or reference of class {1:s}"
                 raise AttributeError(msg.format(name, type(self).__name__))
@@ -659,7 +668,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                                 if type(n) is not attrib_type[1]:
                                     msg = "{:s} has to be of type: {}"
                                     raise ValueError(msg.format(name, attrib_type[0]))
-                                _t.append(n)
+                                _t.append(str(getattr(n,'_resource_id')))
                             value = np.array(_t)
                         else:
                             if type(value) is not attrib_type[0]:
