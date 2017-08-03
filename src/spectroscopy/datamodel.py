@@ -276,20 +276,20 @@ class _Method(__Method):
 __GasFlow = _class_factory('__GasFlow', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('vx',(np.float_,)),
-		('vx_error',(np.float_,)),
-		('vy',(np.float_,)),
-		('vy_error',(np.float_,)),
-		('vz',(np.float_,)),
-		('vz_error',(np.float_,)),
+		('vx',(np.ndarray, np.float_)),
+		('vx_error',(np.ndarray, np.float_)),
+		('vy',(np.ndarray, np.float_)),
+		('vy_error',(np.ndarray, np.float_)),
+		('vz',(np.ndarray, np.float_)),
+		('vz_error',(np.ndarray, np.float_)),
 		('unit',(np.str_,)),
-		('position',(np.float_,)),
-		('position_error',(np.float_,)),
+		('position',(np.ndarray, np.float_)),
+		('position_error',(np.ndarray, np.float_)),
 		('grid_bearing',(np.float_,)),
-		('grid_increments',(np.float_,)),
+		('grid_increments',(np.ndarray, np.float_)),
 		('pressure',(np.float_,)),
 		('temperature',(np.float_,)),
-		('datetime',(datetime.datetime,)),
+		('datetime',(np.ndarray, datetime.datetime)),
 		('user_notes',(np.str_,))],
 	class_references=[
 		('methods',(np.ndarray, _Method))])
@@ -308,33 +308,33 @@ class GasFlowBuffer(__GasFlowBuffer):
 	:param tags: List of human readable tags
 	:type methods: :class:`numpy.ndarray`
 	:param methods: List of references to methods used to compute gas flow
-	:type vx: float
+	:type vx: :class:`numpy.ndarray`
 	:param vx: x component of gas flow vector (wrt local grid or east) 
-	:type vx_error: float
+	:type vx_error: :class:`numpy.ndarray`
 	:param vx_error: x component error
-	:type vy: float
+	:type vy: :class:`numpy.ndarray`
 	:param vy: y component of gas flow vector (wrt local grid or east)
-	:type vy_error: float
+	:type vy_error: :class:`numpy.ndarray`
 	:param vy_error: y component error
-	:type vz: float
+	:type vz: :class:`numpy.ndarray`
 	:param vz: z component of gas flow vector (wrt local grid or east)
-	:type vz_error: float
+	:type vz_error: :class:`numpy.ndarray`
 	:param vz_error: z component error
 	:type unit: str
 	:param unit: Physical unit of gas flow vector
-	:type position: float
+	:type position: :class:`numpy.ndarray`
 	:param position: Measurement location or grid origin in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).
-	:type position_error: float
+	:type position_error: :class:`numpy.ndarray`
 	:param position_error: Location uncertainty
 	:type grid_bearing: float
 	:param grid_bearing: X-axis angle from grid north in decimal degrees.
-	:type grid_increments: float
+	:type grid_increments: :class:`numpy.ndarray`
 	:param grid_increments: Grid increments along the x-, y-, and z-axis 
 	:type pressure: float
 	:param pressure: Atmospheric pressure [Pa]
 	:type temperature: float
 	:param temperature: Temperature [degC]
-	:type datetime: datetime
+	:type datetime: :class:`numpy.ndarray`
 	:param datetime: Date Time [UTC] in ISO 8601 format
 	:type user_notes: str
 	:param user_notes: Any additional information that may be relevant.

@@ -11,14 +11,18 @@ import numpy as np
 import pyproj
 from pytz import timezone
 
-from spectroscopy.dataset import Plumevelocity, ResourceIdentifier
+from spectroscopy.datamodel import GasFlowBuffer
 from spectroscopy.plugins import DatasetPluginBase, DatasetPluginBaseException
 from spectroscopy.util import bearing2vec
 
 
+class NZMetservicePluginException(Exception):
+    pass
+
+
 class NZMetservicePlugin(DatasetPluginBase):
 
-    def open(self, filename, **kargs):
+    def read(self, dataset, filename, **kargs):
         # Geographic coordinates of volcanoes
         volc_dict_keys = ['Auckland', 'Haroharo', 'Mayor Island', 'Ngauruhoe',
                           'Ruapehu', 'Taranaki', 'Tarawera', 'Taupo',
@@ -35,7 +39,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         met_models = ['ecmwf', 'gfs', 'ukmo']
 
         if not os.path.isfile(filename):
-            raise DatasetPluginBaseException('File %s does not exist.' %
+            raise NZMetservicePluginException('File %s does not exist.' %
                                              filename)
         # Construct the filenames for all three model files
         mdl = os.path.basename(filename).split('_')[4]
@@ -58,8 +62,7 @@ class NZMetservicePlugin(DatasetPluginBase):
                                                  match.group('time'))),
                                        '%d-%m-%Y %I:%M%p')
             except:
-                raise DatasetPluginBaseException(
-                    'Unexpected file format on line %s.' % _l)
+                raise NZMetservicePluginException('Unexpected file format on line %s.' % _l)
             # ignore the next two lines
             fd.readline()
             fd.readline()
@@ -69,15 +72,14 @@ class NZMetservicePlugin(DatasetPluginBase):
                 _mod = re.match(r'Model of the day is (\S+)', _l).group(1)
                 _mod = _mod.lower()
             except:
-                raise DatasetPluginBaseException(
-                    'Unexpected file format on line %s.' % _l)
+                raise NZMetservicePluginException('Unexpected file format on line %s.' % _l)
             fd.readline()
             # which model is this
             _l = fd.readline()
             try:
                 _mdl = re.match(r'Data for model (\S+)', _l).group(1).lower()
             except:
-                raise DatasetPluginBaseException(
+                raise NZMetservicePluginException(
                     'Unexpected file format on line %s.' % _l)
             # parse the rest of the file
             for _v in volc_dict_keys:
@@ -87,7 +89,7 @@ class NZMetservicePlugin(DatasetPluginBase):
                 try:
                     re.match(r'(^%s\s+)' % _v, lines[0]).group(1)
                 except:
-                    raise DatasetPluginBaseException(
+                    raise NZMetservicePluginException(
                         'Expected data for %s but got %s.' %
                         (_v, lines[0].rstrip()))
                 self.parse_model(_mdls[_mdl], volc_dict[_v], ct, lines)
@@ -95,7 +97,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         # Check for the preferred model and whether the file exists
         _mod = kargs.get('preferred_model', _mod)
         if _mod not in _fns:
-            raise DatasetPluginBaseException(
+            raise NZMetservicePluginException(
                 'File for preferred model %s not found.' % _mod)
 
         # If we have all three model files we can use the two not preferred
@@ -117,10 +119,10 @@ class NZMetservicePlugin(DatasetPluginBase):
                         _mdl = re.match(
                             r'Data for model (\S+)', _l).group(1).lower()
                     except:
-                        raise DatasetPluginBaseException(
+                        raise NZMetservicePluginException(
                             'Unexpected file format on line %s.' % _l)
                     if _mdl != _m:
-                        raise DatasetPluginBaseException(
+                        raise NZMetservicePluginException(
                             'Unexpected model %s but got %s.' % (_m, _mdl))
                     # parse the rest of the file
                     for _v in volc_dict_keys:
@@ -144,7 +146,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         vz_error = np.zeros(npts)
         position = np.zeros((npts, 3))
         position_error = np.zeros((npts, 3))
-        time = np.zeros(npts)
+        time = np.empty(npts,dtype='S26')
         # remove mod from met_models
         del met_models[met_models.index(_mod)]
         for _i, _e in enumerate(_mdls[_mod]):
@@ -180,17 +182,14 @@ class NZMetservicePlugin(DatasetPluginBase):
             vz_error[_i] = np.nan
             position[_i, :] = lon, lat, h
             position_error[_i, :] = np.nan, np.nan, np.nan
-            time[_i] = calendar.timegm(t.utctimetuple())
+            time[_i] = t.isoformat()
         description = 'Wind measurements and forecasts by NZ metservice \
         for selected sites.'
-        creation_time = float(
-            calendar.timegm(datetime.utcnow().utctimetuple()))
-        pv = Plumevelocity(self, vx=vx, vx_error=vx_error, vy=vy,
+        gfb = GasFlowBuffer(vx=vx, vx_error=vx_error, vy=vy,
                            vy_error=vy_error, vz=vz, vz_error=vz_error,
                            position=position, position_error=position_error,
-                           time=time, description=description,
-                           creation_time=creation_time)
-        return pv
+                           datetime=time, user_notes=description)
+        gf = dataset.new(gfb)
 
     def parse_model(self, md, vd, ct, lines):
         """
@@ -218,26 +217,6 @@ class NZMetservicePlugin(DatasetPluginBase):
     def close(self, filename):
         raise Exception(
             'Close is undefined for the NZMetservicePlugin backend')
-
-    def get_item(self, path):
-        _e = path.split('/')
-        id = _e[1]
-        name = _e[2]
-        ref_o = ResourceIdentifier(id).get_referred_object()
-        return ref_o.__dict__[name]
-
-    def set_item(self, path, value):
-        _e = path.split('/')
-        id = _e[1]
-        name = _e[2]
-        ref_o = ResourceIdentifier(id).get_referred_object()
-        ref_o.__dict__[name] = value
-
-    def create_item(self, path, value):
-        pass
-
-    def new(self, filename=None):
-        self._root = NZMetservicePlugin()
 
     @staticmethod
     def get_format():

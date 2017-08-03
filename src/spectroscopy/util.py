@@ -1,3 +1,4 @@
+import calendar
 import datetime
 import math
 
@@ -157,6 +158,48 @@ def parse_iso_8601(value):
                                     date_pattern + 'T' + time_pattern)
     # add microseconds and eventually correct time zone
     return dt + datetime.timedelta(seconds=float(delta) + ms)
+
+
+def get_wind_speed(gf,lon,lat,elev,date):
+    """
+    Given a GasFlow object return the wind speed vector
+    closest to the requested location and time.
+
+    :type gf: `spectroscopy.datamodel.GasFlow`
+    :param gf: GasFlow object
+    :type lon: float
+    :param lon: Longitude of the point of interest.
+    :type lat: float
+    :param lat: Latitude of the point of interest.
+    :type elev: float
+    :param elev: Altitude in meters of the point of interest.
+    :type date: str
+    :param date: Date of interest formatted according to the ISO8601
+        standard.
+    """
+    from scipy.spatial import KDTree
+    from spectroscopy.util import parse_iso_8601
+    _d = parse_iso_8601(date)
+    _ts = calendar.timegm((_d.utctimetuple()))
+    _dt = gf.datetime[:].astype(np.datetime64) 
+    # find nearest point
+    _t = np.atleast_2d(_dt).T
+    # TODO: this needs to be changed to account for regular and irregular
+    # grids
+    a = np.append(gf.position[:][0], _t.astype('float'), axis=1)
+    tree = KDTree(a, leafsize=a.shape[0] + 1)
+    point = [lon, lat, elev, _ts]
+    distances, ndx = tree.query([point], k=1)
+    vx = gf.vx[:][0][ndx[0]]
+    vx_error = gf.vx_error[:][0][ndx[0]]
+    vy = gf.vy[:][0][ndx[0]]
+    vy_error = gf.vy_error[:][0][ndx[0]]
+    vz = gf.vz[:][0][ndx[0]]
+    vz_error = gf.vz_error[:][0][ndx[0]]
+    time = gf.datetime[:][0][ndx[0]]
+    lon, lat, hght = gf.position[:][0][ndx[0], :]
+    return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error)
+
 
 if __name__ == '__main__':
     import doctest
