@@ -8,7 +8,7 @@ from spectroscopy.datamodel import (RawDataBuffer, TargetBuffer,
                                   InstrumentBuffer, RawDataTypeBuffer,
                                   ConcentrationBuffer, GasFlowBuffer,
                                   FluxBuffer, PreferredFluxBuffer,
-                                  _Target)
+                                  _Target, MethodBuffer)
 from spectroscopy.dataset import Dataset
 
 class DatamodelTestCase(unittest.TestCase):
@@ -88,7 +88,14 @@ class DatamodelTestCase(unittest.TestCase):
                            datetime='2017-01-10T15:23:00')
         r = d1.new(rb)
         d2 = Dataset(tempfile.mktemp(), 'w')
-        d2.new(rb)
+        tb2 = TargetBuffer(target_id='WI002', name='White Island main vent',
+                           position=(177.2, -37.5, 50),
+                           position_error=(0.2, 0.2, 20),
+                           description='Main vent in January 2017')
+        t2 = d2.new(tb2)
+        rb2 = RawDataBuffer(target=t2,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                           datetime='2017-01-10T15:23:00')
+        d2.new(rb2)
         with self.assertRaises(AttributeError):
             d3 = d1 + d2
         d3 = Dataset(tempfile.mktemp(), 'w')
@@ -96,13 +103,31 @@ class DatamodelTestCase(unittest.TestCase):
         d3 += d2
         self.assertEqual(len(d3.elements['RawData']), 2)
         rc3 = d3.elements['RawData'][0]
+        rc2 = d2.elements['RawData'][0]
+        rc4 = d3.elements['RawData'][1]
         rc1 = d1.elements['RawData'][0]
         # Check that the references are not the same anymore...
         self.assertNotEqual(getattr(rc3._root.data.cols,'target')[0],
                             getattr(rc1._root.data.cols,'target')[0])
         # ...but that the copied elements contain the same information
         self.assertEqual(rc3.target.target_id[:],rc1.target.target_id[:])
-        # ToDo: not sure what the _rids feature was there for 
+        self.assertEqual(rc4.target.target_id[:],rc2.target.target_id[:])
+        
+        # Now check that this is also working for arrays of references
+        mb1 = MethodBuffer(name='Method1')
+        mb2 = MethodBuffer(name='Method2')
+        d4 = Dataset(tempfile.mktemp(), 'w')
+        m1 = d4.new(mb1)
+        m2 = d4.new(mb2)
+        gfb= GasFlowBuffer(methods=[m1,m2])
+        gf = d4.new(gfb)
+        d3 += d4
+        gf2 = d3.elements['GasFlow'][0]
+        self.assertNotEqual(getattr(gf2._root.data.cols,'methods')[0][0],
+                            getattr(gf._root.data.cols,'methods')[0][0])
+        self.assertEqual(gf2.methods[0].name[:],gf.methods[0].name[:])
+        self.assertEqual(gf2.methods[1].name[:],gf.methods[1].name[:])
+         ## ToDo: not sure what the _rids feature was there for 
         #tmp = {}
         #tmp.update(d1._rids)
         #tmp.update(d2._rids)

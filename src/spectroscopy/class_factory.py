@@ -517,17 +517,17 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     else: 
                         vals[key] = val
                         dtp.append((key,val.dtype,val.shape))
+
                 for key, prop_type in self._reference_dict.iteritems():
                     val = getattr(data_buffer,key,None)
                     if val is None:
                         continue
                     vals[key] = val
+                    # References are either strings or arrays of strings
                     if prop_type[0] == np.ndarray:
                         dtp.append((key,val.dtype,val.shape))
                     else:
-                        # Allow for additional postfix which gets appended if
-                        # an element gets copied
-                        dtp.append((key,np.dtype('S'+str(len(val)+10)),()))            
+                        dtp.append((key,np.dtype('S'+str(len(val))),()))            
                 # Add a hash column to avoid adding the same entries more than once
                 dtp.append(('hash','S28',()))
                 # Allow to create empty elements for testing

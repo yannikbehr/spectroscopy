@@ -76,11 +76,13 @@ class Dataset(object):
             raise ValueError("You can't add a dataset to itself.")
         update_refs = []
         postfix = self._gen_sc3_id(datetime.datetime.now())
+        rid_dict = {}
         for e in other.elements.keys():
             for k in other.elements[e]:
                 ne = self._copy_children(k, postfix)
                 self.elements[e].append(ne)
                 update_refs.append(ne)
+                rid_dict[str(k._resource_id)] = str(ne._resource_id)
 
         for ne in update_refs:
             for k in ne._reference_keys:
@@ -88,7 +90,13 @@ class Dataset(object):
                 if table is not None:
                     ref = getattr(ne._root.data.cols,k,None)
                     if ref is not None:
-                        ref[0] += postfix
+                        if type(ref[0]) == np.ndarray:
+                            newentry = []
+                            for iref in ref[0]:
+                                newentry.append(rid_dict[iref])
+                            ref[0] = np.array(newentry)
+                        else:
+                            ref[0] = rid_dict[ref[0]]
         return self
 
     def _gen_sc3_id(self, dt, numenc=6, sym="abcdefghijklmnopqrstuvwxyz"):
@@ -153,7 +161,9 @@ class Dataset(object):
         Copy the children from source group to destination group
         """
         srcgroup = src._root
-        dstgroup = srcgroup._v_pathname + postfix
+        # assign a new resource ID so that both objects can 
+        # be referred to within the same session
+        dstgroup = srcgroup._v_parent._v_pathname+'/'+ str(ResourceIdentifier())
         created_dstgroup = False
         # Create the new group
         dstgroup = self._newdst_group(dstgroup, title, filters)
