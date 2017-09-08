@@ -225,6 +225,38 @@ class DatamodelTestCase(unittest.TestCase):
         with self.assertRaises(AttributeError):
             rb.append(rb2)
 
+    def test_read(self):
+        """
+        Test reading of HDF5 files.
+        """
+        fn = tempfile.mktemp() 
+        d = Dataset(fn, 'w')
+        tb = TargetBuffer(tags=['WI001'], name='White Island main vent',
+                          position=(177.2, -37.5, 50),
+                          position_error=(0.2, 0.2, 20),
+                          description='Main vent in January 2017')
+        d.register_tags(['WI001','MD01','measurement'])
+        t = d.new(tb)
+        ib = InstrumentBuffer(tags=['MD01'], sensor_id='F00975',
+                              location='West rim',
+                              no_bits=16, type='DOAS',
+                              description='GeoNet permanent instrument')
+        i = d.new(ib)
+        rdtb = RawDataTypeBuffer(tags=['measurement'],
+                                 name='1st round measurements',
+                                 acquisition='stationary')
+        rdt = d.new(rdtb)
+        rb = RawDataBuffer(target=t, instrument=i, type=rdt,
+                           d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                           datetime='2017-01-10T15:23:00')
+        r = d.new(rb)
+        d.close()
+
+        d1 = Dataset.open(fn)
+        r1 = d1.elements['RawData'][0]
+        self.assertEqual(r1.target.name[:][0],'White Island main vent')
+        self.assertEqual(list(r1.instrument.tags)[0],'MD01')
+
     def test_tagging(self):
         """
         Test the tagging of data elements.

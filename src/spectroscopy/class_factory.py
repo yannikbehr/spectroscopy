@@ -391,6 +391,17 @@ class H5Set(set):
 
     def __init__(self, h5node):
         self.h5node = h5node
+        # check for already existing tags e.g. when 
+        # reading in a file
+        f = self.h5node._v_file
+        try:
+            for _t in f.root.tags._v_children:
+                ea = f.root.tags._v_children[_t]
+                entries = ea[np.where(ea[:] == self.h5node._v_name.encode())]
+                if len(entries) > 0:
+                    super(H5Set,self).add(_t)
+        except (KeyError, tables.NoSuchNodeError):
+            pass
 
     def add(self, val):
         f = self.h5node._v_file

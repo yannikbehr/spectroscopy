@@ -60,8 +60,13 @@ class Dataset(object):
             self.base_elements[name+'Buffer'] = c
         self._rids = {}
         self._f = tables.open_file(filename, mode)
-        # Create an array of sha224 hash values
-        self._f.create_earray('/','hash',tables.StringAtom(itemsize=28),(0,))
+        # Create an array of sha224 hash values; when
+        # opening an existing file this will throw an
+        # exception
+        try:
+            self._f.create_earray('/','hash',tables.StringAtom(itemsize=28),(0,))
+        except NodeError:
+            pass
 
     def __del__(self):
         self._f.close()
@@ -224,6 +229,30 @@ class Dataset(object):
         plugins = get_registered_plugins()
         pg = plugins[ftype.lower()]()
         pg.read(self,filename,**kwargs)
+    
+    @staticmethod
+    def open(filename):
+        """
+        Open an existing HDF5 file.
+        """
+        dnew = Dataset(filename,'r+')         
+        for group in dnew._f.walk_groups('/'):
+            if group._v_name is '/' or group._v_name+'Buffer' not in dnew.base_elements:
+                continue
+            for sgroup in group._v_groups.keys():
+                _C = dnew.base_elements[group._v_name+'Buffer']
+                e = _C(group._v_groups[sgroup])
+                dnew.elements[group._v_name].append(e)
+        return dnew
+
+    def close(self):
+        """
+        Close the HDF5 file and clear the ResourceIdentifiers.
+        """
+        for g in self.elements:
+            for e in self.elements[g]:
+                del e._resource_id
+        self._f.close()
 
     def register_tags(self, tags):
         """
