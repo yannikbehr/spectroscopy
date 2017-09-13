@@ -191,11 +191,16 @@ def get_wind_speed(gf,lon,lat,elev,date):
     point = [lon, lat, elev, _ts]
     distances, ndx = tree.query([point], k=1)
     vx = gf.vx[:][0][ndx[0]]
-    vx_error = gf.vx_error[:][0][ndx[0]]
     vy = gf.vy[:][0][ndx[0]]
-    vy_error = gf.vy_error[:][0][ndx[0]]
     vz = gf.vz[:][0][ndx[0]]
-    vz_error = gf.vz_error[:][0][ndx[0]]
+    try:
+        vx_error = gf.vx_error[:][0][ndx[0]]
+        vy_error = gf.vy_error[:][0][ndx[0]]
+        vz_error = gf.vz_error[:][0][ndx[0]]
+    except AttributeError:
+        vx_error = None
+        vy_error = None
+        vz_error = None
     time = gf.datetime[:][0][ndx[0]]
     lon, lat, hght = gf.position[:][0][ndx[0], :]
     return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error)

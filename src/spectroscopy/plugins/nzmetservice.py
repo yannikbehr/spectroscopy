@@ -99,98 +99,59 @@ class NZMetservicePlugin(DatasetPluginBase):
         if _mod not in _fns:
             raise NZMetservicePluginException(
                 'File for preferred model %s not found.' % _mod)
-
-        # If we have all three model files we can use the two not preferred
-        # models as uncertainty indicators
-        uncertainty = False
-        if len(_fns) == 3:
-            uncertainty = True
-            for _m in met_models:
-                if _m in _mdls:
-                    continue
-                with open(_fns[_m]) as fd:
-                    # Skip the first 6 lines as they are identical for all
-                    # models
-                    for _i in xrange(5):
-                        fd.readline()
-                    # Check again that we have the correct model
-                    _l = fd.readline()
+        
+        if _mod not in _mdls:
+            with open(_fns[_mod]) as fd:
+                # Skip the first 6 lines as they are identical for all
+                # models
+                for _i in xrange(5):
+                    fd.readline()
+                # Check again that we have the correct model
+                _l = fd.readline()
+                try:
+                    _mdl = re.match(
+                        r'Data for model (\S+)', _l).group(1).lower()
+                except:
+                    raise NZMetservicePluginException(
+                        'Unexpected file format on line %s.' % _l)
+                if _mdl != _mod:
+                    raise NZMetservicePluginException(
+                        'Expected model %s but got %s.' % (_mod, _mdl))
+                # parse the rest of the file
+                for _v in volc_dict_keys:
+                    lines = []
+                    for _i in xrange(12):
+                        lines.append(fd.readline())
                     try:
-                        _mdl = re.match(
-                            r'Data for model (\S+)', _l).group(1).lower()
+                        re.match(r'(^%s\s+)' % _v, lines[0]).group(1)
                     except:
-                        raise NZMetservicePluginException(
-                            'Unexpected file format on line %s.' % _l)
-                    if _mdl != _m:
-                        raise NZMetservicePluginException(
-                            'Unexpected model %s but got %s.' % (_m, _mdl))
-                    # parse the rest of the file
-                    for _v in volc_dict_keys:
-                        lines = []
-                        for _i in xrange(12):
-                            lines.append(fd.readline())
-                        try:
-                            re.match(r'(^%s\s+)' % _v, lines[0]).group(1)
-                        except:
-                            raise DatasetPluginBaseException(
-                                'Expected data for %s but got %s.' %
-                                (_v, lines[0].rstrip()))
-                        self.parse_model(_mdls[_m], volc_dict[_v], ct, lines)
+                        raise DatasetPluginBaseException(
+                            'Expected data for %s but got %s.' %
+                            (_v, lines[0].rstrip()))
+                    self.parse_model(_mdls[_mod], volc_dict[_v], ct, lines)
+
         npts = len(_mdls[_mod])
         g = pyproj.Geod(ellps='WGS84')
         vx = np.zeros(npts)
-        vx_error = np.zeros(npts)
         vy = np.zeros(npts)
-        vy_error = np.zeros(npts)
         vz = np.zeros(npts)
-        vz_error = np.zeros(npts)
         position = np.zeros((npts, 3))
-        position_error = np.zeros((npts, 3))
         time = np.empty(npts,dtype='S26')
-        # remove mod from met_models
-        del met_models[met_models.index(_mod)]
         for _i, _e in enumerate(_mdls[_mod]):
             t, lon, lat, h, d, s = _e
-            if uncertainty:
-                # find corresponding points in other models
-                d1, s1 = np.nan, np.nan
-                d2, s2 = np.nan, np.nan
-                for _i1, _e1 in enumerate(_mdls[met_models[0]]):
-                    _t, _ln, _lt, _h, _d, _s = _e1
-                    az, baz, ddist = g.inv(lon, lat, _ln, _lt)
-                    ddist = np.sqrt(ddist * ddist + (_h - h) * (_h - h))
-                    dt = abs((_t - t).total_seconds())
-                    if dt < 0.01 and ddist < 0.01:
-                        d1, s1 = _d, _s
-                        del _mdls[met_models[0]][_i1]
-                        break
-                for _i2, _e2 in enumerate(_mdls[met_models[1]]):
-                    _t, _ln, _lt, _h, _d, _s = _e2
-                    az, baz, ddist = g.inv(lon, lat, _ln, _lt)
-                    ddist = np.sqrt(ddist * ddist + (_h - h) * (_h - h))
-                    dt = abs((_t - t).total_seconds())
-                    if dt < 0.01 and ddist < 0.01:
-                        d2, s2 = _d, _s
-                        del _mdls[met_models[1]][_i2]
-                        break
             _vx, _vy = bearing2vec(d, s)
             vx[_i] = _vx
-            vx_error[_i] = np.nan
             vy[_i] = _vy
-            vy_error[_i] = np.nan
             vz[_i] = np.nan
-            vz_error[_i] = np.nan
             position[_i, :] = lon, lat, h
-            position_error[_i, :] = np.nan, np.nan, np.nan
             time[_i] = t.isoformat()
         description = 'Wind measurements and forecasts by NZ metservice \
         for selected sites.'
         mb = MethodBuffer(name=_mod)
         m = dataset.new(mb)
-        gfb = GasFlowBuffer(methods=[m], vx=vx, vx_error=vx_error, vy=vy,
-                           vy_error=vy_error, vz=vz, vz_error=vz_error,
-                           position=position, position_error=position_error,
-                           datetime=time, user_notes=description)
+        gfb = GasFlowBuffer(methods=[m], vx=vx, vy=vy, vz=vz,
+                            position=position, datetime=time, 
+                            user_notes=description, unit='m/s')
         gf = dataset.new(gfb)
 
     def parse_model(self, md, vd, ct, lines):
