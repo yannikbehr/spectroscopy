@@ -1,0 +1,6 @@
+Forecast issued by MetService at 06:30pm 07-10-2014
+
+For GNS Wairakei Research Centre - Volcano Watch All times NZDT e.g. 071800 is 6pm on 7th. Winds in degrees/knots, heights in metres.
+Model of the day is ECMWF
+
+Data for model ECMWF is unavailable.

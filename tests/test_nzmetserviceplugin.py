@@ -7,7 +7,8 @@ import unittest
 import numpy as np
 
 from spectroscopy.dataset import Dataset
-from spectroscopy.util import vec2bearing, get_wind_speed 
+from spectroscopy.util import vec2bearing, get_wind_speed
+from spectroscopy.plugins.nzmetservice import NZMetservicePluginException
 
 
 class NZMetservicePluginTestCase(unittest.TestCase):
@@ -48,6 +49,15 @@ class NZMetservicePluginTestCase(unittest.TestCase):
         self.assertAlmostEqual(65., vec2bearing(vx, vy), 6)
         self.assertEqual(gf1.methods[0].name[:][0],'ecmwf')
         self.assertEqual(gf1.unit[:][0], 'm/s')
+
+    def test_empty_model(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        with self.assertRaises(NZMetservicePluginException):
+            d.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20141007_1830.txt'),
+                  ftype='NZMETSERVICE')
+        d.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20141007_1830.txt'),
+               ftype='NZMETSERVICE', preferred_model='gfs')
+        
 
 def suite():
     return unittest.makeSuite(NZMetservicePluginTestCase, 'test')

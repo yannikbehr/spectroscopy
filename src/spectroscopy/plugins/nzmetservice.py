@@ -12,7 +12,7 @@ import pyproj
 from pytz import timezone
 
 from spectroscopy.datamodel import GasFlowBuffer, MethodBuffer
-from spectroscopy.plugins import DatasetPluginBase
+from spectroscopy.plugins import DatasetPluginBase, DatasetPluginBaseException
 from spectroscopy.util import bearing2vec
 
 
@@ -22,38 +22,55 @@ class NZMetservicePluginException(Exception):
 
 class NZMetservicePlugin(DatasetPluginBase):
 
-    def read(self, dataset, filename, **kargs):
+
+    def __init__(self):
         # Geographic coordinates of volcanoes
-        volc_dict_keys = ['Auckland', 'Haroharo', 'Mayor Island', 'Ngauruhoe',
-                          'Ruapehu', 'Taranaki', 'Tarawera', 'Taupo',
-                          'Tongariro', 'White Island']
-        volc_dict_values = [(174.735, -36.890), (176.466, -38.147),
-                            (176.256, -37.287), (175.632, -39.157),
-                            (175.564, -39.281), (174.064, -39.297),
-                            (176.506, -38.227), (175.978, -38.809),
-                            (175.673, -39.108), (177.183, -37.521)]
-        volc_dict = {}
-        for _k, _v in zip(volc_dict_keys, volc_dict_values):
-            volc_dict[_k] = _v
+        self.volc_dict_keys = ['Auckland', 'Haroharo', 'Mayor Island', 'Ngauruhoe',
+                               'Ruapehu', 'Taranaki', 'Tarawera', 'Taupo',
+                               'Tongariro', 'White Island']
+        self.volc_dict_values = [(174.735, -36.890), (176.466, -38.147),
+                                 (176.256, -37.287), (175.632, -39.157),
+                                 (175.564, -39.281), (174.064, -39.297),
+                                 (176.506, -38.227), (175.978, -38.809),
+                                 (175.673, -39.108), (177.183, -37.521)]
+        self.volc_dict = {}
+        for _k, _v in zip(self.volc_dict_keys, self.volc_dict_values):
+            self.volc_dict[_k] = _v
 
-        met_models = ['ecmwf', 'gfs', 'ukmo']
+        self.met_models = ['ecmwf', 'gfs', 'ukmo']
 
-        if not os.path.isfile(filename):
-            raise NZMetservicePluginException('File %s does not exist.' %
-                                             filename)
-        # Construct the filenames for all three model files
-        mdl = os.path.basename(filename).split('_')[4]
-        _data_dir = os.path.dirname(filename)
-        _fns = {}
-        _mdls = defaultdict(list)
-        for _mdl in met_models:
-            _fn = filename.replace(mdl, _mdl)
-            if os.path.isfile(_fn):
-                _fns[_mdl] = _fn
 
+    def _parse_model(self, md, ct, lines):
+        """
+        Parse the forecasts for each volcano.
+        """
+        # get the times
+        times = []
+        vals = []
+        _a = lines[2].split()
+        for _t in _a:
+            _d = timezone('Pacific/Auckland').localize(
+                datetime.strptime('%d%d%s' % (ct.year, ct.month, _t),
+                                  '%Y%m%d%H%M'))
+            times.append(_d.astimezone(timezone('UTC')))
+
+        for _l in lines[3:-1]:
+            _a = _l.split()
+            _h = float(_a[0])
+            for _i, _e in enumerate(_a[1:]):
+                if _e == '-':
+                    continue
+                d, s = map(float, _e.split('/'))
+                vals.append((times[_i], self.volc_dict[md][0], self.volc_dict[md][1], _h, d, s * 0.514444))
+        return vals
+
+    def _readfile(self, filename):
+        """
+        Read a single forecast file.
+        """
         # parse the first 6 lines of any of the files to see which is the
-        # preferred model for the day
-        with open(_fns.values()[0]) as fd:
+        # preferred model for the day _fns.values()[0]
+        with open(filename) as fd:
             _l = fd.readline()
             match = re.search(
                 r'(?P<time>\d{2}\:\d{2}\S{2}) (?P<date>\d{2}-\d{2}-\d{4})', _l)
@@ -81,54 +98,47 @@ class NZMetservicePlugin(DatasetPluginBase):
             except:
                 raise NZMetservicePluginException(
                     'Unexpected file format on line %s.' % _l)
-            # parse the rest of the file
-            for _v in volc_dict_keys:
-                lines = []
-                for _i in xrange(12):
-                    lines.append(fd.readline())
-                try:
-                    re.match(r'(^%s\s+)' % _v, lines[0]).group(1)
-                except:
-                    raise NZMetservicePluginException(
-                        'Expected data for %s but got %s.' %
-                        (_v, lines[0].rstrip()))
-                self.parse_model(_mdls[_mdl], volc_dict[_v], ct, lines)
-
-        # Check for the preferred model and whether the file exists
-        _mod = kargs.get('preferred_model', _mod)
-        if _mod not in _fns:
-            raise NZMetservicePluginException(
-                'File for preferred model %s not found.' % _mod)
-        
-        if _mod not in _mdls:
-            with open(_fns[_mod]) as fd:
-                # Skip the first 6 lines as they are identical for all
-                # models
-                for _i in xrange(5):
-                    fd.readline()
-                # Check again that we have the correct model
-                _l = fd.readline()
-                try:
-                    _mdl = re.match(
-                        r'Data for model (\S+)', _l).group(1).lower()
-                except:
-                    raise NZMetservicePluginException(
-                        'Unexpected file format on line %s.' % _l)
-                if _mdl != _mod:
-                    raise NZMetservicePluginException(
-                        'Expected model %s but got %s.' % (_mod, _mdl))
+            # check whether model file is empty in which 
+            # case it'll be ignored
+            try:
+                _mdl = re.match(r'Data for model (\S+) is unavailable.', _l).group(1).lower()
+            except:
                 # parse the rest of the file
-                for _v in volc_dict_keys:
+                for _v in self.volc_dict_keys:
                     lines = []
                     for _i in xrange(12):
                         lines.append(fd.readline())
                     try:
                         re.match(r'(^%s\s+)' % _v, lines[0]).group(1)
                     except:
-                        raise DatasetPluginBaseException(
+                        raise NZMetservicePluginException(
                             'Expected data for %s but got %s.' %
                             (_v, lines[0].rstrip()))
-                    self.parse_model(_mdls[_mod], volc_dict[_v], ct, lines)
+                    return (_mod, self._parse_model(_v, ct, lines))
+            else:
+                return (_mod, None)
+ 
+
+    def read(self, dataset, filename, **kargs):
+        
+        if not os.path.isfile(filename):
+            raise NZMetservicePluginException('File %s does not exist.' %
+                                             filename)
+        # Construct the filenames for all three model files
+        mdl = os.path.basename(filename).split('_')[4]
+        _data_dir = os.path.dirname(filename)
+        _mdls = defaultdict(list)
+        for _mdl in self.met_models:
+            _fn = filename.replace(mdl, _mdl)
+            if os.path.isfile(_fn):
+               _mod, vals = self._readfile(_fn)
+               if vals is not None:
+                   _mdls[_mdl] = vals
+        _mod = kargs.get('preferred_model', _mod)
+        if _mod not in _mdls:
+            # if data for model of the day is unavailable raise an exception
+            raise NZMetservicePluginException(
+                'Data for model %s is unavailable.' % _mod)
 
         npts = len(_mdls[_mod])
         g = pyproj.Geod(ellps='WGS84')
@@ -153,29 +163,6 @@ class NZMetservicePlugin(DatasetPluginBase):
                             position=position, datetime=time, 
                             user_notes=description, unit='m/s')
         gf = dataset.new(gfb)
-
-    def parse_model(self, md, vd, ct, lines):
-        """
-        Parse the forecasts for each volcano.
-        """
-        # get the times
-        times = []
-        _a = lines[2].split()
-        for _t in _a:
-            _d = timezone('Pacific/Auckland').localize(
-                datetime.strptime('%d%d%s' % (ct.year, ct.month, _t),
-                                  '%Y%m%d%H%M'))
-            times.append(_d.astimezone(timezone('UTC')))
-
-        for _l in lines[3:-1]:
-            _a = _l.split()
-            _h = float(_a[0])
-            for _i, _e in enumerate(_a[1:]):
-                if _e == '-':
-                    continue
-                d, s = map(float, _e.split('/'))
-                md.append((times[_i], vd[0], vd[1], _h, d, s * 0.514444))
-        return
 
     def close(self, filename):
         raise Exception(
