@@ -104,6 +104,7 @@ class NZMetservicePlugin(DatasetPluginBase):
                 _mdl = re.match(r'Data for model (\S+) is unavailable.', _l).group(1).lower()
             except:
                 # parse the rest of the file
+                retvals = []
                 for _v in self.volc_dict_keys:
                     lines = []
                     for _i in xrange(12):
@@ -114,7 +115,8 @@ class NZMetservicePlugin(DatasetPluginBase):
                         raise NZMetservicePluginException(
                             'Expected data for %s but got %s.' %
                             (_v, lines[0].rstrip()))
-                    return (_mod, self._parse_model(_v, ct, lines))
+                    retvals += self._parse_model(_v, ct, lines)
+                return (_mod, retvals)
             else:
                 return (_mod, None)
  
@@ -138,7 +140,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         if _mod not in _mdls:
             # if data for model of the day is unavailable raise an exception
             raise NZMetservicePluginException(
-                'Data for model %s is unavailable.' % _mod)
+                'Data for preferred model %s is unavailable.' % _mod)
 
         npts = len(_mdls[_mod])
         g = pyproj.Geod(ellps='WGS84')
@@ -149,6 +151,10 @@ class NZMetservicePlugin(DatasetPluginBase):
         time = np.empty(npts,dtype='S26')
         for _i, _e in enumerate(_mdls[_mod]):
             t, lon, lat, h, d, s = _e
+            # if windspeed is 0 give it a tiny value
+            # so that the bearing can be reconstructed
+            if s == 0.:
+                s = 0.0001
             _vx, _vy = bearing2vec(d, s)
             vx[_i] = _vx
             vy[_i] = _vy
