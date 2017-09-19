@@ -59,9 +59,9 @@ def vec2bearing(vx, vy):
     x = math.sqrt(vx * vx + vy * vy)
     phi = math.degrees(math.acos(abs(vy) / x))
     bearing = phi
-    if vy < 0 and vx >= 0:
-        bearing = 180.0 - phi
-    elif vy < 0 and vx < 0:
+    if vy < 0 and vx > 0:
+        bearing = 90.0 + phi
+    elif vy < 0 and vx <= 0:
         bearing = 180.0 + phi
     elif vy >= 0 and vx < 0:
         bearing = 360.0 - phi
@@ -179,7 +179,10 @@ def get_wind_speed(gf,lon,lat,elev,date):
     """
     from scipy.spatial import KDTree
     from spectroscopy.util import parse_iso_8601
-    _d = parse_iso_8601(date)
+    if not isinstance(date,datetime.datetime):
+        _d = parse_iso_8601(date)
+    else:
+        _d = date
     _ts = calendar.timegm((_d.utctimetuple()))
     _dt = gf.datetime[:].astype(np.datetime64) 
     # find nearest point
@@ -203,7 +206,7 @@ def get_wind_speed(gf,lon,lat,elev,date):
         vz_error = None
     time = gf.datetime[:][0][ndx[0]]
     lon, lat, hght = gf.position[:][0][ndx[0], :]
-    return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error)
+    return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error, distances[0])
 
 
 if __name__ == '__main__':
