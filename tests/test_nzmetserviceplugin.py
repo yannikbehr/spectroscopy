@@ -25,7 +25,7 @@ class NZMetservicePluginTestCase(unittest.TestCase):
         d.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20160921_0630.txt'),
               ftype='NZMETSERVICE')
         gf = d.elements['GasFlow'][0]
-        lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error = \
+        lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error, dist = \
             get_wind_speed(gf, 174.735, -36.890, 1000, '2016-09-21T06:00:00+12:00')
         self.assertEqual(lon, 174.735)
         self.assertEqual(lat, -36.890)
@@ -38,7 +38,7 @@ class NZMetservicePluginTestCase(unittest.TestCase):
         d.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20160921_0630.txt'),
                ftype='NZMETSERVICE', preferred_model='ecmwf')
         gf1 = d.elements['GasFlow'][1]
-        lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error = \
+        lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error, dist = \
             get_wind_speed(gf1, 174.755, -36.990, 1000, '2016-09-21T06:00:00+12:00')
         v = math.sqrt(vx * vx + vy * vy)
         self.assertEqual(lon, 174.735)
@@ -57,6 +57,15 @@ class NZMetservicePluginTestCase(unittest.TestCase):
                   ftype='NZMETSERVICE')
         d.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20141007_1830.txt'),
                ftype='NZMETSERVICE', preferred_model='gfs')
+
+    def test_date_bug(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        fin = os.path.join(self.data_dir, 'gns_wind_model_data_ukmo_20160127_0630.txt')
+        d.read(fin, ftype='NZMETSERVICE')
+        gf = d.elements['GasFlow'][0]
+        lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error, dist = \
+            get_wind_speed(gf, 174.735, -36.890, 1000, '2016-01-27T06:00:00+13:00')
+        self.assertEqual(dist,0.0) 
         
 
 def suite():

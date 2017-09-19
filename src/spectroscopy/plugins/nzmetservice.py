@@ -50,7 +50,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         _a = lines[2].split()
         for _t in _a:
             _d = timezone('Pacific/Auckland').localize(
-                datetime.strptime('%d%d%s' % (ct.year, ct.month, _t),
+                datetime.strptime('{0:4d}{1:02d}{2:s}'.format(ct.year, ct.month, _t),
                                   '%Y%m%d%H%M'))
             times.append(_d.astimezone(timezone('UTC')))
 
