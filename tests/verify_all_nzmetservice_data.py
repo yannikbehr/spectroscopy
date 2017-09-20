@@ -8,12 +8,13 @@ import re
 import sys
 import tempfile
 
+import numpy as np
 import pytz
 from pytz import timezone
 
 from spectroscopy.dataset import Dataset
 from spectroscopy.plugins.nzmetservice import NZMetservicePluginException
-from spectroscopy.util import vec2bearing, get_wind_speed
+from spectroscopy.util import vec2bearing, get_wind_speed, parse_iso_8601
 
 
 volc_dict_keys = ['Auckland', 'Haroharo', 'Mayor Island', 'Ngauruhoe',
@@ -68,16 +69,21 @@ def write_testfile(d, date, time, fin):
         # Write header for each point
         lines.append('{:s}\n'.format(point))
         times = []
-        line = 'Height  Valid at      Valid at      '
-        line += 'Valid at      Valid at      Valid at      \n'
+        ntimes = len(np.unique(gf.datetime[:]))
+        line = 'Height  '
+        for i in range(ntimes):
+            line += 'Valid at      '
+        line += '\n'
         lines.append(line)
         line = '{:8}'.format('')
         # Write datetimes
-        dt = nztz.localize(datetime.datetime(year,month,day,hour))
-        for i in range(5):
+        dt = nztz.localize(datetime.datetime(year,month,day,hour)).astimezone(timezone('UTC'))
+        otimes = np.unique(gf.datetime[:])
+        otimes.sort()
+        for t in otimes:
+            dt = timezone('UTC').localize(parse_iso_8601(t))
             times.append(dt)
-            line += '{:<14s}'.format(dt.strftime('%d%H%M'))
-            dt += datetime.timedelta(hours=6)
+            line += '{:<14s}'.format(dt.astimezone(nztz).strftime('%d%H%M'))
         line += '\n'
         lines.append(line)
         ln,lt = volc_dict[point]
@@ -94,6 +100,8 @@ def write_testfile(d, date, time, fin):
                     try:
                         v = int(round(math.sqrt(vx * vx + vy * vy)/0.514444))
                         vd = int(round(vec2bearing(vx, vy)))
+                        if vd == 0:
+                            vd = 360
                     except Exception, e:
                         print point, hght, time
                         raise e

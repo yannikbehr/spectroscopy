@@ -3,7 +3,7 @@ Plugin to read and write FlySpec data.
 """
 import calendar
 from collections import defaultdict
-from datetime import datetime
+import datetime
 import os
 import re
 
@@ -48,11 +48,14 @@ class NZMetservicePlugin(DatasetPluginBase):
         times = []
         vals = []
         _a = lines[2].split()
-        for _t in _a:
-            _d = timezone('Pacific/Auckland').localize(
-                datetime.strptime('{0:4d}{1:02d}{2:s}'.format(ct.year, ct.month, _t),
+        if len(_a) < 1:
+            raise NZMetservicePluginException('No data.')
+        _d = timezone('Pacific/Auckland').localize(
+             datetime.datetime.strptime('{0:4d}{1:02d}{2:s}'.format(ct.year, ct.month, _a[0]),
                                   '%Y%m%d%H%M'))
+        for i in range(len(_a)):
             times.append(_d.astimezone(timezone('UTC')))
+            _d += datetime.timedelta(hours=6)        
 
         for _l in lines[3:-1]:
             _a = _l.split()
@@ -75,7 +78,7 @@ class NZMetservicePlugin(DatasetPluginBase):
             match = re.search(
                 r'(?P<time>\d{2}\:\d{2}\S{2}) (?P<date>\d{2}-\d{2}-\d{4})', _l)
             try:
-                ct = datetime.strptime(' '.join((match.group('date'),
+                ct = datetime.datetime.strptime(' '.join((match.group('date'),
                                                  match.group('time'))),
                                        '%d-%m-%Y %I:%M%p')
             except:
@@ -115,7 +118,12 @@ class NZMetservicePlugin(DatasetPluginBase):
                         raise NZMetservicePluginException(
                             'Expected data for %s but got %s.' %
                             (_v, lines[0].rstrip()))
-                    retvals += self._parse_model(_v, ct, lines)
+                    try:
+                        retvals += self._parse_model(_v, ct, lines)
+                    except NZMetservicePluginException:
+                        return (_mod, None)
+                    if len(retvals) < 1:
+                        return (_mod, None)
                 return (_mod, retvals)
             else:
                 return (_mod, None)

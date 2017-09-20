@@ -57,6 +57,15 @@ class NZMetservicePluginTestCase(unittest.TestCase):
                   ftype='NZMETSERVICE')
         d.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20141007_1830.txt'),
                ftype='NZMETSERVICE', preferred_model='gfs')
+        d1 = Dataset(tempfile.mktemp(), 'w')
+        with self.assertRaises(NZMetservicePluginException):
+            d1.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20141228_0630.txt'),
+                ftype='NZMETSERVICE', preferred_model='ecmwf')
+        d1.read(os.path.join(self.data_dir, 'gns_wind_model_data_ecmwf_20141228_0630.txt'),
+                ftype='NZMETSERVICE')
+
+
+
 
     def test_date_bug(self):
         d = Dataset(tempfile.mktemp(), 'w')
