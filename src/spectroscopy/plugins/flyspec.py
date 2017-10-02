@@ -65,27 +65,31 @@ class FlySpecPlugin(DatasetPluginBase):
         slice_start = 0
         slice_end = slice_start
         r = None
+        c = None
+        i = 0
+        chk = []
         for a in self._split_by_scan(angles, unix_times, longitude,
                                      latitude, elevation, so2):
-            for i in xrange(a[0].size):
-                rb = RawDataBuffer(inc_angle=a[0][i],
-                                   position=(a[2][i],a[3][i],a[4][i]),
-                                   datetime=a[1][i])
-                if r is None:
-                    r = dataset.new(rb)
-                else:
-                    try:
-                        r.append(rb)
-                    except:
-                        print "{0:s}, {1:f}, {2:}".format(rb.datetime,rb.inc_angle,rb.position)
-            slice_end = slice_start + a[0].size
+            rb = RawDataBuffer(inc_angle=a[0], position=np.array([a[2],a[3],a[4]]).T,
+                               datetime=a[1])
+            if r is None:
+                r = dataset.new(rb)
+            else:
+                try:
+                    r.append(rb)
+                except:
+                    print "{0:s}, {1:f}, {2:}".format(rb.datetime,rb.inc_angle,rb.position)
             cb = ConcentrationBuffer(rawdata=r, gas_species='SO2',
-                                     rawdata_indices=(slice_start, slice_end),
+                                     rawdata_index=i,
                                      value=a[5])
-            c = dataset.new(cb)
-            slice_start = slice_end
+            if c is None:
+                c = dataset.new(cb)
+            else:
+                c.append(cb)
+            chk += r.inc_angle[i].tolist()
+            i += 1            
         # Consistency check to make sure no data was dropped during slicing
-        assert r.inc_angle[:].std() == angles.std()
+        assert np.array(chk).std() == angles.std()
 
     def _array_multi_sort(self, *arrays):
         """

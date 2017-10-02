@@ -20,37 +20,17 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.data_dir = os.path.join(os.path.dirname(os.path.abspath(
             inspect.getfile(inspect.currentframe()))), "data")
 
-    def test_new(self):
-        d = Dataset.new('FLYSPEC')
-        s = Spectra(d.plugin, counts=np.zeros((1, 2048)))
-        self.assertTrue(np.alltrue(s.counts < 1))
-        s.angle = np.array([45.0])
-        self.assertTrue(s.angle[0] == 45.0)
-
     def test_add(self):
-        d = Dataset.new('FLYSPEC')
-        d1 = Dataset.open(os.path.join(self.data_dir, '2012_02_29_1340_CHILE.txt'),
-                          format='FLYSPEC')
-        d += d1
-        r = d.retrievals[3]
-        s1 = r.spectra_id.get_referred_object()
-        angle = s1.angle[r.slice]
-        id_max = np.argmax(r.sca)
-        np.testing.assert_almost_equal(angle[id_max], 168.04, 2)
-        self.assertEqual(len(d.retrievals), 36)
+        d1 = Dataset(tempfile.mktemp(), 'w')
+        d1.read(os.path.join(self.data_dir, '2016_06_11_0830_TOFP04.txt'),
+                          ftype='FLYSPEC', timeshift=12.0)
+        d2 = Dataset(tempfile.mktemp(), 'w')
+        d2.read(os.path.join(self.data_dir, '2016_06_11_0900_TOFP04.txt'),
+                          ftype='FLYSPEC', timeshift=12.0)
+        d1 += d2
+        self.assertEqual(len(d1.elements['Concentration']), 2)
+        self.assertEqual(len(d1.elements['RawData']), 2)
 
-        d1 = Dataset.open(os.path.join(self.data_dir,
-                                       '2016_06_11_0830_TOFP04.txt'),
-                          format='FLYSPEC', timeshift=12.0)
-        d2 = Dataset.open(os.path.join(self.data_dir,
-                                       '2016_06_11_0900_TOFP04.txt'),
-                          format='FLYSPEC', timeshift=12.0)
-        d3 = d1 + d2
-        self.assertEqual(len(d3.retrievals), 25)
-        d0 = Dataset.new('FLYSPEC')
-        d0 += d1
-        d0 += d2
-        self.assertEqual(len(d0.retrievals), 25)
 
     def test_read(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -58,27 +38,23 @@ class FlySpecPluginTestCase(unittest.TestCase):
         d.read(os.path.join(self.data_dir,'2012_02_29_1340_CHILE.txt'),
                ftype='FLYSPEC')
         r = d.elements['RawData'][0]
-        self.assertEqual(r.datetime.shape, (4600,))
-        self.assertEqual(r.inc_angle[0], 135.140)
-        c = d.elements['Concentration'][3]
+        self.assertEqual(sum([x.size for x in r.datetime]), 4600)
+        self.assertEqual(r.inc_angle[0][0], 135.140)
+        c = d.elements['Concentration'][0]
         r1 = c.rawdata
-        angle = r1.inc_angle[c.rawdata_indices[0][0]:c.rawdata_indices[0][1]]
-        id_max = np.argmax(c.value[:])
+        angle = r1.inc_angle[c.rawdata_index[3]]
+        id_max = np.argmax(c.value[3])
         np.testing.assert_almost_equal(angle[id_max], 168.04, 2)
-        self.assertEqual(len(d.elements['Concentration']), 36)
-        np.testing.assert_array_almost_equal(r1.position[:][0],
+        self.assertEqual(len(c.value[:]), 36)
+        np.testing.assert_array_almost_equal(r1.position[0][0],
                                              [-67.8047, -23.3565, 3927.], 2)
 
         # dicretize all retrievals onto a grid to show a daily plot
         bins = np.arange(0, 180, 1.0)
-        nretrieval = len(d.elements['Concentration'])
+        nretrieval = len(c.value[:])
         m = np.zeros((nretrieval, bins.size - 1))
-        for i, _c in enumerate(d.elements['Concentration']):
-            _r = _c.rawdata
-            id0 = _c.rawdata_indices[0][0]
-            id1 = _c.rawdata_indices[0][1]
-            _angle = _r.inc_angle[:][id0:id1]
-            _so2 = _c.value[:]
+        for i, _so2 in enumerate(c.value[:]):
+            _angle = r1.inc_angle[c.rawdata_index[i]]
             _so2_binned = binned_statistic(_angle, _so2, 'mean', bins)
             m[i, :] = _so2_binned.statistic
         ids = np.argmax(np.ma.masked_invalid(m), axis=1)
@@ -92,14 +68,12 @@ class FlySpecPluginTestCase(unittest.TestCase):
         d1 = Dataset(tempfile.mktemp(), 'w')
         d1.read(os.path.join(self.data_dir, '2016_06_11_0830_TOFP04.txt'),
                           ftype='FLYSPEC', timeshift=12.0)
-        nretrieval = len(d1.elements['Concentration'])
+        c = d1.elements['Concentration'][0]
+        nretrieval = len(c.value[:])
+        r = c.rawdata
         m = np.zeros((nretrieval, bins.size - 1))
-        for i, _c in enumerate(d1.elements['Concentration']):
-            _r = _c.rawdata
-            id0 = _c.rawdata_indices[0][0]
-            id1 = _c.rawdata_indices[0][1]
-            _angle = _r.inc_angle[:][id0:id1]
-            _so2 = _c.value[:]
+        for i, _so2 in enumerate(c.value[:]):
+            _angle = r.inc_angle[c.rawdata_index[i]]
             _so2_binned = binned_statistic(_angle, _so2, 'mean', bins)
             m[i, :] = _so2_binned.statistic
         ids = np.argmax(np.ma.masked_invalid(m), axis=1)
@@ -109,9 +83,9 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
     def test_not_enough_data(self):
         with self.assertRaises(FlySpecPluginException):
-            d1 = Dataset.open(os.path.join(self.data_dir,
-                                           '2015_05_03_1630_TOFP04.txt'),
-                              format='FLYSPEC', timeshift=12.0)
+            d1 = Dataset(tempfile.mktemp(), 'w')
+            d1 = d1.read(os.path.join(self.data_dir, '2015_05_03_1630_TOFP04.txt'),
+                              ftype='FLYSPEC', timeshift=12.0)
 
     def test_split_by_scan(self):
         f = FlySpecPlugin()
@@ -168,9 +142,9 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         import matplotlib.image
 
-        d = Dataset.open(os.path.join(self.data_dir,
-                                      '2012_02_29_1340_CHILE.txt'),
-                         format='FLYSPEC', timeshift=12.0)
+        d = Dataset(tempfile.mktemp(), 'w')
+        d.read(os.path.join(self.data_dir, '2012_02_29_1340_CHILE.txt'),
+               ftype='FLYSPEC', timeshift=12.0)
         with tempfile.TemporaryFile() as fd:
             d.plot(savefig=fd, timeshift=12.0)
             expected_image = matplotlib.image.imread(

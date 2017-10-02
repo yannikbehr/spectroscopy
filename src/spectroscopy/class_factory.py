@@ -378,6 +378,16 @@ class RetVal(object):
         return getattr(self._wrapped_object, key)
 
     def __getitem__(self,key):
+        # if the wrapped object is an array reshape it before 
+        # returning it
+        if isinstance(self._wrapped_object,tables.vlarray.VLArray):
+            l = []
+            name = self._wrapped_object._v_name
+            for i, e in enumerate(self._wrapped_object[:]):
+                shape = tuple(getattr(self._wrapped_object._v_parent.data.cols, name)[i])
+                l.append(e.reshape(shape))
+            return l.__getitem__(key)
+
         return self._wrapped_object.__getitem__(key)
 
     def __str__(self):
@@ -498,6 +508,11 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         for key, val in _references:
             _reference_dict[key] = val 
 
+        # Map numpy types to pytables types
+        dtmap = {np.float64: tables.Float64Atom(),
+                 np.int64: tables.IntAtom(),
+                 np.string_: tables.StringAtom(itemsize=128)}
+
         def __init__(self, h5node, data_buffer=None, pedantic=False):
             # Set the parent HDF5 group after type checking
             if (type(h5node) is not tables.group.Group):
@@ -514,6 +529,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             if data_buffer is not None:
                 dtp = []
                 vals = {}
+                avals = {}
                 for key, prop_type in self._property_dict.iteritems():
                     val = getattr(data_buffer,key,None)
                     if val is None:
@@ -525,6 +541,10 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     if prop_type[0] == datetime.datetime:
                         vals[key] = val 
                         dtp.append((key,np.dtype('S'+str(len(val))),()))
+                    elif prop_type[0] == np.ndarray:
+                        dtp.append((key, np.int, (len(val.shape),)))
+                        avals[key] = val
+                        vals[key] = val.shape
                     else: 
                         vals[key] = val
                         dtp.append((key,val.dtype,val.shape))
@@ -550,6 +570,13 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     for key,val in vals.iteritems():
                         entry[key]  = val
                         s.update('{}'.format(val))
+                    for key, val in avals.iteritems():
+                        try:
+                            vl = f.create_vlarray(h5node, key, self.dtmap[val.dtype.type])
+                        except Exception, e:
+                            print val.dtype.type
+                            raise e
+                        vl.append(val.flatten())
                     h = s.digest()
                     entry['hash'] = h
                     f = self._root._v_file
@@ -574,8 +601,9 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         def __getattr__(self, name):
             table = getattr(self._root,'data')
             if name in self._property_keys:
-                val = RetVal(getattr(table.cols,name))
-                return val
+                if self._property_dict[name][0] == np.ndarray:
+                    return RetVal(getattr(self._root,name))
+                return RetVal(getattr(table.cols,name))
             elif name in self._reference_keys:
                 if self._reference_dict[name][0] == np.ndarray:
                     _t = []
@@ -610,7 +638,17 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             entry = table.row
             for key,val in databuffer.__dict__.iteritems():
                 if val is not None:
-                    entry[key] = val
+                    try:
+                        prop_type = self._property_dict[key]
+                    except KeyError:
+                        prop_type = self._reference_dict[key]
+                        
+                    if prop_type[0] == np.ndarray:
+                        vl = getattr(self._root,key)
+                        vl.append(val.flatten())
+                        entry[key] = val.shape
+                    else:
+                        entry[key] = val
                     s.update('{}'.format(val))
             h = s.digest()
             if h in table[:]['hash']:

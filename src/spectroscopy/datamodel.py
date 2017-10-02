@@ -152,17 +152,17 @@ class _DataQualityType(__DataQualityType):
 __RawData = _class_factory('__RawData', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
-		('inc_angle',(np.float_,)),
-		('inc_angle_error',(np.float_,)),
-		('bearing',(np.float_,)),
-		('bearing_error',(np.float_,)),
-		('position',(np.float_,)),
-		('position_error',(np.float_,)),
-		('path_length',(np.float_,)),
-		('path_length_error',(np.float_,)),
+		('inc_angle',(np.ndarray, np.float_)),
+		('inc_angle_error',(np.ndarray, np.float_)),
+		('bearing',(np.ndarray, np.float_)),
+		('bearing_error',(np.ndarray, np.float_)),
+		('position',(np.ndarray, np.float_)),
+		('position_error',(np.ndarray, np.float_)),
+		('path_length',(np.ndarray, np.float_)),
+		('path_length_error',(np.ndarray, np.float_)),
 		('d_var',(np.ndarray, np.float_)),
 		('ind_var',(np.ndarray, np.float_)),
-		('datetime',(datetime.datetime,)),
+		('datetime',(np.ndarray, datetime.datetime)),
 		('data_quality',(np.ndarray, np.float_)),
 		('integration_time',(np.float_,)),
 		('no_averages',(np.float_,)),
@@ -192,28 +192,28 @@ class RawDataBuffer(__RawDataBuffer):
 	:param target: Reference to the target plume.
 	:type type: reference to RawDataType
 	:param type: Reference to the raw-data-type.
-	:type inc_angle: float
+	:type inc_angle: :class:`numpy.ndarray`
 	:param inc_angle: Inclinitation of measurement direction from vertical. For a transect all angles would typically be the same, e.g. 0.0 if the spectrometer was pointing up.
 
-	:type inc_angle_error: float
+	:type inc_angle_error: :class:`numpy.ndarray`
 	:param inc_angle_error: Uncertainty of inclination angle in degrees.
-	:type bearing: float
+	:type bearing: :class:`numpy.ndarray`
 	:param bearing: Bearing of the scan plane in degrees from grid north.
-	:type bearing_error: float
+	:type bearing_error: :class:`numpy.ndarray`
 	:param bearing_error: Scan bearing uncertainty.
-	:type position: float
+	:type position: :class:`numpy.ndarray`
 	:param position: The position of the spectrometer in decimal longitude, latitude, and elevation in m above sea level  (lon, lat, elev).
-	:type position_error: float
+	:type position_error: :class:`numpy.ndarray`
 	:param position_error: Instrument location uncertainty.
-	:type path_length: float
+	:type path_length: :class:`numpy.ndarray`
 	:param path_length: Path length of a scan [m].
-	:type path_length_error: float
+	:type path_length_error: :class:`numpy.ndarray`
 	:param path_length_error: Path length uncertainty.
 	:type d_var: :class:`numpy.ndarray`
 	:param d_var: Dependent variable e.g. measured spectra, concentration
 	:type ind_var: :class:`numpy.ndarray`
 	:param ind_var: Independent variable e.g. wavelengths, time
-	:type datetime: datetime
+	:type datetime: :class:`numpy.ndarray`
 	:param datetime: Date Time of recording in ISO 8601 format.
 	:type data_quality: :class:`numpy.ndarray`
 	:param data_quality: Data quality parameters.
@@ -348,7 +348,7 @@ class _GasFlow(__GasFlow):
 __Concentration = _class_factory('__Concentration', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
-		('rawdata_indices',(np.ndarray, np.int_)),
+		('rawdata_index',(np.int_,)),
 		('gas_species',(np.str_,)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
@@ -378,8 +378,8 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	:param gasflow: Reference to gas flow model (if applicable).
 	:type rawdata: reference to RawData
 	:param rawdata: Reference to raw measurements (if applicable).
-	:type rawdata_indices: :class:`numpy.ndarray`
-	:param rawdata_indices: Range of raw data used to estimate concentration
+	:type rawdata_index: int
+	:param rawdata_index: Index of raw data used to estimate concentration
 	:type gas_species: str
 	:param gas_species: Gas type (e.g. SO2)
 	:type value: :class:`numpy.ndarray`
@@ -402,7 +402,7 @@ class _Concentration(__Concentration):
 __Flux = _class_factory('__Flux', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
-		('concentration_indices',(np.ndarray, np.int_)),
+		('concentration_index',(np.int_,)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
 		('unit',(np.str_,)),
@@ -428,9 +428,9 @@ class FluxBuffer(__FluxBuffer):
 	:type method: reference to Method
 	:param method: Reference to software used
 	:type concentration: reference to Concentration
-	:param concentration: 
-	:type concentration_indices: :class:`numpy.ndarray`
-	:param concentration_indices: Indices of concentrations
+	:param concentration: Reference to concentration values used to compute flux.
+	:type concentration_index: int
+	:param concentration_index: Index of concentrations used to compute flux
 	:type gasflow: reference to GasFlow
 	:param gasflow: 
 	:type value: :class:`numpy.ndarray`

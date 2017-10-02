@@ -184,12 +184,12 @@ def get_wind_speed(gf,lon,lat,elev,date):
     else:
         _d = date
     _ts = calendar.timegm((_d.utctimetuple()))
-    _dt = gf.datetime[:].astype(np.datetime64) 
+    _dt = gf.datetime[0].astype(np.datetime64) 
     # find nearest point
     _t = np.atleast_2d(_dt).T
     # TODO: this needs to be changed to account for regular and irregular
     # grids
-    a = np.append(gf.position[:][0], _t.astype('float'), axis=1)
+    a = np.append(gf.position[0], _t.astype('float'), axis=1)
     tree = KDTree(a, leafsize=a.shape[0] + 1)
     point = [lon, lat, elev, _ts]
     distances, ndx = tree.query([point], k=1)

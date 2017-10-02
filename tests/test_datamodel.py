@@ -48,15 +48,18 @@ class DatamodelTestCase(unittest.TestCase):
         t = d.new(tb2)
         with self.assertRaises(ValueError):
             rb = RawDataBuffer(instrument=t,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                               datetime='2017-01-10T15:23:00')
+                               datetime=['2017-01-10T15:23:00'])
 
     def test_RawData(self):
         d = Dataset(tempfile.mktemp(), 'w')
-        rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00', inc_angle=90.)
+        times = [str(np.datetime64('2017-01-10T15:23:00') + np.timedelta64(i*1,'s')) for i in range(10)]
+        rb = RawDataBuffer(d_var=np.zeros((10, 2048)),
+                           ind_var=np.arange(2048),
+                           datetime=times, inc_angle=np.arange(10,110,10))
         r = d.new(rb)
-        self.assertTrue(np.alltrue(r.d_var[:] < 1))
-        self.assertEqual(r.datetime[0],'2017-01-10T15:23:00')
+        self.assertEqual(r.d_var[0].shape, (10, 2048))
+        self.assertTrue(np.alltrue(r.d_var[0] < 1))
+        self.assertEqual(r.datetime[0][0],'2017-01-10T15:23:00')
 
     def test_PreferredFlux(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -72,7 +75,7 @@ class DatamodelTestCase(unittest.TestCase):
                           description='Main vent in January 2017')
         t = d.new(tb)
         rb = RawDataBuffer(target=t,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
         self.assertEqual(r.target.target_id[:],'WI001')
 
@@ -85,7 +88,7 @@ class DatamodelTestCase(unittest.TestCase):
                           description='Main vent in January 2017')
         t = d1.new(tb)
         rb = RawDataBuffer(target=t,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         r = d1.new(rb)
         d2 = Dataset(tempfile.mktemp(), 'w')
         tb2 = TargetBuffer(target_id='WI002', name='White Island main vent',
@@ -94,7 +97,7 @@ class DatamodelTestCase(unittest.TestCase):
                            description='Main vent in January 2017')
         t2 = d2.new(tb2)
         rb2 = RawDataBuffer(target=t2,d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         d2.new(rb2)
         with self.assertRaises(AttributeError):
             d3 = d1 + d2
@@ -154,7 +157,7 @@ class DatamodelTestCase(unittest.TestCase):
         with self.assertRaises(AttributeError):
             t.position = (1, 1, 1)
         rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
         with self.assertRaises(AttributeError):
             r.d_var[0] = 1
@@ -200,15 +203,16 @@ class DatamodelTestCase(unittest.TestCase):
         rdt = d.new(rdtb)
         rb = RawDataBuffer(target=t, instrument=i, type=rdt,
                            d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
         rb1 = RawDataBuffer(target=t, instrument=i, type=rdt,
                             d_var=np.ones((1, 2048)), ind_var=np.arange(2048),
-                            datetime='2017-01-10T15:23:01')
+                            datetime=['2017-01-10T15:23:01'])
         r.append(rb1)
-        self.assertEqual(r.ind_var[:].size,4096)
-        self.assertTrue(np.alltrue(r.d_var[:] < 2))
-        np.testing.assert_array_equal(r.datetime[:],['2017-01-10T15:23:00','2017-01-10T15:23:01'])
+        self.assertEqual(len(r.ind_var[:]),2)
+        self.assertEqual(np.array(r.ind_var[:]).size,4096)
+        self.assertTrue(np.alltrue(np.array(r.d_var[:]) < 2))
+        np.testing.assert_array_equal(np.array(r.datetime[:]).flatten(),['2017-01-10T15:23:00','2017-01-10T15:23:01'])
         with self.assertRaises(ValueError):
             r.append(rb1)
         with self.assertRaises(AttributeError):
@@ -221,7 +225,7 @@ class DatamodelTestCase(unittest.TestCase):
         t1 = d.new(tb1)
         rb2 = RawDataBuffer(target=t1, instrument=i, type=rdt,
                             d_var=np.ones((1, 2048)), ind_var=np.arange(2048),
-                            datetime='2017-01-10T15:23:02')
+                            datetime=['2017-01-10T15:23:02'])
         with self.assertRaises(AttributeError):
             rb.append(rb2)
 
@@ -248,7 +252,7 @@ class DatamodelTestCase(unittest.TestCase):
         rdt = d.new(rdtb)
         rb = RawDataBuffer(target=t, instrument=i, type=rdt,
                            d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
         d.close()
 
@@ -304,7 +308,7 @@ class DatamodelTestCase(unittest.TestCase):
         rdt = d.new(rdtb)
         rb = RawDataBuffer(target=t, instrument=i, type=rdt,
                            d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
         self.assertTrue(r.target == t)
         self.assertTrue(r.instrument == i)
@@ -313,7 +317,7 @@ class DatamodelTestCase(unittest.TestCase):
         rb1 = RawDataBuffer()
         rb1.d_var = np.zeros((1, 2048))
         rb1.ind_var = np.arange(2048),
-        rb1.datetime = '2017-01-10T15:23:00'
+        rb1.datetime = ['2017-01-10T15:23:00']
         rb1.target = t
         rb1.instrument = i
         rb1.type = rdt
@@ -322,10 +326,10 @@ class DatamodelTestCase(unittest.TestCase):
     def test_times(self):
         d = Dataset(tempfile.mktemp(), 'w')
         rb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                           datetime='2017-01-10T15:23:00')
+                           datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
         rb1 = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
-                            datetime='2017-01-10T15:23:01')
+                            datetime=['2017-01-10T15:23:01'])
         self.assertEqual(r.creation_time, r.modification_time)
         ct = r.creation_time
         r.append(rb1)

@@ -311,34 +311,13 @@ class Dataset(object):
             ts = kargs.get('timeshift', 0.0) * 60. * 60.
             cmap = cm.get_cmap(cmap_name)
             # dicretize all retrievals onto a grid to show a daily plot
-            rts = self.elements['Concentration']
-            nretrieval = len(rts)
+            rts = self.elements['Concentration'][0]
+            nretrieval = len(rts.value[:])
             m = np.zeros((nretrieval, angle_bins.size - 1))
 
-            # first sort retrievals based on start time
-            def mycmp(c1, c2):
-                r1 = c1.rawdata
-                r2 = c2.rawdata
-                id10 = c1.rawdata_indices[0][0]
-                id11 = c1.rawdata_indices[0][1]
-                id20 = c2.rawdata_indices[0][0]
-                id21 = c2.rawdata_indices[0][1]
-                t1 = r1.datetime[:][id10:id11].astype('datetime64[us]').min()
-                t2 = r2.datetime[:][id20:id21].astype('datetime64[us]').min()
-                if t1 < t2:
-                    return -1
-                if t1 == t2:
-                    return 0
-                if t1 > t2:
-                    return 1
-            rts.sort(cmp=mycmp)
-
-            for i, _c in enumerate(rts):
-                _r = _c.rawdata
-                id0 = _c.rawdata_indices[0][0]
-                id1 = _c.rawdata_indices[0][1]
-                _angle = _r.inc_angle[:][id0:id1]
-                _so2 = _c.value[:]
+            r = rts.rawdata
+            for i, _so2 in enumerate(rts.value[:]):
+                _angle = r.inc_angle[i]
                 _so2_binned = binned_statistic(
                     _angle, _so2, 'mean', angle_bins)
                 m[i, :] = _so2_binned.statistic
@@ -358,12 +337,10 @@ class Dataset(object):
             ymax = angle_bins[0]
             for _xt in plt.xticks()[0]:
                 try:
-                    _c = rts[int(_xt)]
-                    _r = _c.rawdata
-                    _a = _r.inc_angle[slice(*_c.rawdata_indices[0])]
+                    _a = r.inc_angle[int(_xt)]
                     ymin = min(_a.min(), ymin)
                     ymax = max(_a.max(), ymax)
-                    dt = _r.datetime[:][slice(*_c.rawdata_indices[0])].astype('datetime64[us]').min()
+                    dt = r.datetime[int(_xt)].astype('datetime64[us]').min()
                     dt += np.timedelta64(int(ts),'s')                    
                     new_labels.append(pd.to_datetime(str(dt)).strftime("%Y-%m-%d %H:%M"))
                     new_ticks.append(_xt)
