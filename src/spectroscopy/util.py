@@ -184,30 +184,122 @@ def get_wind_speed(gf,lon,lat,elev,date):
     else:
         _d = date
     _ts = calendar.timegm((_d.utctimetuple()))
-    _dt = gf.datetime[0].astype(np.datetime64) 
+    _dt = gf.datetime[:].astype(np.datetime64) 
     # find nearest point
     _t = np.atleast_2d(_dt).T
     # TODO: this needs to be changed to account for regular and irregular
     # grids
-    a = np.append(gf.position[0], _t.astype('float'), axis=1)
+    a = np.append(gf.position[:], _t.astype('float'), axis=1)
     tree = KDTree(a, leafsize=a.shape[0] + 1)
     point = [lon, lat, elev, _ts]
     distances, ndx = tree.query([point], k=1)
-    vx = gf.vx[:][0][ndx[0]]
-    vy = gf.vy[:][0][ndx[0]]
-    vz = gf.vz[:][0][ndx[0]]
+    vx = gf.vx[:][ndx[0]]
+    vy = gf.vy[:][ndx[0]]
+    vz = gf.vz[:][ndx[0]]
     try:
-        vx_error = gf.vx_error[:][0][ndx[0]]
-        vy_error = gf.vy_error[:][0][ndx[0]]
-        vz_error = gf.vz_error[:][0][ndx[0]]
+        vx_error = gf.vx_error[:][ndx[0]]
+        vy_error = gf.vy_error[:][ndx[0]]
+        vz_error = gf.vz_error[:][ndx[0]]
     except AttributeError:
         vx_error = None
         vy_error = None
         vz_error = None
-    time = gf.datetime[:][0][ndx[0]]
-    lon, lat, hght = gf.position[:][0][ndx[0], :]
+    time = gf.datetime[:][ndx[0]]
+    lon, lat, hght = gf.position[:][ndx[0], :]
     return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error, distances[0])
 
+
+def _array_multi_sort(*arrays):
+    """
+    Sorts multiple numpy arrays based on the contents of the first array.
+
+    >>> x1 = np.array([4.,5.,1.,2.])
+    >>> x2 = np.array([10.,11.,12.,13.])
+    >>> _array_multi_sort(*tuple([x1,x2]))
+    (array([ 1.,  2.,  4.,  5.]), array([ 12.,  13.,  10.,  11.]))
+    """
+    c = np.rec.fromarrays(
+        arrays, names=[str(i) for i in range(len(arrays))])
+    c.sort()  # sort based on values in first array
+    return tuple([c[str(i)] for i in range(len(arrays))])
+
+
+def split_by_scan(angles, *vars_):
+    """
+    Returns an iterator that will split lists/arrays of data by scan (i.e. 
+    between start and end angle) an arbitrary number of lists of data can 
+    be passed in - the iterator will return a list of arrays of length 
+    len(vars_) + 1 with the split angles array at index one, and the 
+    remaining data lists in order afterwards. The lists will be sorted 
+    into ascending angle order.
+
+    >>> angles = np.array([30, 35, 40, 35, 30, 35, 40])
+    >>> [a[0] for a in split_by_scan(angles)]
+    [array([30, 35, 40]), array([30, 35]), array([35, 40])]
+    >>> [a[1] for a in split_by_scan(angles, np.array([1,2,3,4,5,6,7]))]
+    [array([1, 2, 3]), array([5, 4]), array([6, 7])]
+    """
+    # everything breaks if there are more than two equal angles in a row.
+    if np.any(np.logical_and((angles[1:] == angles[:-1])[:-1],
+                             angles[2:] == angles[:-2])):
+        idx = np.argmax(np.logical_and(
+            (angles[1:] == angles[:-1])[:-1], angles[2:] == angles[:-2]))
+        raise ValueError, "Data at line " + str(idx + 2) + \
+            " contains three or more repeated angle entries (in a row). \
+            Don't know how to split this into scans."
+
+    anglegradient = np.zeros(angles.shape)
+    anglegradient[1:] = np.diff(angles)
+    # if there are repeated start or end angles, then you end up with zeros
+    # in the gradients. Possible zeros at the start need to be dealt with
+    # separately, otherwise you end up with the first point being put in a
+    # scan of its own.
+    if anglegradient[1] == 0:
+        anglegradient[1] = anglegradient[2]
+
+    if anglegradient[-1] == 0:
+        anglegradient[-1] = anglegradient[-2]
+
+    anglegradient[0] = anglegradient[1]
+
+    # replace zero gradients within the array with the value of its left
+    # neighbour
+    b = np.roll(anglegradient, 1)
+    b[0] = anglegradient[0]
+    anglegradient = np.where(np.abs(anglegradient) > 0, anglegradient, b)
+
+    firstarray = anglegradient > 0
+    secondarray = np.copy(firstarray)
+    secondarray[1:] = secondarray[0:-1]
+    secondarray[0] = not secondarray[0]
+    inflectionpoints = np.where(firstarray != secondarray)[0]
+
+    if len(inflectionpoints) < 2:
+        yield _array_multi_sort(angles, *vars_)
+    else:
+        d = [angles[:inflectionpoints[1]]]
+        for l in vars_:
+            d.append(l[0:inflectionpoints[1]:])
+        yield _array_multi_sort(*tuple(d))
+
+        i = 1
+        while i < len(inflectionpoints) - 1:
+            if inflectionpoints[i + 1] - inflectionpoints[i] < 2:
+                inflectionpoints[i + 1] = inflectionpoints[i]
+                i += 1
+                continue
+            d = [angles[inflectionpoints[i]: inflectionpoints[i + 1]]]
+            for l in vars_:
+                d.append(l[inflectionpoints[i]: inflectionpoints[i + 1]])
+            i += 1
+            yield _array_multi_sort(*tuple(d))
+
+        # the final point is not an inflection point so now we need to
+        # return the final scan
+        d = [angles[inflectionpoints[i]:]]
+        for l in vars_:
+            d.append(l[inflectionpoints[i]:])
+        yield _array_multi_sort(*tuple(d))
 
 if __name__ == '__main__':
     import doctest

@@ -378,16 +378,6 @@ class RetVal(object):
         return getattr(self._wrapped_object, key)
 
     def __getitem__(self,key):
-        # if the wrapped object is an array reshape it before 
-        # returning it
-        if isinstance(self._wrapped_object,tables.vlarray.VLArray):
-            l = []
-            name = self._wrapped_object._v_name
-            for i, e in enumerate(self._wrapped_object[:]):
-                shape = tuple(getattr(self._wrapped_object._v_parent.data.cols, name)[i])
-                l.append(e.reshape(shape))
-            return l.__getitem__(key)
-
         return self._wrapped_object.__getitem__(key)
 
     def __str__(self):
@@ -542,9 +532,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                         vals[key] = val 
                         dtp.append((key,np.dtype('S'+str(len(val))),()))
                     elif prop_type[0] == np.ndarray:
-                        dtp.append((key, np.int, (len(val.shape),)))
                         avals[key] = val
-                        vals[key] = val.shape
                     else: 
                         vals[key] = val
                         dtp.append((key,val.dtype,val.shape))
@@ -572,11 +560,15 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                         s.update('{}'.format(val))
                     for key, val in avals.iteritems():
                         try:
-                            vl = f.create_vlarray(h5node, key, self.dtmap[val.dtype.type])
+                            shape = list(val.shape)
+                            shape[0] = 0
+                            vl = f.create_earray(h5node, key, atom=self.dtmap[val.dtype.type],
+                                                shape=tuple(shape))
                         except Exception, e:
                             print val.dtype.type
                             raise e
-                        vl.append(val.flatten())
+                        vl.append(val)
+                        s.update('{}'.format(val))
                     h = s.digest()
                     entry['hash'] = h
                     f = self._root._v_file
@@ -645,8 +637,7 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                         
                     if prop_type[0] == np.ndarray:
                         vl = getattr(self._root,key)
-                        vl.append(val.flatten())
-                        entry[key] = val.shape
+                        vl.append(val)
                     else:
                         entry[key] = val
                     s.update('{}'.format(val))
@@ -694,6 +685,9 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                 msg += "property or reference of class {:s}: "
                 msg += ",".join(kwargs.keys())
                 raise AttributeError(msg.format(type(self).__name__))
+
+        def __str__(self):
+            return class_name.strip('_')
 
         def __setattr__(self, name, value):
             try:

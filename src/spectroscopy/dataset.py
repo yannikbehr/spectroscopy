@@ -24,7 +24,7 @@ from spectroscopy.class_factory import ResourceIdentifier
 from spectroscopy.plugins import get_registered_plugins
 import spectroscopy.util
 from spectroscopy.datamodel import all_classes
-
+from spectroscopy.util import split_by_scan
 
 class Dataset(object):
     """
@@ -228,7 +228,7 @@ class Dataset(object):
         """
         plugins = get_registered_plugins()
         pg = plugins[ftype.lower()]()
-        pg.read(self,filename,**kwargs)
+        return pg.read(self,filename,**kwargs)
     
     @staticmethod
     def open(filename):
@@ -311,16 +311,22 @@ class Dataset(object):
             ts = kargs.get('timeshift', 0.0) * 60. * 60.
             cmap = cm.get_cmap(cmap_name)
             # dicretize all retrievals onto a grid to show a daily plot
-            rts = self.elements['Concentration'][0]
-            nretrieval = len(rts.value[:])
-            m = np.zeros((nretrieval, angle_bins.size - 1))
-
-            r = rts.rawdata
-            for i, _so2 in enumerate(rts.value[:]):
-                _angle = r.inc_angle[i]
+            c = self.elements['Concentration'][0]
+            r = c.rawdata
+            m = [] 
+            times = []
+            ymin = angle_bins[-1]
+            ymax = angle_bins[0]
+            nretrieval = 0
+            for _angle, _so2, _t in split_by_scan(r.inc_angle[:], c.value[:], r.datetime[:]):
+                ymin = min(_angle.min(), ymin)
+                ymax = max(_angle.max(), ymax)
+                times.append(_t)
                 _so2_binned = binned_statistic(
                     _angle, _so2, 'mean', angle_bins)
-                m[i, :] = _so2_binned.statistic
+                m.append(_so2_binned.statistic)
+                nretrieval += 1
+            m = np.array(m)
 
             fig = plt.figure()
             if log:
@@ -333,14 +339,9 @@ class Dataset(object):
                              norm=Normalize(z.min(), z.max()), cmap=cmap)
             new_labels = []
             new_ticks = []
-            ymin = angle_bins[-1]
-            ymax = angle_bins[0]
             for _xt in plt.xticks()[0]:
                 try:
-                    _a = r.inc_angle[int(_xt)]
-                    ymin = min(_a.min(), ymin)
-                    ymax = max(_a.max(), ymax)
-                    dt = r.datetime[int(_xt)].astype('datetime64[us]').min()
+                    dt = times[int(_xt)].astype('datetime64[us]').min()
                     dt += np.timedelta64(int(ts),'s')                    
                     new_labels.append(pd.to_datetime(str(dt)).strftime("%Y-%m-%d %H:%M"))
                     new_ticks.append(_xt)
