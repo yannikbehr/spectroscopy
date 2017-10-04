@@ -1,30 +1,15 @@
-import calendar
-import collections
-from copy import copy, deepcopy
-import datetime
 import hashlib
-import inspect
-import string
-from uuid import uuid4
 import warnings
-import weakref
 
-from dateutil import tz
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize, LogNorm
-from matplotlib.pyplot import cm
 import numpy as np
-import pandas as pd
 import tables
 from tables.group import Group
 from tables.exceptions import NoSuchNodeError, NodeError
-from scipy.stats import binned_statistic
 
 from spectroscopy.class_factory import ResourceIdentifier
 from spectroscopy.plugins import get_registered_plugins
-import spectroscopy.util
 from spectroscopy.datamodel import all_classes
-from spectroscopy.util import split_by_scan
+
 
 class Dataset(object):
     """
@@ -80,11 +65,10 @@ class Dataset(object):
         if self._f == other._f:
             raise ValueError("You can't add a dataset to itself.")
         update_refs = []
-        postfix = self._gen_sc3_id(datetime.datetime.now())
         rid_dict = {}
         for e in other.elements.keys():
             for k in other.elements[e]:
-                ne = self._copy_children(k, postfix)
+                ne = self._copy_children(k)
                 self.elements[e].append(ne)
                 update_refs.append(ne)
                 rid_dict[str(k._resource_id)] = str(ne._resource_id)
@@ -103,39 +87,6 @@ class Dataset(object):
                         else:
                             ref[0] = rid_dict[ref[0]]
         return self
-
-    def _gen_sc3_id(self, dt, numenc=6, sym="abcdefghijklmnopqrstuvwxyz"):
-        """
-        Generate an event ID following the SeisComP3 convention. By default it
-        divides a year into 26^6 intervals assigning each a unique combination of
-        characters.
-
-        >>> import datetime 
-        >>> import tempfile
-        >>> d = Dataset(tempfile.mktemp(), 'w')
-        >>> print d.gen_sc3_id(datetime.datetime(2015, 8, 18, 10, 55, 51, 367580))
-        2015qffasl
-        """
-        numsym = len(sym)
-        julday = int(dt.strftime('%j'))
-        x = (((((julday - 1) * 24) + dt.hour) * 60 + dt.minute) *
-             60 + dt.second) * 1000 + dt.microsecond / 1000
-        dx = (((370 * 24) * 60) * 60) * 1000
-        rng = numsym ** numenc
-        w = int(dx / rng)
-        if w == 0:
-            w = 1
-
-        if dx >= rng:
-            x = int(x / w)
-        else:
-            x = x * int(rng / dx)
-        enc = ''
-        for _ in range(numenc):
-            r = x % numsym
-            enc += sym[r]
-            x = int(x / numsym)
-        return '%d%s' % (dt.year, enc[::-1])
 
     def _newdst_group(self, dstgroup, title='', filters=None):
         """
@@ -159,7 +110,7 @@ class Dataset(object):
             group = group2
         return group
 
-    def _copy_children(self, src, postfix, title='', recursive=True,
+    def _copy_children(self, src, title='', recursive=True,
                        filters=None, copyuserattrs=False,
                        overwrtnodes=False):
         """
@@ -282,86 +233,7 @@ class Dataset(object):
             except (KeyError, NoSuchNodeError):
                 warnings.warn("Can't remove tag {} as it doesn't exist.".format(tag)) 
                 
-    def plot(self, toplot='concentrations', savefig=None, **kargs):
-        """
-        Provide overview plots for data contained in a dataset.
-
-        :type toplot: str
-        :param toplot: Choose the datatype to plot.
-
-        Parameters specific to `retrievals` contour plots:
-
-        :type log: bool
-        :param log: Turn on logarithmic colour scales.
-        :type cmap_name: str
-        :param cmap_name: The name of the matplotlib colour scale to use.
-        :type angle_bins: :class:`numpy.ndarray`
-        :param angle_bins: Define the bins onto which the angles of the
-            retrievals are discretized to.
-        :type ncontours: int
-        :param ncontours: Number of contours used in the contour plot.
-
-        """
-
-        if toplot.lower() == 'concentrations':
-            cmap_name = kargs.get('cmap_name', 'RdBu_r')
-            log = kargs.get('log', False)
-            angle_bins = kargs.get('angle_bins', np.arange(0, 180, 1.0))
-            ncontours = kargs.get('ncontours', 100)
-            ts = kargs.get('timeshift', 0.0) * 60. * 60.
-            cmap = cm.get_cmap(cmap_name)
-            # dicretize all retrievals onto a grid to show a daily plot
-            c = self.elements['Concentration'][0]
-            r = c.rawdata
-            m = [] 
-            times = []
-            ymin = angle_bins[-1]
-            ymax = angle_bins[0]
-            nretrieval = 0
-            for _angle, _so2, _t in split_by_scan(r.inc_angle[:], c.value[:], r.datetime[:]):
-                ymin = min(_angle.min(), ymin)
-                ymax = max(_angle.max(), ymax)
-                times.append(_t)
-                _so2_binned = binned_statistic(
-                    _angle, _so2, 'mean', angle_bins)
-                m.append(_so2_binned.statistic)
-                nretrieval += 1
-            m = np.array(m)
-
-            fig = plt.figure()
-            if log:
-                z = np.where(m > 0.0, m, 0.1)
-                plt.contourf(range(nretrieval), angle_bins[1:], z.T, ncontours,
-                             norm=LogNorm(z.min(), z.max()), cmap=cmap)
-            else:
-                z = np.ma.masked_invalid(m)
-                plt.contourf(range(nretrieval), angle_bins[1:], m.T, ncontours,
-                             norm=Normalize(z.min(), z.max()), cmap=cmap)
-            new_labels = []
-            new_ticks = []
-            for _xt in plt.xticks()[0]:
-                try:
-                    dt = times[int(_xt)].astype('datetime64[us]').min()
-                    dt += np.timedelta64(int(ts),'s')                    
-                    new_labels.append(pd.to_datetime(str(dt)).strftime("%Y-%m-%d %H:%M"))
-                    new_ticks.append(_xt)
-                except IndexError:
-                    continue
-            plt.xticks(new_ticks, new_labels, rotation=30,
-                       horizontalalignment='right')
-            cb = plt.colorbar()
-            cb.set_label('Slant column amount SO2 [ppm m]')
-            plt.ylim(ymin, ymax)
-            plt.ylabel(r'Angle [$\circ$]')
-            if savefig is not None:
-                plt.savefig(
-                    savefig, bbox_inches='tight', dpi=300, format='png')
-            return fig
-
-        else:
-            print 'Plotting %s has not been implemented yet' % toplot
-
-            
+           
 if __name__ == '__main__':
     import doctest
     doctest.testmod(exclude_empty=True)

@@ -585,6 +585,9 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         def tags(self):
             return self._tags
 
+        def __str__(self):
+            return class_name.strip('_')
+
         def __setattr__(self, name, value):
             # Raise an exception if not a property or attribute
             raise AttributeError(

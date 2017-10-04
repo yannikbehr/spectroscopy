@@ -10,6 +10,7 @@ from spectroscopy.dataset import Dataset
 from spectroscopy.plugins.flyspec import FlySpecPlugin
 from spectroscopy.plugins.flyspec import FlySpecPluginException
 from spectroscopy.util import split_by_scan, _array_multi_sort
+from spectroscopy.visualize import plot
 
 class FlySpecPluginTestCase(unittest.TestCase):
     """
@@ -153,9 +154,9 @@ class FlySpecPluginTestCase(unittest.TestCase):
                         ftype='FLYSPEC', timeshift=12.0)
         r = d.new(rb)
         cb.rawdata = r
-        d.new(cb)
+        c = d.new(cb)
         with tempfile.TemporaryFile() as fd:
-            d.plot(savefig=fd, timeshift=12.0)
+            plot(c, savefig=fd, timeshift=12.0)
             expected_image = matplotlib.image.imread(
                 os.path.join(self.data_dir, 'chile_retrievals_overview.png'),
                 format='png')
