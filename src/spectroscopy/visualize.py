@@ -2,6 +2,7 @@
 Overview plots for different elements in a dataset.
 """
 
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
 from matplotlib.pyplot import cm
@@ -85,6 +86,34 @@ def plot_concentration(c, savefig=None, **kargs):
         plt.savefig(
             savefig, bbox_inches='tight', dpi=300, format='png')
     return fig
+
+
+def plot_rawdata(r, savefig=None, **kargs):
+    matplotlib.style.use('ggplot')
+    counts = r.d_var[:]
+    w = r.ind_var[:]
+    nc = counts.shape[0]
+    cmap = cm.ScalarMappable(norm=Normalize(vmin=0, vmax=nc-1), cmap='RdBu')
+    fig = plt.figure(figsize=(12,6))
+    for i in range(nc):
+        c = cmap.to_rgba(i)
+        plt.plot(w,counts[i],color=c, alpha=0.2)
+    
+    plt.xlabel('Wavelength [nm]')
+    plt.ylabel('Intensity')
+    cax, kw = matplotlib.colorbar.make_axes(plt.gca())
+    norm = Normalize(vmin = 0, vmax = nc, clip = False)
+    c = matplotlib.colorbar.ColorbarBase(cax, cmap='RdBu', norm=norm)
+    ticks = np.array([0, int(nc/2.), nc-1])
+    times = r.datetime[:]
+    labels = np.array([times[0],times[int(nc/2.)],times[nc-1]])
+    c.set_ticks(ticks)
+    c.set_ticklabels(labels)
+    if savefig is not None:
+        plt.savefig(
+            savefig, bbox_inches='tight', dpi=300, format='png')
+    return fig
+
 
 
 def plot(element, **kargs):

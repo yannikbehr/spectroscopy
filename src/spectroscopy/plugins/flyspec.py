@@ -4,10 +4,13 @@ Plugin to read and write FlySpec data.
 import calendar
 import datetime
 import os
+import struct
 
 import numpy as np
 
-from spectroscopy.datamodel import RawDataBuffer, ConcentrationBuffer
+from spectroscopy.datamodel import (RawDataBuffer, 
+                                    ConcentrationBuffer,
+                                    RawDataTypeBuffer)
 from spectroscopy.plugins import DatasetPluginBase
 
 class FlySpecPluginException(Exception):
@@ -15,6 +18,19 @@ class FlySpecPluginException(Exception):
 
 
 class FlySpecPlugin(DatasetPluginBase):
+
+    def _read_spectra(self, fin):
+        """
+        Read spectra from binary file.
+        """
+        with open(fin,"rb") as ifp:
+            raw_data = ifp.read()
+        i = 0
+        counts = []
+        while i < len(raw_data):
+            counts.append(struct.unpack("2048f",raw_data[i:i+(2048 * 4)]))
+            i += (2048 * 4)
+        return counts
 
     def read(self, dataset, filename, timeshift=0.0, **kargs):
         """
@@ -43,6 +59,19 @@ class FlySpecPlugin(DatasetPluginBase):
                               9: lambda x: -1.0 if x.lower() == 's' else 1.0,
                               10: todd,
                               11: lambda x: -1.0 if x.lower() == 'w' else 1.0})
+
+        specfile = kargs.get('spectra', None)
+        if specfile is not None:
+            wavelengths = kargs.get('wavelengths', None)
+            if wavelengths is not None:
+                spectra = np.array(self._read_spectra(specfile))
+                if spectra.shape[0] != data.shape[0]:
+                    raise FlySpecPluginException(
+                        "Spectra and concentration don't have the same shape.")
+                if spectra.shape[1] != wavelengths.size:
+                    raise FlySpecPluginException(
+                        "Spectra and wavelengths don't have the same size.")
+
         if len(data.shape) < 2:
             raise FlySpecPluginException(
                 'File %s contains only one data point.'
@@ -62,11 +91,19 @@ class FlySpecPlugin(DatasetPluginBase):
         elevation = data[:, 12]
         so2 = data[:, 16]
         angles = data[:, 17]
-        rb = RawDataBuffer(inc_angle=angles,
-                           position=np.array([longitude, latitude, elevation]).T,
-                           datetime=unix_times)
+        if specfile is not None:
+            rb = RawDataBuffer(inc_angle=angles,
+                               position=np.array([longitude, latitude, elevation]).T,
+                               datetime=unix_times,
+                               ind_var = wavelengths,
+                               d_var = spectra)
+        else:
+            rb = RawDataBuffer(inc_angle=angles,
+                               position=np.array([longitude, latitude, elevation]).T,
+                               datetime=unix_times)
+        rdtb = RawDataTypeBuffer(d_var_unit='ppm m', ind_var_unit='nm', name='measurement')
         cb = ConcentrationBuffer(gas_species='SO2', value=so2)
-        return (rb, cb)
+        return {str(rb):rb, str(rdtb):rdtb, str(cb):cb}
 
     def close(self, filename):
         raise Exception('Close is undefined for the FlySpec backend')
