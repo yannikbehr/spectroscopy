@@ -6,6 +6,7 @@ from spectroscopy.class_factory import _class_factory
 __Instrument = _class_factory('__Instrument', 'base',
 	class_attributes=[
 		('tags',(set,)),
+		('name',(np.str_,)),
 		('sensor_id',(np.str_,)),
 		('location',(np.str_,)),
 		('no_bits',(np.int_,)),
@@ -25,6 +26,8 @@ class InstrumentBuffer(__InstrumentBuffer):
 
 	:type tags: set
 	:param tags: List of human readable tags
+	:type name: str
+	:param name: Station name
 	:type sensor_id: str
 	:param sensor_id: Serial number
 	:type location: str
@@ -234,7 +237,7 @@ class _RawData(__RawData):
 	'''
 
 
-__Method = _class_factory('__Method', 'base',
+__Method = _class_factory('__Method', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
 		('name',(np.str_,)),
@@ -358,7 +361,7 @@ __Concentration = _class_factory('__Concentration', 'extendable',
 	class_references=[
 		('method',(_Method,)),
 		('gasflow',(_GasFlow,)),
-		('rawdata',(_RawData,))])
+		('rawdata',(np.ndarray, _RawData))])
 
 
 __ConcentrationBuffer = _class_factory(
@@ -376,7 +379,7 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	:param method: Reference to the method used to obtain concentration estimates.
 	:type gasflow: reference to GasFlow
 	:param gasflow: Reference to gas flow model (if applicable).
-	:type rawdata: reference to RawData
+	:type rawdata: :class:`numpy.ndarray`
 	:param rawdata: Reference to raw measurements (if applicable).
 	:type rawdata_index: int
 	:param rawdata_index: Index of raw data used to estimate concentration
@@ -399,12 +402,13 @@ class _Concentration(__Concentration):
 	'''
 
 
-__Flux = _class_factory('__Flux', 'extendable',
+__Flux = _class_factory('__Flux', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('concentration_index',(np.int_,)),
+		('concentration_indices',(np.ndarray, np.int_)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
+		('datetime',(np.ndarray, datetime.datetime)),
 		('unit',(np.str_,)),
 		('analyst_contact',(np.str_,)),
 		('user_notes',(np.str_,))],
@@ -429,14 +433,16 @@ class FluxBuffer(__FluxBuffer):
 	:param method: Reference to software used
 	:type concentration: reference to Concentration
 	:param concentration: Reference to concentration values used to compute flux.
-	:type concentration_index: int
-	:param concentration_index: Index of concentrations used to compute flux
+	:type concentration_indices: :class:`numpy.ndarray`
+	:param concentration_indices: Index of concentrations used to compute flux
 	:type gasflow: reference to GasFlow
 	:param gasflow: 
 	:type value: :class:`numpy.ndarray`
 	:param value: Flux estimates
 	:type value_error: :class:`numpy.ndarray`
 	:param value_error: Flux estimate errors
+	:type datetime: :class:`numpy.ndarray`
+	:param datetime: Datetime (in ISO 8601 format) that is assigned to the flux estimates.
 	:type unit: str
 	:param unit: Physical unit of flux.
 	:type analyst_contact: str
@@ -454,12 +460,12 @@ __PreferredFlux = _class_factory('__PreferredFlux', 'base',
 	class_attributes=[
 		('tags',(set,)),
 		('flux_indices',(np.ndarray, np.int_)),
-		('date',(np.ndarray, datetime.datetime)),
+		('datetime',(np.ndarray, datetime.datetime)),
 		('value',(np.float_,)),
 		('value_error',(np.float_,)),
 		('user_notes',(np.str_,))],
 	class_references=[
-		('flux_ids',(np.ndarray, _Flux)),
+		('fluxes',(np.ndarray, _Flux)),
 		('method_id',(_Method,))])
 
 
@@ -474,12 +480,12 @@ class PreferredFluxBuffer(__PreferredFluxBuffer):
 
 	:type tags: set
 	:param tags: List of human readable tags
-	:type flux_ids: :class:`numpy.ndarray`
-	:param flux_ids: References to flux estimates used to compute derived flux
+	:type fluxes: :class:`numpy.ndarray`
+	:param fluxes: References to flux estimates used to compute derived flux
 	:type flux_indices: :class:`numpy.ndarray`
 	:param flux_indices: Indices of flux values used to compute derived flux
-	:type date: :class:`numpy.ndarray`
-	:param date: Dates of derived flux values in ISO 8601 format.
+	:type datetime: :class:`numpy.ndarray`
+	:param datetime: Dates of derived flux values in ISO 8601 format.
 	:type value: float
 	:param value: Derived flux value
 	:type value_error: float

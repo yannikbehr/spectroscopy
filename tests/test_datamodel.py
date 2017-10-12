@@ -63,9 +63,9 @@ class DatamodelTestCase(unittest.TestCase):
 
     def test_PreferredFlux(self):
         d = Dataset(tempfile.mktemp(), 'w')
-        pfb = PreferredFluxBuffer(date=['2017-01-10T15:23:00','2017-01-11T15:23:00'])
+        pfb = PreferredFluxBuffer(datetime=['2017-01-10T15:23:00','2017-01-11T15:23:00'])
         pf = d.new(pfb)
-        np.testing.assert_array_equal(pf.date[:],['2017-01-10T15:23:00', '2017-01-11T15:23:00'])
+        np.testing.assert_array_equal(pf.datetime[:],['2017-01-10T15:23:00', '2017-01-11T15:23:00'])
 
     def test_ResourceIdentifiers(self):
         d = Dataset(tempfile.mktemp(),'w')
@@ -335,6 +335,36 @@ class DatamodelTestCase(unittest.TestCase):
         r.append(rb1)
         self.assertGreater(r.modification_time, r.creation_time)
         self.assertEqual(r.creation_time, ct)
+
+    @unittest.skip("Skipping")
+    def test_select(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        tb = TargetBuffer(tags=['WI001'], name='White Island main vent',
+                          position=(177.2, -37.5, 50),
+                          position_error=(0.2, 0.2, 20),
+                          description='Main vent in January 2017')
+        d.register_tags(['WI001','MD01','measurement'])
+        t = d.new(tb)
+        ib = InstrumentBuffer(tags=['MD01'], sensor_id='F00975',
+                              location='West rim',
+                              no_bits=16, type='DOAS',
+                              description='GeoNet permanent instrument')
+        i = d.new(ib)
+        rdtb = RawDataTypeBuffer(tags=['measurement'],
+                                 name='1st round measurements',
+                                 acquisition='stationary')
+        rdt = d.new(rdtb)
+        rb = RawDataBuffer(target=t, instrument=i, type=rdt,
+                           d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                           datetime=['2017-01-10T15:23:00'])
+        r = d.new(rb)
+        
+        e = d.select("tags == 'MD01'")
+        self.assertEqual(e['Target'][0], t)
+        self.assertEqual(e['Instrument'][0], i)
+
+        e = d.select("type.acquisition == 'stationary'", etype='RawData')
+        self.assertEqual(e['RawData'][0], r)
 
 
 def suite():

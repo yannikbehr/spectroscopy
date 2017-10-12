@@ -8,6 +8,7 @@ from matplotlib.colors import Normalize, LogNorm
 from matplotlib.pyplot import cm
 import numpy as np
 import pandas as pd
+import tables
 from scipy.stats import binned_statistic
 
 from spectroscopy.util import split_by_scan
@@ -34,6 +35,7 @@ def plot_concentration(c, savefig=None, **kargs):
 
     """
 
+    matplotlib.style.use('classic')
     cmap_name = kargs.get('cmap_name', 'RdBu_r')
     log = kargs.get('log', False)
     angle_bins = kargs.get('angle_bins', np.arange(0, 180, 1.0))
@@ -41,7 +43,9 @@ def plot_concentration(c, savefig=None, **kargs):
     ts = kargs.get('timeshift', 0.0) * 60. * 60.
     cmap = cm.get_cmap(cmap_name)
     # dicretize all retrievals onto a grid to show a daily plot
-    r = c.rawdata
+    for r in c.rawdata[:]:
+        if r.type.name[0] == 'measurement':
+            break
     m = [] 
     times = []
     ymin = angle_bins[-1]
@@ -105,10 +109,13 @@ def plot_rawdata(r, savefig=None, **kargs):
     norm = Normalize(vmin = 0, vmax = nc, clip = False)
     c = matplotlib.colorbar.ColorbarBase(cax, cmap='RdBu', norm=norm)
     ticks = np.array([0, int(nc/2.), nc-1])
-    times = r.datetime[:]
-    labels = np.array([times[0],times[int(nc/2.)],times[nc-1]])
     c.set_ticks(ticks)
-    c.set_ticklabels(labels)
+    try:
+        times = r.datetime[:]
+        labels = np.array([times[0],times[int(nc/2.)],times[nc-1]])
+        c.set_ticklabels(labels)
+    except tables.NoSuchNodeError:
+        pass
     if savefig is not None:
         plt.savefig(
             savefig, bbox_inches='tight', dpi=300, format='png')

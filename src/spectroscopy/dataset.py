@@ -232,6 +232,21 @@ class Dataset(object):
                     e.tags.remove(tag)
             except (KeyError, NoSuchNodeError):
                 warnings.warn("Can't remove tag {} as it doesn't exist.".format(tag)) 
+
+    def select(self, *args, **kargs):
+        """
+        Find a subset of events based on given select rules.
+        """
+        try:
+            etype = kargs['etype']
+        except KeyError:
+            etype = False
+
+        if etype:
+            retval = []
+            for _e in self.elements[etype]:
+                pass
+
                 
            
 if __name__ == '__main__':

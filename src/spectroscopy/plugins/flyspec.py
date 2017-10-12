@@ -1,5 +1,5 @@
 """
-Plugin to read and write FlySpec data.
+Plugin to read FlySpec data.
 """
 import calendar
 import datetime
@@ -59,7 +59,7 @@ class FlySpecPlugin(DatasetPluginBase):
                               9: lambda x: -1.0 if x.lower() == 's' else 1.0,
                               10: todd,
                               11: lambda x: -1.0 if x.lower() == 'w' else 1.0})
-
+        data = np.atleast_2d(data)
         specfile = kargs.get('spectra', None)
         if specfile is not None:
             wavelengths = kargs.get('wavelengths', None)
@@ -76,6 +76,14 @@ class FlySpecPlugin(DatasetPluginBase):
             raise FlySpecPluginException(
                 'File %s contains only one data point.'
                 % (os.path.basename(filename)))
+
+        bearing=None
+        try:
+            bearing = kargs['bearing']
+        except KeyError:
+            pass
+        else:
+            bearing = np.ones(data.shape[0])*bearing
         ts = -1. * timeshift * 60. * 60.
         int_times = np.zeros(data[:, :7].shape, dtype='int')
         int_times[:, :6] = data[:, 1:7]
@@ -93,6 +101,7 @@ class FlySpecPlugin(DatasetPluginBase):
         angles = data[:, 17]
         if specfile is not None:
             rb = RawDataBuffer(inc_angle=angles,
+                               bearing=bearing,
                                position=np.array([longitude, latitude, elevation]).T,
                                datetime=unix_times,
                                ind_var = wavelengths,

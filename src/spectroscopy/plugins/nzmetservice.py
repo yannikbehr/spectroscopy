@@ -151,7 +151,6 @@ class NZMetservicePlugin(DatasetPluginBase):
                 'Data for preferred model %s is unavailable.' % _mod)
 
         npts = len(_mdls[_mod])
-        g = pyproj.Geod(ellps='WGS84')
         vx = np.zeros(npts)
         vy = np.zeros(npts)
         vz = np.zeros(npts)
@@ -177,10 +176,7 @@ class NZMetservicePlugin(DatasetPluginBase):
                             position=position, datetime=time, 
                             user_notes=description, unit='m/s')
         gf = dataset.new(gfb)
-
-    def close(self, filename):
-        raise Exception(
-            'Close is undefined for the NZMetservicePlugin backend')
+        return gf
 
     @staticmethod
     def get_format():
