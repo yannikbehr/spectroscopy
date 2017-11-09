@@ -14,7 +14,7 @@ from scipy.stats import binned_statistic
 from spectroscopy.util import split_by_scan
 
 
-def plot_concentration(c, savefig=None, **kargs):
+def plot_concentration(c, savefig=None, angle_bin=1.0, **kargs):
     """
     Provide overview plots for data contained in a dataset.
 
@@ -38,7 +38,7 @@ def plot_concentration(c, savefig=None, **kargs):
     matplotlib.style.use('classic')
     cmap_name = kargs.get('cmap_name', 'RdBu_r')
     log = kargs.get('log', False)
-    angle_bins = kargs.get('angle_bins', np.arange(0, 180, 1.0))
+    angle_bins = kargs.get('angle_bins', np.arange(0, 180+angle_bin, angle_bin))
     ncontours = kargs.get('ncontours', 100)
     ts = kargs.get('timeshift', 0.0) * 60. * 60.
     cmap = cm.get_cmap(cmap_name)
@@ -51,7 +51,7 @@ def plot_concentration(c, savefig=None, **kargs):
     ymin = angle_bins[-1]
     ymax = angle_bins[0]
     nretrieval = 0
-    for _angle, _so2, _t in split_by_scan(r.inc_angle[:], c.value[:], r.datetime[:]):
+    for _angle, _so2, _t in split_by_scan(r.inc_angle[c.rawdata_indices[:]], c.value[:], r.datetime[c.rawdata_indices[:]]):
         ymin = min(_angle.min(), ymin)
         ymax = max(_angle.max(), ymax)
         times.append(_t)
@@ -94,7 +94,18 @@ def plot_concentration(c, savefig=None, **kargs):
 
 def plot_rawdata(r, savefig=None, **kargs):
     matplotlib.style.use('ggplot')
-    counts = r.d_var[:]
+    try:
+        dmin = kargs['datemin']
+        dmax = kargs['datemax']
+    except KeyError:
+        idx = np.arange(r.d_var.shape[0]) 
+    else:
+        try:
+            dt = r.datetime[:].astype('datetime64[ms]')
+            idx = np.where((dt > np.datetime64(dmin)) & (dt < np.datetime64(dmax)))[0]
+        except tables.NoSuchNodeError:
+            idx = np.arange(r.d_var.shape[0])
+    counts = r.d_var[idx,:]
     w = r.ind_var[:]
     nc = counts.shape[0]
     cmap = cm.ScalarMappable(norm=Normalize(vmin=0, vmax=nc-1), cmap='RdBu')
@@ -111,7 +122,7 @@ def plot_rawdata(r, savefig=None, **kargs):
     ticks = np.array([0, int(nc/2.), nc-1])
     c.set_ticks(ticks)
     try:
-        times = r.datetime[:]
+        times = r.datetime[idx]
         labels = np.array([times[0],times[int(nc/2.)],times[nc-1]])
         c.set_ticklabels(labels)
     except tables.NoSuchNodeError:

@@ -132,6 +132,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         r = d.new(rb)
         cb = e['ConcentrationBuffer']
         cb.rawdata = [r]
+        cb.rawdata_indices = np.arange(cb.value.shape[0])
         c = d.new(cb)
         with tempfile.TemporaryFile() as fd:
             plot(c, savefig=fd, timeshift=12.0)
@@ -217,7 +218,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         xnew = range(0,2048)
         wavelengths = f(xnew)
 
-        d = Dataset(tempfile.mktemp(), 'w')
+        d = Dataset('/tmp/flyspec_test.hdf5', 'w')
         ib = InstrumentBuffer(location='Te Maari crater',
                               type='FlySpec',
                               name='TOFP04')
@@ -243,6 +244,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         r = None
         c = None
         nlines = 0
+        last_index = 0
         for _f in files:
             try:
                 fin_bin = _f.replace('.txt','.bin')
@@ -260,10 +262,15 @@ class FlySpecPluginTestCase(unittest.TestCase):
                     cb = e['ConcentrationBuffer']
                     rdlist.append(r)
                     cb.rawdata = rdlist
+                    cb.rawdata_indices = np.arange(cb.value.shape[0])
+                    last_index = cb.value.shape[0] - 1
                     c = d.new(cb)
                 else:
                     r.append(e['RawDataBuffer'])
-                    c.append(e['ConcentrationBuffer'])
+                    cb = e['ConcentrationBuffer']
+                    cb.rawdata_indices = last_index + 1 + np.arange(cb.value.shape[0])
+                    last_index = last_index + cb.value.shape[0]
+                    c.append(cb)
             except Exception, ex:
                 print ex, _f, fin_bin
                 continue
@@ -325,7 +332,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         pfb = PreferredFluxBuffer(fluxes=[f],
                                   flux_indices=[[nos]],
-                                  value=f.value[nos],
+                                  value=[f.value[nos]],
                                   datetime=[f.datetime[nos]])
         d.new(pfb)
 

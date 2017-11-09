@@ -243,8 +243,7 @@ __Method = _class_factory('__Method', 'extendable',
 		('name',(np.str_,)),
 		('description',(np.str_,)),
 		('settings',(np.str_,)),
-		('reference',(np.str_,)),
-		('raw_data',(np.str_,))],
+		('reference',(np.str_,))],
 	class_references=[])
 
 
@@ -267,8 +266,6 @@ class MethodBuffer(__MethodBuffer):
 	:param settings: Settings/setup relevant to reproduce results in JSON format.
 	:type reference: str
 	:param reference: URI  to more detailed method description.
-	:type raw_data: str
-	:param raw_data: Reference to raw data used in this method
 	'''
 
 class _Method(__Method):
@@ -351,11 +348,12 @@ class _GasFlow(__GasFlow):
 __Concentration = _class_factory('__Concentration', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
-		('rawdata_index',(np.int_,)),
+		('rawdata_indices',(np.ndarray, np.int_)),
 		('gas_species',(np.str_,)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
 		('unit',(np.str_,)),
+		('datetime',(np.ndarray, datetime.datetime)),
 		('analyst_contact',(np.str_,)),
 		('user_notes',(np.str_,))],
 	class_references=[
@@ -381,8 +379,8 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	:param gasflow: Reference to gas flow model (if applicable).
 	:type rawdata: :class:`numpy.ndarray`
 	:param rawdata: Reference to raw measurements (if applicable).
-	:type rawdata_index: int
-	:param rawdata_index: Index of raw data used to estimate concentration
+	:type rawdata_indices: :class:`numpy.ndarray`
+	:param rawdata_indices: Index of raw data used to estimate concentration
 	:type gas_species: str
 	:param gas_species: Gas type (e.g. SO2)
 	:type value: :class:`numpy.ndarray`
@@ -391,6 +389,8 @@ class ConcentrationBuffer(__ConcentrationBuffer):
 	:param value_error: Concentration uncertainty.
 	:type unit: str
 	:param unit: Unit of gas concentration.
+	:type datetime: :class:`numpy.ndarray`
+	:param datetime: Dates of concentration estimates in ISO 8601 format
 	:type analyst_contact: str
 	:param analyst_contact: Contact (e.g. email) of person running software
 	:type user_notes: str
@@ -461,8 +461,8 @@ __PreferredFlux = _class_factory('__PreferredFlux', 'base',
 		('tags',(set,)),
 		('flux_indices',(np.ndarray, np.int_)),
 		('datetime',(np.ndarray, datetime.datetime)),
-		('value',(np.float_,)),
-		('value_error',(np.float_,)),
+		('value',(np.ndarray, np.float_)),
+		('value_error',(np.ndarray, np.float_)),
 		('user_notes',(np.str_,))],
 	class_references=[
 		('fluxes',(np.ndarray, _Flux)),
@@ -486,9 +486,9 @@ class PreferredFluxBuffer(__PreferredFluxBuffer):
 	:param flux_indices: Indices of flux values used to compute derived flux
 	:type datetime: :class:`numpy.ndarray`
 	:param datetime: Dates of derived flux values in ISO 8601 format.
-	:type value: float
+	:type value: :class:`numpy.ndarray`
 	:param value: Derived flux value
-	:type value_error: float
+	:type value_error: :class:`numpy.ndarray`
 	:param value_error: Flux value error
 	:type method_id: reference to Method
 	:param method_id: Reference to method
