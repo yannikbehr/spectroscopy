@@ -1,0 +1,99 @@
+StartTime,WindSpeed,WindDir,GoodRotation,GoodScan,GoodPlume,Easting,Northing,Altitude,Range,RangeSeperation,AltSeperation,SEWindSpeed,SEWindDir,SELensAngle,SEGeometry,GeometryFrom,Message
+09:01:44,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:05:15,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:08:51,3.968,240,True,True,True,2880708.0,6401144.0,641.9,290.7,-99.0,-533.8,0.79,0.17,0.013,0.44,Model
+09:13:18,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:17:44,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:22:10,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,Plume sector angle too wide
+09:26:36,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:31:02,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,Plume sector angle too wide
+09:35:28,3.968,240,True,True,True,2880494.0,6401941.0,317.4,1116.3,-1056.3,-261.5,0.79,0.17,0.013,0.44,Model
+09:39:54,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:44:21,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:48:47,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,Plume sector angle too wide
+09:53:13,3.968,240,True,False,False,,,,,,,0.79,0.17,0.013,,,R2 too low for gaussian model plume fit
+09:57:39,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too wide
+10:02:05,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too wide
+10:06:31,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+10:10:57,3.720,270,True,True,True,2880874.0,6400522.0,436.8,352.9,298.8,201.6,0.74,0.17,0.013,0.44,Model
+10:15:24,3.720,270,True,True,True,2880870.0,6400540.0,466.6,334.4,327.3,252.1,0.74,0.17,0.013,0.44,Model
+10:19:50,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+10:24:16,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too wide
+10:28:42,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+10:33:08,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too wide
+10:37:34,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+10:42:01,3.720,270,True,True,False,2880851.0,6400610.0,2422.1,262.6,507.4,2473.2,0.74,0.17,0.013,0.00,Model,Plume centre altitude too high; Altitude from plume model didn't match that derived from wind track
+10:46:27,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+10:50:53,3.720,270,True,True,False,2880851.0,6400611.0,5580.3,261.3,523.9,5820.8,0.74,0.17,0.013,0.00,Model,Plume centre altitude too high; Altitude from plume model didn't match that derived from wind track
+10:55:19,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too wide
+10:59:45,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+11:04:11,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+11:08:37,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too wide
+11:13:04,3.720,270,True,True,True,2880862.0,6400567.0,548.2,306.2,376.2,375.1,0.74,0.17,0.013,0.44,Model
+11:17:30,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,R2 too low for gaussian model plume fit
+11:21:56,3.720,270,True,True,True,2880870.0,6400540.0,466.6,334.4,327.3,252.1,0.74,0.17,0.013,0.44,Model
+11:26:22,3.720,270,True,True,True,2880857.0,6400587.0,683.1,286.4,418.4,553.3,0.74,0.17,0.013,0.44,Model
+11:30:47,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too narrow
+11:35:14,3.720,270,True,False,False,,,,,,,0.74,0.17,0.013,,,Plume sector angle too wide
+11:39:40,3.720,270,True,True,True,2880870.0,6400540.0,466.6,334.4,327.3,252.1,0.74,0.17,0.013,0.44,Model
+11:44:06,3.720,270,True,True,True,2880866.0,6400555.0,503.2,318.9,353.0,309.5,0.74,0.17,0.013,0.44,Model
+11:48:32,3.720,270,True,True,True,2880870.0,6400540.0,466.6,334.4,327.3,252.1,0.74,0.17,0.013,0.44,Model
+11:52:57,3.720,270,True,True,False,2880852.0,6400607.0,1563.5,265.0,490.6,1550.6,0.74,0.17,0.013,0.00,Model,Altitude from plume model didn't match that derived from wind track
+11:57:24,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Plume sector angle too wide
+12:01:48,5.952,290,True,True,False,2880714.0,6401121.0,1338.6,266.5,891.2,3283.8,1.19,0.17,0.013,0.00,Model,Altitude from plume model didn't match that derived from wind track
+12:06:14,5.952,290,True,True,True,2880901.0,6400425.0,368.0,453.9,573.8,345.2,1.19,0.17,0.013,0.44,Model
+12:10:38,5.952,290,True,True,True,2880887.0,6400475.0,392.2,402.0,639.4,463.7,1.19,0.17,0.013,0.44,Model
+12:15:04,5.952,290,True,True,True,2880947.0,6400251.0,335.4,633.6,367.9,140.9,1.19,0.17,0.013,0.44,Model
+12:19:30,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon); Plume sector angle too narrow
+12:23:54,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+12:28:16,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+12:32:39,5.952,290,True,True,True,2880896.0,6400443.0,375.3,434.9,597.2,382.7,1.19,0.17,0.013,0.44,Model
+12:37:03,5.952,290,True,True,True,2880919.0,6400355.0,349.5,526.6,487.8,238.9,1.19,0.17,0.013,0.44,Model
+12:41:25,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+12:45:49,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Plume sector angle too wide
+12:50:13,5.952,290,True,True,False,2880714.0,6401122.0,1246.1,267.4,886.9,3033.7,1.19,0.17,0.013,0.00,Model,Altitude from plume model didn't match that derived from wind track
+12:56:43,5.952,290,True,True,False,2880713.0,6401124.0,1096.6,269.5,878.0,2626.5,1.19,0.17,0.013,0.00,Model,Altitude from plume model didn't match that derived from wind track
+13:03:13,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+13:09:42,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Plume sector angle too narrow
+13:15:07,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Plume sector angle too narrow
+13:20:33,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Plume sector angle too narrow
+13:26:00,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Plume sector angle too narrow
+13:31:27,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+13:36:55,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+13:42:22,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+13:47:56,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+13:53:30,5.952,290,True,True,True,2881040.0,6399906.0,319.6,990.7,-10.5,-12.4,1.19,0.17,0.013,0.44,Model
+13:56:21,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,R2 too low for gaussian model plume fit
+14:01:59,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:06:25,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:10:52,5.952,290,True,True,True,2881040.0,6399906.0,319.6,990.7,-10.5,-12.4,1.19,0.17,0.013,0.44,Model
+14:15:18,5.952,290,True,True,True,2881116.0,6399622.0,315.6,1284.6,-312.7,-70.4,1.19,0.17,0.013,0.44,Model
+14:19:44,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:24:10,5.952,290,True,True,True,2881116.0,6399622.0,315.6,1284.6,-312.7,-70.4,1.19,0.17,0.013,0.44,Model
+14:28:36,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:33:02,5.952,290,True,True,True,2881116.0,6399622.0,315.6,1284.6,-312.7,-70.4,1.19,0.17,0.013,0.44,Model
+14:37:29,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:41:55,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:46:21,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:50:47,5.952,290,True,False,False,,,,,,,1.19,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+14:55:13,5.952,290,True,True,True,2881116.0,6399622.0,315.6,1284.6,-312.7,-70.4,1.19,0.17,0.013,0.44,Model
+14:59:39,7.812,300,True,True,True,2881262.0,6399077.0,312.6,1849.5,-602.1,-88.5,1.56,0.17,0.013,0.44,Model
+15:04:05,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+15:08:32,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+15:12:58,7.812,300,True,True,True,2881116.0,6399622.0,315.6,1284.6,-29.0,-11.6,1.56,0.17,0.013,0.44,Model
+15:17:24,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+15:21:50,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+15:26:16,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+15:30:42,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+15:35:08,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,Angle of centre of plume too high (too close to horizon); Plume sector angle too narrow
+15:39:35,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+15:44:01,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+15:48:27,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,Angle of centre of plume too high (too close to horizon); Plume sector angle too narrow
+15:52:53,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+15:57:19,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+16:01:45,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+16:06:11,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,Angle of centre of plume too high (too close to horizon); Plume sector angle too narrow
+16:10:38,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,R2 too low for gaussian model plume fit
+16:15:04,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+16:19:30,7.812,300,True,False,False,,,,,,,1.56,0.17,0.013,,,Angle of centre of plume too high (too close to horizon)
+16:23:56,7.812,300,True,True,True,2880666.0,6401301.0,368.1,453.7,857.8,545.3,1.56,0.17,0.013,0.44,Model

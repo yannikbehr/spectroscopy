@@ -1,0 +1,56 @@
+StartTime,Station,GoodResult,Message
+09:08:51,NE,False,Scan angles did not intersect.
+09:08:52,SR,False,Scan angles did not intersect.
+09:22:10,SR,True
+09:26:37,SR,False,Scan angles did not intersect.
+09:35:28,NE,False,Scan angles did not intersect.
+09:39:55,SR,False,Scan angles did not intersect.
+09:53:13,SR,True
+10:06:32,SR,False,Scan angles did not intersect.
+10:10:54,SR,True
+10:10:57,NE,True
+10:15:24,NE,True
+10:55:01,SR,False,One or mote scan angles were too close to the horizon.
+11:12:32,SR,True
+11:13:04,NE,True
+11:21:15,SR,True
+11:21:56,NE,True
+11:26:22,NE,False,Scan angles did not intersect.
+11:39:40,NE,True
+11:44:06,NE,True
+11:48:32,NE,True
+11:58:19,SR,True
+12:02:41,SR,True
+12:06:14,NE,True
+12:10:38,NE,True
+12:15:04,NE,True
+12:22:20,SR,True
+12:26:42,SR,True
+12:32:39,NE,True
+12:35:35,SR,True
+12:37:03,NE,True
+13:15:13,SR,False,Couldn't find a scan from the other station with a time difference less than 30 minutes.
+13:19:35,SR,False,Couldn't find a scan from the other station with a time difference less than 30 minutes.
+13:32:50,SR,True
+13:50:26,SR,True
+13:53:30,NE,True
+14:08:02,SR,True
+14:10:52,NE,True
+14:12:28,SR,True
+14:15:18,NE,True
+14:16:50,SR,True
+14:24:10,NE,True
+14:33:02,NE,True
+14:34:26,SR,True
+14:43:17,SR,False,One or mote scan angles were too close to the horizon.
+14:55:13,NE,False,One or mote scan angles were too close to the horizon.
+14:59:39,NE,False,One or mote scan angles were too close to the horizon.
+15:09:48,SR,True
+15:12:58,NE,True
+15:23:06,SR,True
+15:36:24,SR,True
+16:03:01,SR,False,Scan angles did not intersect.
+16:07:27,SR,False,Scan angles did not intersect.
+16:20:46,SR,False,Scan angles did not intersect.
+16:23:56,NE,True
+16:25:12,SR,True
