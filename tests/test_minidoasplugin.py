@@ -66,7 +66,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         # ToDo: get correct plume coordinates
         tb = TargetBuffer(name='White Island main plume',
                           target_id='WI001',
-                          position=[-177.18375770, 37.52170799, 321.0])
+                          position=[177.18375770, -37.52170799, 321.0])
         t = d.new(tb)
         rdt = d.new(e0['RawDataTypeBuffer'])
         rb = e0['RawDataBuffer']
@@ -131,7 +131,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         f = d.new(fb)
         
         # Now combine the wind speed with the plume direction
-        mb1 = e3['MethodBuffer']
+        mb2 = e3['MethodBuffer']
         gfb1 = e3['GasFlowBuffer']
         dt = gfb1.datetime[:].astype('datetime64[s]')
         vx = []
@@ -148,8 +148,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         gfb1.vx = vx
         gfb1.vy = vy
         gf = d.new(gfb)
-        m1 = d.new(mb1)
-        gfb1.methods = [m1]
+        m2 = d.new(mb2)
+        gfb1.methods = [m2]
         gf1 = d.new(gfb1) 
         
         # Now read in preferred flux values downloaded from FITS
