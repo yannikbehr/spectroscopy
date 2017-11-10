@@ -10,8 +10,14 @@ import numpy as np
 import pandas as pd
 import tables
 from scipy.stats import binned_statistic
+import cartopy.crs as ccrs
+from cartopy.io.img_tiles import StamenTerrain
+import pyproj
 
-from spectroscopy.util import split_by_scan
+from spectroscopy.util import split_by_scan, vec2bearing
+
+
+class VizException(Exception): pass
 
 
 def plot_concentration(c, savefig=None, angle_bin=1.0, **kargs):
@@ -132,6 +138,37 @@ def plot_rawdata(r, savefig=None, **kargs):
             savefig, bbox_inches='tight', dpi=300, format='png')
     return fig
 
+
+def plot_gasflow(gf, vent=None, scale=100., **kargs):
+    if vent is None:
+        raise VizException("Please provide a vent location (lon, lat)")
+
+    pos = gf.position[:]
+    vx = gf.vx[:]
+    vy = gf.vy[:]
+    lon_min = vent[0] - 0.03
+    lon_max = vent[0] + 0.03
+    lat_min = vent[1] - 0.03
+    lat_max = vent[1] + 0.03
+    tiler = StamenTerrain()
+    mercator = tiler.crs
+    fig = plt.figure(figsize=(10,10))
+    ax = plt.axes(projection=mercator)
+    fig.add_axes(ax)
+    ax.add_image(tiler, 11)
+    p = ccrs.PlateCarree()
+    g = pyproj.Geod(ellps='WGS84')
+    for lon, lat, _vx, _vy in zip(pos[:,0], pos[:,1], vx, vy):
+        wd = vec2bearing(_vx, _vy)
+        ws = np.sqrt(_vx * _vx + _vy * _vy)*scale
+        elon, elat, _ = g.fwd(lon, lat, wd, ws)
+        x,y = p.transform_points(ccrs.Geodetic(), np.array([lon,elon]), np.array([lat, elat]))
+        dx = y[0] - x[0]
+        dy = y[1] - x[1]
+        ax.quiver(np.array([x[0]]), np.array([x[1]]), np.array([dx]), np.array([dy]), transform=ccrs.PlateCarree())
+    ax.scatter(vent[0], vent[1], marker='^', color='red', s=50, transform=ccrs.Geodetic())
+    ax.set_extent([lon_min, lon_max, lat_min, lat_max])
+    return fig
 
 
 def plot(element, **kargs):
