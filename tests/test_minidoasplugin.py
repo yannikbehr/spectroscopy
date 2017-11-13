@@ -128,7 +128,6 @@ class MiniDoasPluginTestCase(unittest.TestCase):
             indices.append([idx0, idx1])
         fb.concentration = cc
         fb.concentration_indices = indices
-        f = d.new(fb)
         
         # Now combine the wind speed with the plume direction
         mb2 = e3['MethodBuffer']
@@ -151,7 +150,54 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         m2 = d.new(mb2)
         gfb1.methods = [m2]
         gf1 = d.new(gfb1) 
+        fb.gasflow = gf1 
+        f = d.new(fb)
+
+        # Do the same thing with combined scan
+        e4 = d.read(os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
+                    date='2016-11-01', ftype='minidoas-scan')
+        fb1 = e4['FluxBuffer']
+        dt = fb1.datetime[:].astype('datetime64[s]')
+        indices = []
+        for _dt in dt:
+            idx = np.argmin(np.abs(cc.datetime[:].astype('datetime64[us]') - _dt))
+            idx0 = idx
+            while True:
+                angle = rr.inc_angle[cc.rawdata_indices[idx]+1]
+                if angle > 180.:
+                    break
+                idx += 1
+            idx1 = idx
+            indices.append([idx0, idx1])
+        fb1.concentration = cc
+        fb1.concentration_indices = indices
         
+        # Now combine the wind speed with the plume direction
+        mb3 = e4['MethodBuffer']
+        new_description = mb3.description[0] + '; plume geometry inferred from triangulation'
+        mb3.description = new_description
+        mb3.name = 'WS2PVT'
+        m3 = d.new(mb3)
+        gfb2 = e4['GasFlowBuffer']
+        dt = gfb2.datetime[:].astype('datetime64[s]')
+        vx = []
+        vy = []
+        for i, _dt in enumerate(dt):
+            idx = np.argmin(np.abs(gfb.datetime[:].astype('datetime64[s]') - _dt))
+            vx1, vy1 = gfb.vx[idx], gfb.vy[idx]
+            ws = np.sqrt(vx1*vx1 + vy1*vy1)
+            vx2, vy2 = gfb2.vx[i], gfb2.vy[i]
+            wd = vec2bearing(vx2, vy2)
+            vx2, vy2 = bearing2vec(wd, ws)
+            vx.append(vx2)
+            vy.append(vy2)
+        gfb2.vx = vx
+        gfb2.vy = vy
+        gfb2.methods = [m3]
+        gf2 = d.new(gfb2)
+        fb1.gasflow = gf2
+        f1 = d.new(fb1)
+
         # Now read in preferred flux values downloaded from FITS
         data = np.loadtxt(os.path.join(self.data_dir, 'minidoas', 'FITS_NE_20161101.csv'),
                           dtype=np.dtype([('date','S19'),('val',np.float),('err',np.float)]),
