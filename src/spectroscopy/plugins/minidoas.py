@@ -132,10 +132,12 @@ class MiniDoasScan(DatasetPluginBase):
 
     def read(self, dataset, filename, **kargs):
         try:
-            date=kargs['date']
+            date = kargs['date']
         except KeyError:
             raise MiniDoasException("'date' unspecified.")
-    
+
+        station = kargs.get('station', None)
+
         dt = np.dtype([('time','S19'), ('ws', np.float), ('wd', np.float), 
                    ('R2', np.float), ('SO2Start', np.float), ('SO2Max', np.float),
                    ('SO2End', np.float), ('PlumeRange', np.float),
@@ -143,11 +145,19 @@ class MiniDoasScan(DatasetPluginBase):
                    ('Easting', np.float), ('Northing', np.float), ('Track', np.float),
                    ('Emission', np.float), ('Station', 'S2'), ('EmissionSE', np.float)])
         data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt, converters={0: lambda x: date+'T'+x})
-        fb = FluxBuffer(value=data['Emission'], value_error=data['EmissionSE'],
-                        datetime=data['time'].astype('datetime64[s]').astype(str))
-        mb, gfb = self._plumegeometry2gasflow(data['PlumeHeight'], data['PlumeWidth'],
-                                              data['Easting'], data['Northing'], 
-                                              data['Track'], data['time'])
+        if station is not None:
+            idx = np.where(data['Station']==station)
+        else:
+            idx = np.arange(data.shape[0])
+        fb = FluxBuffer(value=data['Emission'][idx],
+                        value_error=data['EmissionSE'][idx],
+                        datetime=data['time'][idx].astype('datetime64[s]').astype(str))
+        mb, gfb = self._plumegeometry2gasflow(data['PlumeHeight'][idx],
+                                              data['PlumeWidth'][idx],
+                                              data['Easting'][idx],
+                                              data['Northing'][idx], 
+                                              data['Track'][idx],
+                                              data['time'][idx])
         return {str(fb):fb, str(mb):mb, str(gfb):gfb}
 
     @staticmethod

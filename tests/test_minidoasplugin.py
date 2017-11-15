@@ -49,6 +49,10 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         self.assertEqual(int(vec2bearing(gfb.vx[0], gfb.vy[0])), 240)
         self.assertAlmostEqual(np.sqrt(gfb.vx[0]**2 + gfb.vy[0]**2), 3.2, 1)
         self.assertEqual(gfb.datetime[0], "2016-11-01T08:10:00")
+        e3 = d.read(os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
+                    date='2016-11-01', ftype='minidoas-scan', station='NE')
+        fb = e3['FluxBuffer']
+        np.testing.assert_array_almost_equal(fb.value[:], np.array([328.2, 103.8]), 1)
 
     def test_readall(self):
         """
@@ -155,7 +159,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
 
         # Do the same thing with combined scan
         e4 = d.read(os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
-                    date='2016-11-01', ftype='minidoas-scan')
+                    date='2016-11-01', ftype='minidoas-scan', station='NE')
         fb1 = e4['FluxBuffer']
         dt = fb1.datetime[:].astype('datetime64[s]')
         indices = []
@@ -198,8 +202,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         fb1.gasflow = gf2
         f1 = d.new(fb1)
 
-        # Now read in preferred flux values downloaded from FITS
-        data = np.loadtxt(os.path.join(self.data_dir, 'minidoas', 'FITS_NE_20161101.csv'),
+        # Now read in preferred flux values for assumed height downloaded from FITS
+        data = np.loadtxt(os.path.join(self.data_dir, 'minidoas', 'FITS_NE_20161101_ah.csv'),
                           dtype=np.dtype([('date','S19'),('val',np.float),('err',np.float)]),
                           skiprows=1, delimiter=',')
         dates = data['date'].astype('datetime64[s]')+ np.timedelta64(13,'h')
@@ -213,6 +217,22 @@ class MiniDoasPluginTestCase(unittest.TestCase):
                                   value_error=data['err'],
                                   datetime=dates.astype(str))
         d.new(pfb)
+
+        # Now read in preferred flux values for calculated height downloaded from FITS
+        data = np.loadtxt(os.path.join(self.data_dir, 'minidoas', 'FITS_NE_20161101_ch.csv'),
+                          dtype=np.dtype([('date','S19'),('val',np.float),('err',np.float)]),
+                          skiprows=1, delimiter=',')
+        dates = data['date'].astype('datetime64[s]')+ np.timedelta64(13,'h')
+        indices = []
+        for i, dt in enumerate(dates):
+            idx = np.argmin(np.abs(f1.datetime[:].astype('datetime64[s]') - dt))
+            indices.append(idx)
+        pfb1 = PreferredFluxBuffer(fluxes=[f1],
+                                  flux_indices=[indices],
+                                  value=data['val']*86.4,
+                                  value_error=data['err'],
+                                  datetime=dates.astype(str))
+        d.new(pfb1)
         d.close()
 
 
