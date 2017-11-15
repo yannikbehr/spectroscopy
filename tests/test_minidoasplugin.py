@@ -58,7 +58,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         """
         Produce a complete HDF5 file for 1 day of MiniDOAS analysis at one station.
         """
-        d = Dataset('/tmp/minidoas_test.h5', 'w')
+        d = Dataset(tempfile.mktemp(), 'w')
         # Read the raw data
         e0 = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_20161101.csv'),
                      ftype='minidoas-raw')
