@@ -5,6 +5,8 @@ import os
 import tempfile
 import unittest
 
+import matplotlib
+matplotlib.use('tkagg')
 import matplotlib.image
 import numpy as np
 from scipy.stats import binned_statistic
@@ -135,6 +137,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         cb.rawdata_indices = np.arange(cb.value.shape[0])
         c = d.new(cb)
         with tempfile.TemporaryFile() as fd:
+        #with open('/tmp/file1.png', 'w+b') as fd:
             plot(c, savefig=fd, timeshift=12.0)
             expected_image = os.path.join(self.data_dir, 'chile_retrievals_overview.png')
             rms = self.compare_images(fd, expected_image)
@@ -182,6 +185,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
             if _r.type.name[0] == 'measurement':
                 break
         with tempfile.TemporaryFile() as fd:
+        #with open('/tmp/file1.png', 'w+b') as fd:
             plot(_r, savefig=fd)
             expected_image = os.path.join(self.data_dir, 'raw_data_plot.png')
             rms = self.compare_images(fd, expected_image)
@@ -224,7 +228,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
                               name='TOFP04')
         inst = d.new(ib)
         tb = TargetBuffer(name='Upper Te Maari crater',
-                          position=[175.671854359, 39.107850505, 1505.])
+                          position=[175.671854359, -39.107850505, 1505.])
         t = d.new(tb)
 
         rdlist = []
@@ -282,11 +286,13 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.assertEqual(c.rawdata[4].datetime[-1], '2017-06-14T16:30:00.535000')
         self.assertEqual(c.rawdata[4].datetime[0], '2017-06-14T08:30:49.512999')
         with tempfile.TemporaryFile() as fd:
+        #with open('/tmp/file2.png', 'w+b') as fd:
             plot(c, savefig=fd)
             expected_image =os.path.join(self.data_dir, 'TOFP04', 'concentration_plot.png')
             rms = self.compare_images(fd, expected_image)
             self.assertTrue(rms <= 0.001)
         with tempfile.TemporaryFile() as fd:
+        #with open('/tmp/file3.png', 'w+b') as fd:
             plot(c.rawdata[0], savefig=fd)
             expected_image =os.path.join(self.data_dir, 'TOFP04', 'ref_spectrum.png')
             rms = self.compare_images(fd, expected_image)
