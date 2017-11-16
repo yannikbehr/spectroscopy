@@ -43,31 +43,16 @@
           <div class="body" role="main">
             
   <h1>Source code for spectroscopy.dataset</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">calendar</span>
-<span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">copy</span><span class="p">,</span> <span class="n">deepcopy</span>
-<span class="kn">import</span> <span class="nn">datetime</span>
-<span class="kn">import</span> <span class="nn">hashlib</span>
-<span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">import</span> <span class="nn">string</span>
-<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">uuid4</span>
+<span></span><span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">import</span> <span class="nn">weakref</span>
 
-<span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">tz</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="k">import</span> <span class="n">Normalize</span><span class="p">,</span> <span class="n">LogNorm</span>
-<span class="kn">from</span> <span class="nn">matplotlib.pyplot</span> <span class="k">import</span> <span class="n">cm</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">tables</span>
 <span class="kn">from</span> <span class="nn">tables.group</span> <span class="k">import</span> <span class="n">Group</span>
 <span class="kn">from</span> <span class="nn">tables.exceptions</span> <span class="k">import</span> <span class="n">NoSuchNodeError</span><span class="p">,</span> <span class="n">NodeError</span>
-<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="k">import</span> <span class="n">binned_statistic</span>
 
 <span class="kn">from</span> <span class="nn">spectroscopy.class_factory</span> <span class="k">import</span> <span class="n">ResourceIdentifier</span>
 <span class="kn">from</span> <span class="nn">spectroscopy.plugins</span> <span class="k">import</span> <span class="n">get_registered_plugins</span>
-<span class="kn">import</span> <span class="nn">spectroscopy.util</span>
 <span class="kn">from</span> <span class="nn">spectroscopy.datamodel</span> <span class="k">import</span> <span class="n">all_classes</span>
 
 
@@ -105,8 +90,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">base_elements</span><span class="p">[</span><span class="n">name</span><span class="o">+</span><span class="s1">&#39;Buffer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rids</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_f</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
-        <span class="c1"># Create an array of sha224 hash values</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_f</span><span class="o">.</span><span class="n">create_earray</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span><span class="s1">&#39;hash&#39;</span><span class="p">,</span><span class="n">tables</span><span class="o">.</span><span class="n">StringAtom</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">28</span><span class="p">),(</span><span class="mi">0</span><span class="p">,))</span>
+        <span class="c1"># Create an array of sha224 hash values; when</span>
+        <span class="c1"># opening an existing file this will throw an</span>
+        <span class="c1"># exception</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_f</span><span class="o">.</span><span class="n">create_earray</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span><span class="s1">&#39;hash&#39;</span><span class="p">,</span><span class="n">tables</span><span class="o">.</span><span class="n">StringAtom</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">28</span><span class="p">),(</span><span class="mi">0</span><span class="p">,))</span>
+        <span class="k">except</span> <span class="n">NodeError</span><span class="p">:</span>
+            <span class="k">pass</span>
 
     <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
@@ -120,12 +110,13 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_f</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_f</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;You can&#39;t add a dataset to itself.&quot;</span><span class="p">)</span>
         <span class="n">update_refs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">postfix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gen_sc3_id</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+        <span class="n">rid_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">elements</span><span class="p">[</span><span class="n">e</span><span class="p">]:</span>
-                <span class="n">ne</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy_children</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">postfix</span><span class="p">)</span>
+                <span class="n">ne</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy_children</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">[</span><span class="n">e</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ne</span><span class="p">)</span>
                 <span class="n">update_refs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ne</span><span class="p">)</span>
+                <span class="n">rid_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">_resource_id</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ne</span><span class="o">.</span><span class="n">_resource_id</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">ne</span> <span class="ow">in</span> <span class="n">update_refs</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ne</span><span class="o">.</span><span class="n">_reference_keys</span><span class="p">:</span>
@@ -133,41 +124,14 @@
                 <span class="k">if</span> <span class="n">table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">ref</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ne</span><span class="o">.</span><span class="n">_root</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cols</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="kc">None</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">postfix</span>
+                        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+                            <span class="n">newentry</span> <span class="o">=</span> <span class="p">[]</span>
+                            <span class="k">for</span> <span class="n">iref</span> <span class="ow">in</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                                <span class="n">newentry</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rid_dict</span><span class="p">[</span><span class="n">iref</span><span class="p">])</span>
+                            <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">newentry</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">rid_dict</span><span class="p">[</span><span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="k">return</span> <span class="bp">self</span>
-
-    <span class="k">def</span> <span class="nf">_gen_sc3_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">numenc</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="s2">&quot;abcdefghijklmnopqrstuvwxyz&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Generate an event ID following the SeisComP3 convention. By default it</span>
-<span class="sd">        divides a year into 26^6 intervals assigning each a unique combination of</span>
-<span class="sd">        characters.</span>
-
-<span class="sd">        &gt;&gt;&gt; import datetime </span>
-<span class="sd">        &gt;&gt;&gt; import tempfile</span>
-<span class="sd">        &gt;&gt;&gt; d = Dataset(tempfile.mktemp(), &#39;w&#39;)</span>
-<span class="sd">        &gt;&gt;&gt; print d.gen_sc3_id(datetime.datetime(2015, 8, 18, 10, 55, 51, 367580))</span>
-<span class="sd">        2015qffasl</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">numsym</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
-        <span class="n">julday</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%j&#39;</span><span class="p">))</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="p">(((((</span><span class="n">julday</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">24</span><span class="p">)</span> <span class="o">+</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span><span class="p">)</span> <span class="o">*</span>
-             <span class="mi">60</span> <span class="o">+</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">+</span> <span class="n">dt</span><span class="o">.</span><span class="n">microsecond</span> <span class="o">/</span> <span class="mi">1000</span>
-        <span class="n">dx</span> <span class="o">=</span> <span class="p">(((</span><span class="mi">370</span> <span class="o">*</span> <span class="mi">24</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
-        <span class="n">rng</span> <span class="o">=</span> <span class="n">numsym</span> <span class="o">**</span> <span class="n">numenc</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dx</span> <span class="o">/</span> <span class="n">rng</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">w</span> <span class="o">=</span> <span class="mi">1</span>
-
-        <span class="k">if</span> <span class="n">dx</span> <span class="o">&gt;=</span> <span class="n">rng</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">w</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">rng</span> <span class="o">/</span> <span class="n">dx</span><span class="p">)</span>
-        <span class="n">enc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numenc</span><span class="p">):</span>
-            <span class="n">r</span> <span class="o">=</span> <span class="n">x</span> <span class="o">%</span> <span class="n">numsym</span>
-            <span class="n">enc</span> <span class="o">+=</span> <span class="n">sym</span><span class="p">[</span><span class="n">r</span><span class="p">]</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">numsym</span><span class="p">)</span>
-        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%d%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">enc</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">_newdst_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dstgroup</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -191,14 +155,16 @@
             <span class="n">group</span> <span class="o">=</span> <span class="n">group2</span>
         <span class="k">return</span> <span class="n">group</span>
 
-    <span class="k">def</span> <span class="nf">_copy_children</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">postfix</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_copy_children</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                        <span class="n">filters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copyuserattrs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                        <span class="n">overwrtnodes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Copy the children from source group to destination group</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">srcgroup</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">_root</span>
-        <span class="n">dstgroup</span> <span class="o">=</span> <span class="n">srcgroup</span><span class="o">.</span><span class="n">_v_pathname</span> <span class="o">+</span> <span class="n">postfix</span>
+        <span class="c1"># assign a new resource ID so that both objects can </span>
+        <span class="c1"># be referred to within the same session</span>
+        <span class="n">dstgroup</span> <span class="o">=</span> <span class="n">srcgroup</span><span class="o">.</span><span class="n">_v_parent</span><span class="o">.</span><span class="n">_v_pathname</span><span class="o">+</span><span class="s1">&#39;/&#39;</span><span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ResourceIdentifier</span><span class="p">())</span>
         <span class="n">created_dstgroup</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="c1"># Create the new group</span>
         <span class="n">dstgroup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_newdst_group</span><span class="p">(</span><span class="n">dstgroup</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">filters</span><span class="p">)</span>
@@ -258,7 +224,31 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">plugins</span> <span class="o">=</span> <span class="n">get_registered_plugins</span><span class="p">()</span>
         <span class="n">pg</span> <span class="o">=</span> <span class="n">plugins</span><span class="p">[</span><span class="n">ftype</span><span class="o">.</span><span class="n">lower</span><span class="p">()]()</span>
-        <span class="n">pg</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">pg</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Dataset.open"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Dataset.open">[docs]</a>    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Open an existing HDF5 file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dnew</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r+&#39;</span><span class="p">)</span>         
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">dnew</span><span class="o">.</span><span class="n">_f</span><span class="o">.</span><span class="n">walk_groups</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_name</span> <span class="ow">is</span> <span class="s1">&#39;/&#39;</span> <span class="ow">or</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_name</span><span class="o">+</span><span class="s1">&#39;Buffer&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dnew</span><span class="o">.</span><span class="n">base_elements</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">sgroup</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_groups</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">_C</span> <span class="o">=</span> <span class="n">dnew</span><span class="o">.</span><span class="n">base_elements</span><span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">_v_name</span><span class="o">+</span><span class="s1">&#39;Buffer&#39;</span><span class="p">]</span>
+                <span class="n">e</span> <span class="o">=</span> <span class="n">_C</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">_v_groups</span><span class="p">[</span><span class="n">sgroup</span><span class="p">])</span>
+                <span class="n">dnew</span><span class="o">.</span><span class="n">elements</span><span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">_v_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dnew</span></div>
+
+<div class="viewcode-block" id="Dataset.close"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Dataset.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Close the HDF5 file and clear the ResourceIdentifiers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">[</span><span class="n">g</span><span class="p">]:</span>
+                <span class="k">del</span> <span class="n">e</span><span class="o">.</span><span class="n">_resource_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Dataset.register_tags"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Dataset.register_tags">[docs]</a>    <span class="k">def</span> <span class="nf">register_tags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -287,109 +277,23 @@
                     <span class="n">e</span><span class="o">.</span><span class="n">tags</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
             <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">NoSuchNodeError</span><span class="p">):</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Can&#39;t remove tag </span><span class="si">{}</span><span class="s2"> as it doesn&#39;t exist.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tag</span><span class="p">))</span> </div>
-                
-<div class="viewcode-block" id="Dataset.plot"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Dataset.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">toplot</span><span class="o">=</span><span class="s1">&#39;concentrations&#39;</span><span class="p">,</span> <span class="n">savefig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Dataset.select"><a class="viewcode-back" href="../../dataset.html#spectroscopy.dataset.Dataset.select">[docs]</a>    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Provide overview plots for data contained in a dataset.</span>
-
-<span class="sd">        :type toplot: str</span>
-<span class="sd">        :param toplot: Choose the datatype to plot.</span>
-
-<span class="sd">        Parameters specific to `retrievals` contour plots:</span>
-
-<span class="sd">        :type log: bool</span>
-<span class="sd">        :param log: Turn on logarithmic colour scales.</span>
-<span class="sd">        :type cmap_name: str</span>
-<span class="sd">        :param cmap_name: The name of the matplotlib colour scale to use.</span>
-<span class="sd">        :type angle_bins: :class:`numpy.ndarray`</span>
-<span class="sd">        :param angle_bins: Define the bins onto which the angles of the</span>
-<span class="sd">            retrievals are discretized to.</span>
-<span class="sd">        :type ncontours: int</span>
-<span class="sd">        :param ncontours: Number of contours used in the contour plot.</span>
-
+<span class="sd">        Find a subset of events based on given select rules.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">etype</span> <span class="o">=</span> <span class="n">kargs</span><span class="p">[</span><span class="s1">&#39;etype&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">etype</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">if</span> <span class="n">toplot</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;concentrations&#39;</span><span class="p">:</span>
-            <span class="n">cmap_name</span> <span class="o">=</span> <span class="n">kargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cmap_name&#39;</span><span class="p">,</span> <span class="s1">&#39;RdBu_r&#39;</span><span class="p">)</span>
-            <span class="n">log</span> <span class="o">=</span> <span class="n">kargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-            <span class="n">angle_bins</span> <span class="o">=</span> <span class="n">kargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;angle_bins&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
-            <span class="n">ncontours</span> <span class="o">=</span> <span class="n">kargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ncontours&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
-            <span class="n">ts</span> <span class="o">=</span> <span class="n">kargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;timeshift&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">60.</span> <span class="o">*</span> <span class="mf">60.</span>
-            <span class="n">cmap</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap_name</span><span class="p">)</span>
-            <span class="c1"># dicretize all retrievals onto a grid to show a daily plot</span>
-            <span class="n">rts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">[</span><span class="s1">&#39;Concentration&#39;</span><span class="p">]</span>
-            <span class="n">nretrieval</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rts</span><span class="p">)</span>
-            <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nretrieval</span><span class="p">,</span> <span class="n">angle_bins</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">etype</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">_e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">[</span><span class="n">etype</span><span class="p">]:</span>
+                <span class="k">pass</span></div></div>
 
-            <span class="c1"># first sort retrievals based on start time</span>
-            <span class="k">def</span> <span class="nf">mycmp</span><span class="p">(</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">):</span>
-                <span class="n">r1</span> <span class="o">=</span> <span class="n">c1</span><span class="o">.</span><span class="n">rawdata</span>
-                <span class="n">r2</span> <span class="o">=</span> <span class="n">c2</span><span class="o">.</span><span class="n">rawdata</span>
-                <span class="n">id10</span> <span class="o">=</span> <span class="n">c1</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">id11</span> <span class="o">=</span> <span class="n">c1</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">id20</span> <span class="o">=</span> <span class="n">c2</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">id21</span> <span class="o">=</span> <span class="n">c2</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">t1</span> <span class="o">=</span> <span class="n">r1</span><span class="o">.</span><span class="n">datetime</span><span class="p">[:][</span><span class="n">id10</span><span class="p">:</span><span class="n">id11</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[us]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-                <span class="n">t2</span> <span class="o">=</span> <span class="n">r2</span><span class="o">.</span><span class="n">datetime</span><span class="p">[:][</span><span class="n">id20</span><span class="p">:</span><span class="n">id21</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[us]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">t1</span> <span class="o">&lt;</span> <span class="n">t2</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
-                <span class="k">if</span> <span class="n">t1</span> <span class="o">==</span> <span class="n">t2</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="mi">0</span>
-                <span class="k">if</span> <span class="n">t1</span> <span class="o">&gt;</span> <span class="n">t2</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="mi">1</span>
-            <span class="n">rts</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="nb">cmp</span><span class="o">=</span><span class="n">mycmp</span><span class="p">)</span>
-
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rts</span><span class="p">):</span>
-                <span class="n">_r</span> <span class="o">=</span> <span class="n">_c</span><span class="o">.</span><span class="n">rawdata</span>
-                <span class="n">id0</span> <span class="o">=</span> <span class="n">_c</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">id1</span> <span class="o">=</span> <span class="n">_c</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">_angle</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">inc_angle</span><span class="p">[:][</span><span class="n">id0</span><span class="p">:</span><span class="n">id1</span><span class="p">]</span>
-                <span class="n">_so2</span> <span class="o">=</span> <span class="n">_c</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span>
-                <span class="n">_so2_binned</span> <span class="o">=</span> <span class="n">binned_statistic</span><span class="p">(</span>
-                    <span class="n">_angle</span><span class="p">,</span> <span class="n">_so2</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">angle_bins</span><span class="p">)</span>
-                <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">_so2_binned</span><span class="o">.</span><span class="n">statistic</span>
-
-            <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
-                <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">m</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
-                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">angle_bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">z</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ncontours</span><span class="p">,</span>
-                             <span class="n">norm</span><span class="o">=</span><span class="n">LogNorm</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_invalid</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-                <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nretrieval</span><span class="p">),</span> <span class="n">angle_bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">m</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ncontours</span><span class="p">,</span>
-                             <span class="n">norm</span><span class="o">=</span><span class="n">Normalize</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">)</span>
-            <span class="n">new_labels</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">new_ticks</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">ymin</span> <span class="o">=</span> <span class="n">angle_bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">ymax</span> <span class="o">=</span> <span class="n">angle_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">_xt</span> <span class="ow">in</span> <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">_c</span> <span class="o">=</span> <span class="n">rts</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">_xt</span><span class="p">)]</span>
-                    <span class="n">_r</span> <span class="o">=</span> <span class="n">_c</span><span class="o">.</span><span class="n">rawdata</span>
-                    <span class="n">_a</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">inc_angle</span><span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="o">*</span><span class="n">_c</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
-                    <span class="n">ymin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_a</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">ymin</span><span class="p">)</span>
-                    <span class="n">ymax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">_a</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">ymax</span><span class="p">)</span>
-                    <span class="n">dt</span> <span class="o">=</span> <span class="n">_r</span><span class="o">.</span><span class="n">datetime</span><span class="p">[:][</span><span class="nb">slice</span><span class="p">(</span><span class="o">*</span><span class="n">_c</span><span class="o">.</span><span class="n">rawdata_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[us]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-                    <span class="n">dt</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ts</span><span class="p">),</span><span class="s1">&#39;s&#39;</span><span class="p">)</span>                    
-                    <span class="n">new_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M&quot;</span><span class="p">))</span>
-                    <span class="n">new_ticks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_xt</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
-                    <span class="k">continue</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">new_ticks</span><span class="p">,</span> <span class="n">new_labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-                       <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
-            <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
-            <span class="n">cb</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;Slant column amount SO2 [ppm m]&#39;</span><span class="p">)</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">r&#39;Angle [$\circ$]&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">savefig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
-                    <span class="n">savefig</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">fig</span>
-
-        <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="s1">&#39;Plotting </span><span class="si">%s</span><span class="s1"> has not been implemented yet&#39;</span> <span class="o">%</span> <span class="n">toplot</span></div></div>
-
-            
+                
+           
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">doctest</span>
     <span class="n">doctest</span><span class="o">.</span><span class="n">testmod</span><span class="p">(</span><span class="n">exclude_empty</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

@@ -50,20 +50,6 @@ the corresponding processing flows. The general idea is that a file contains
 all the information required to reproduce the final flux measurements. This
 implementation of the datamodel is based on HDF5 but other implementations may,
 for example, use the datamodel as a database or XML scheme.</p>
-<div class="section" id="example">
-<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
-<p>The following shows an example on how the <code class="docutils literal"><span class="pre">Dataset</span></code> type, which implements
-the datamodel, can be used to get a quick overview of the data contained in a
-FlySpec file:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">spectroscopy.dataset</span> <span class="k">import</span> <span class="n">Dataset</span>
-<span class="kn">import</span> <span class="nn">tempfile</span>
-<span class="n">d</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">mktemp</span><span class="p">(),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
-<span class="n">d</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;testfile&#39;</span><span class="p">,</span> <span class="n">ftype</span><span class="o">=</span><span class="s1">&#39;FLYSPEC&#39;</span><span class="p">)</span>
-<span class="n">d</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-</pre></div>
-</div>
-<a class="reference internal image-reference" href="_images/chile_retrievals_overview.png"><img alt="_images/chile_retrievals_overview.png" class="align-center" src="_images/chile_retrievals_overview.png" style="width: 922.8px; height: 713.2px;" /></a>
-</div>
 <div class="section" id="simplified-datamodel">
 <h2>Simplified datamodel<a class="headerlink" href="#simplified-datamodel" title="Permalink to this headline">¶</a></h2>
 <img alt="_images/datamodel_simple.svg" src="_images/datamodel_simple.svg" /></div>
@@ -107,6 +93,18 @@ dataset.</li>
 <dd><p>Read in a datafile.</p>
 </dd></dl>
 
+<dl class="staticmethod">
+<dt id="spectroscopy.dataset.Dataset.open">
+<em class="property">static </em><code class="descname">open</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open an existing HDF5 file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="spectroscopy.dataset.Dataset.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the HDF5 file and clear the ResourceIdentifiers.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="spectroscopy.dataset.Dataset.register_tags">
 <code class="descname">register_tags</code><span class="sig-paren">(</span><em>tags</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.register_tags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.register_tags" title="Permalink to this definition">¶</a></dt>
@@ -121,33 +119,9 @@ element that had been tagged.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="spectroscopy.dataset.Dataset.plot">
-<code class="descname">plot</code><span class="sig-paren">(</span><em>toplot='concentrations'</em>, <em>savefig=None</em>, <em>**kargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.plot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Provide overview plots for data contained in a dataset.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>toplot</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Choose the datatype to plot.</td>
-</tr>
-</tbody>
-</table>
-<p>Parameters specific to <cite>retrievals</cite> contour plots:</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>log</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Turn on logarithmic colour scales.</li>
-<li><strong>cmap_name</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name of the matplotlib colour scale to use.</li>
-<li><strong>angle_bins</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Define the bins onto which the angles of the
-retrievals are discretized to.</li>
-<li><strong>ncontours</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Number of contours used in the contour plot.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<dt id="spectroscopy.dataset.Dataset.select">
+<code class="descname">select</code><span class="sig-paren">(</span><em>*args</em>, <em>**kargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spectroscopy/dataset.html#Dataset.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#spectroscopy.dataset.Dataset.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find a subset of events based on given select rules.</p>
 </dd></dl>
 
 </dd></dl>
@@ -162,6 +136,7 @@ retrievals are discretized to.</li>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Station name</li>
 <li><strong>sensor_id</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Serial number</li>
 <li><strong>location</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of sensor location</li>
 <li><strong>no_bits</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The number of bits used by the analog-to-digital converter.</li>
@@ -248,17 +223,17 @@ retrievals are discretized to.</li>
 <li><strong>instrument</strong> (<em>reference to Instrument</em>) &#8211; Reference to the instrument recording the data.</li>
 <li><strong>target</strong> (<em>reference to Target</em>) &#8211; Reference to the target plume.</li>
 <li><strong>type</strong> (<em>reference to RawDataType</em>) &#8211; Reference to the raw-data-type.</li>
-<li><strong>inc_angle</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Inclinitation of measurement direction from vertical. For a transect all angles would typically be the same, e.g. 0.0 if the spectrometer was pointing up.</li>
-<li><strong>inc_angle_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Uncertainty of inclination angle in degrees.</li>
-<li><strong>bearing</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Bearing of the scan plane in degrees from grid north.</li>
-<li><strong>bearing_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Scan bearing uncertainty.</li>
-<li><strong>position</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; The position of the spectrometer in decimal longitude, latitude, and elevation in m above sea level  (lon, lat, elev).</li>
-<li><strong>position_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Instrument location uncertainty.</li>
-<li><strong>path_length</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Path length of a scan [m].</li>
-<li><strong>path_length_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Path length uncertainty.</li>
+<li><strong>inc_angle</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Inclinitation of measurement direction from vertical. For a transect all angles would typically be the same, e.g. 0.0 if the spectrometer was pointing up.</li>
+<li><strong>inc_angle_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Uncertainty of inclination angle in degrees.</li>
+<li><strong>bearing</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Bearing of the scan plane in degrees from grid north.</li>
+<li><strong>bearing_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Scan bearing uncertainty.</li>
+<li><strong>position</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; The position of the spectrometer in decimal longitude, latitude, and elevation in m above sea level  (lon, lat, elev).</li>
+<li><strong>position_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Instrument location uncertainty.</li>
+<li><strong>path_length</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Path length of a scan [m].</li>
+<li><strong>path_length_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Path length uncertainty.</li>
 <li><strong>d_var</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Dependent variable e.g. measured spectra, concentration</li>
 <li><strong>ind_var</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Independent variable e.g. wavelengths, time</li>
-<li><strong>datetime</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/datetime.html#module-datetime" title="(in Python v2.7)"><em>datetime</em></a>) &#8211; Date Time of recording in ISO 8601 format.</li>
+<li><strong>datetime</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Date Time of recording in ISO 8601 format.</li>
 <li><strong>data_quality</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Data quality parameters.</li>
 <li><strong>data_quality_type</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; List of references to data-quality-type.</li>
 <li><strong>integration_time</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Exposure time [s].</li>
@@ -286,7 +261,6 @@ retrievals are discretized to.</li>
 <li><strong>description</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Short method summary</li>
 <li><strong>settings</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/json.html#module-json" title="(in Python v2.7)"><em>json</em></a>) &#8211; Settings/setup relevant to reproduce results in JSON format.</li>
 <li><strong>reference</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; URI  to more detailed method description.</li>
-<li><strong>raw_data</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Reference to raw data used in this method</li>
 </ul>
 </td>
 </tr>
@@ -305,20 +279,20 @@ retrievals are discretized to.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
 <li><strong>methods</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; List of references to methods used to compute gas flow</li>
-<li><strong>vx</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; x component of gas flow vector (wrt local grid or east)</li>
-<li><strong>vx_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; x component error</li>
-<li><strong>vy</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; y component of gas flow vector (wrt local grid or east)</li>
-<li><strong>vy_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; y component error</li>
-<li><strong>vz</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; z component of gas flow vector (wrt local grid or east)</li>
-<li><strong>vz_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; z component error</li>
+<li><strong>vx</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; x component of gas flow vector (wrt local grid or east)</li>
+<li><strong>vx_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; x component error</li>
+<li><strong>vy</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; y component of gas flow vector (wrt local grid or east)</li>
+<li><strong>vy_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; y component error</li>
+<li><strong>vz</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; z component of gas flow vector (wrt local grid or east)</li>
+<li><strong>vz_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; z component error</li>
 <li><strong>unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Physical unit of gas flow vector</li>
-<li><strong>position</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Measurement location or grid origin in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).</li>
-<li><strong>position_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Location uncertainty</li>
+<li><strong>position</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Measurement location or grid origin in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).</li>
+<li><strong>position_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Location uncertainty</li>
 <li><strong>grid_bearing</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; X-axis angle from grid north in decimal degrees.</li>
-<li><strong>grid_increments</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Grid increments along the x-, y-, and z-axis</li>
+<li><strong>grid_increments</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Grid increments along the x-, y-, and z-axis</li>
 <li><strong>pressure</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Atmospheric pressure [Pa]</li>
 <li><strong>temperature</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Temperature [degC]</li>
-<li><strong>datetime</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/datetime.html#module-datetime" title="(in Python v2.7)"><em>datetime</em></a>) &#8211; Date Time [UTC] in ISO 8601 format</li>
+<li><strong>datetime</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Date Time [UTC] in ISO 8601 format</li>
 <li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information that may be relevant.</li>
 </ul>
 </td>
@@ -339,12 +313,13 @@ retrievals are discretized to.</li>
 <li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
 <li><strong>method</strong> (<em>reference to Method</em>) &#8211; Reference to the method used to obtain concentration estimates.</li>
 <li><strong>gasflow</strong> (<em>reference to GasFlow</em>) &#8211; Reference to gas flow model (if applicable).</li>
-<li><strong>rawdata</strong> (<em>reference to RawData</em>) &#8211; Reference to raw measurements (if applicable).</li>
-<li><strong>rawdata_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Range of raw data used to estimate concentration</li>
+<li><strong>rawdata</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Reference to raw measurements (if applicable).</li>
+<li><strong>rawdata_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Index of raw data used to estimate concentration</li>
 <li><strong>gas_species</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Gas type (e.g. SO2)</li>
 <li><strong>value</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Concentration estimate.</li>
 <li><strong>value_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Concentration uncertainty.</li>
 <li><strong>unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Unit of gas concentration.</li>
+<li><strong>datetime</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Dates of concentration estimates in ISO 8601 format</li>
 <li><strong>analyst_contact</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Contact (e.g. email) of person running software</li>
 <li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information that may be relevant.</li>
 </ul>
@@ -365,11 +340,12 @@ retrievals are discretized to.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
 <li><strong>method</strong> (<em>reference to Method</em>) &#8211; Reference to software used</li>
-<li><strong>concentration</strong> (<em>reference to Concentration</em>) &#8211; </li>
-<li><strong>concentration_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Indices of concentrations</li>
+<li><strong>concentration</strong> (<em>reference to Concentration</em>) &#8211; Reference to concentration values used to compute flux.</li>
+<li><strong>concentration_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Index of concentrations used to compute flux</li>
 <li><strong>gasflow</strong> (<em>reference to GasFlow</em>) &#8211; </li>
 <li><strong>value</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Flux estimates</li>
 <li><strong>value_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Flux estimate errors</li>
+<li><strong>datetime</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Datetime (in ISO 8601 format) that is assigned to the flux estimates.</li>
 <li><strong>unit</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Physical unit of flux.</li>
 <li><strong>analyst_contact</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Contact (e.g. email) of person running software</li>
 <li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Any additional information that may be relevant.</li>
@@ -390,11 +366,11 @@ retrievals are discretized to.</li>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#set" title="(in Python v2.7)"><em>set</em></a>) &#8211; List of human readable tags</li>
-<li><strong>flux_ids</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; References to flux estimates used to compute derived flux</li>
+<li><strong>fluxes</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; References to flux estimates used to compute derived flux</li>
 <li><strong>flux_indices</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Indices of flux values used to compute derived flux</li>
-<li><strong>date</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Dates of derived flux values in ISO 8601 format.</li>
-<li><strong>value</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Derived flux value</li>
-<li><strong>value_error</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Flux value error</li>
+<li><strong>datetime</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Dates of derived flux values in ISO 8601 format.</li>
+<li><strong>value</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Derived flux value</li>
+<li><strong>value_error</strong> (<a class="reference external" href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.13)"><code class="xref py py-class docutils literal"><span class="pre">numpy.ndarray</span></code></a>) &#8211; Flux value error</li>
 <li><strong>method_id</strong> (<em>reference to Method</em>) &#8211; Reference to method</li>
 <li><strong>user_notes</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Comments relevant for reproducing preferred fluxes</li>
 </ul>
@@ -416,7 +392,6 @@ retrievals are discretized to.</li>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Datamodel for spectroscopy</a><ul>
-<li><a class="reference internal" href="#example">Example</a></li>
 <li><a class="reference internal" href="#simplified-datamodel">Simplified datamodel</a></li>
 <li><a class="reference internal" href="#module-spectroscopy.dataset">Classes &amp; Functions</a></li>
 </ul>

@@ -51,6 +51,7 @@
 <span class="n">__Instrument</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Instrument&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
 	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;sensor_id&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;no_bits&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,)),</span>
@@ -70,6 +71,8 @@
 
 <span class="sd">	:type tags: set</span>
 <span class="sd">	:param tags: List of human readable tags</span>
+<span class="sd">	:type name: str</span>
+<span class="sd">	:param name: Station name</span>
 <span class="sd">	:type sensor_id: str</span>
 <span class="sd">	:param sensor_id: Serial number</span>
 <span class="sd">	:type location: str</span>
@@ -197,17 +200,17 @@
 <span class="n">__RawData</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__RawData&#39;</span><span class="p">,</span> <span class="s1">&#39;extendable&#39;</span><span class="p">,</span>
 	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;inc_angle&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;inc_angle_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;bearing&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;bearing_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;path_length&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;path_length_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;inc_angle&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;inc_angle_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;bearing&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;bearing_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;path_length&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;path_length_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;d_var&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;ind_var&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
-		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;data_quality&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;integration_time&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;no_averages&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
@@ -237,28 +240,28 @@
 <span class="sd">	:param target: Reference to the target plume.</span>
 <span class="sd">	:type type: reference to RawDataType</span>
 <span class="sd">	:param type: Reference to the raw-data-type.</span>
-<span class="sd">	:type inc_angle: float</span>
+<span class="sd">	:type inc_angle: :class:`numpy.ndarray`</span>
 <span class="sd">	:param inc_angle: Inclinitation of measurement direction from vertical. For a transect all angles would typically be the same, e.g. 0.0 if the spectrometer was pointing up.</span>
 
-<span class="sd">	:type inc_angle_error: float</span>
+<span class="sd">	:type inc_angle_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param inc_angle_error: Uncertainty of inclination angle in degrees.</span>
-<span class="sd">	:type bearing: float</span>
+<span class="sd">	:type bearing: :class:`numpy.ndarray`</span>
 <span class="sd">	:param bearing: Bearing of the scan plane in degrees from grid north.</span>
-<span class="sd">	:type bearing_error: float</span>
+<span class="sd">	:type bearing_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param bearing_error: Scan bearing uncertainty.</span>
-<span class="sd">	:type position: float</span>
+<span class="sd">	:type position: :class:`numpy.ndarray`</span>
 <span class="sd">	:param position: The position of the spectrometer in decimal longitude, latitude, and elevation in m above sea level  (lon, lat, elev).</span>
-<span class="sd">	:type position_error: float</span>
+<span class="sd">	:type position_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param position_error: Instrument location uncertainty.</span>
-<span class="sd">	:type path_length: float</span>
+<span class="sd">	:type path_length: :class:`numpy.ndarray`</span>
 <span class="sd">	:param path_length: Path length of a scan [m].</span>
-<span class="sd">	:type path_length_error: float</span>
+<span class="sd">	:type path_length_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param path_length_error: Path length uncertainty.</span>
 <span class="sd">	:type d_var: :class:`numpy.ndarray`</span>
 <span class="sd">	:param d_var: Dependent variable e.g. measured spectra, concentration</span>
 <span class="sd">	:type ind_var: :class:`numpy.ndarray`</span>
 <span class="sd">	:param ind_var: Independent variable e.g. wavelengths, time</span>
-<span class="sd">	:type datetime: datetime</span>
+<span class="sd">	:type datetime: :class:`numpy.ndarray`</span>
 <span class="sd">	:param datetime: Date Time of recording in ISO 8601 format.</span>
 <span class="sd">	:type data_quality: :class:`numpy.ndarray`</span>
 <span class="sd">	:param data_quality: Data quality parameters.</span>
@@ -279,14 +282,13 @@
 <span class="sd">	&#39;&#39;&#39;</span>
 
 
-<span class="n">__Method</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Method&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
+<span class="n">__Method</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Method&#39;</span><span class="p">,</span> <span class="s1">&#39;extendable&#39;</span><span class="p">,</span>
 	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;settings&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;raw_data&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
+		<span class="p">(</span><span class="s1">&#39;reference&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
 	<span class="n">class_references</span><span class="o">=</span><span class="p">[])</span>
 
 
@@ -309,8 +311,6 @@
 <span class="sd">	:param settings: Settings/setup relevant to reproduce results in JSON format.</span>
 <span class="sd">	:type reference: str</span>
 <span class="sd">	:param reference: URI  to more detailed method description.</span>
-<span class="sd">	:type raw_data: str</span>
-<span class="sd">	:param raw_data: Reference to raw data used in this method</span>
 <span class="sd">	&#39;&#39;&#39;</span></div>
 
 <span class="k">class</span> <span class="nc">_Method</span><span class="p">(</span><span class="n">__Method</span><span class="p">):</span>
@@ -321,20 +321,20 @@
 <span class="n">__GasFlow</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__GasFlow&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
 	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;vx&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;vx_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;vy&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;vy_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;vz&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;vz_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;vx&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;vx_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;vy&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;vy_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;vz&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;vz_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;position&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;position_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;grid_bearing&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;grid_increments&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;grid_increments&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;pressure&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;temperature&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
 	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;methods&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">_Method</span><span class="p">))])</span>
@@ -353,33 +353,33 @@
 <span class="sd">	:param tags: List of human readable tags</span>
 <span class="sd">	:type methods: :class:`numpy.ndarray`</span>
 <span class="sd">	:param methods: List of references to methods used to compute gas flow</span>
-<span class="sd">	:type vx: float</span>
+<span class="sd">	:type vx: :class:`numpy.ndarray`</span>
 <span class="sd">	:param vx: x component of gas flow vector (wrt local grid or east) </span>
-<span class="sd">	:type vx_error: float</span>
+<span class="sd">	:type vx_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param vx_error: x component error</span>
-<span class="sd">	:type vy: float</span>
+<span class="sd">	:type vy: :class:`numpy.ndarray`</span>
 <span class="sd">	:param vy: y component of gas flow vector (wrt local grid or east)</span>
-<span class="sd">	:type vy_error: float</span>
+<span class="sd">	:type vy_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param vy_error: y component error</span>
-<span class="sd">	:type vz: float</span>
+<span class="sd">	:type vz: :class:`numpy.ndarray`</span>
 <span class="sd">	:param vz: z component of gas flow vector (wrt local grid or east)</span>
-<span class="sd">	:type vz_error: float</span>
+<span class="sd">	:type vz_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param vz_error: z component error</span>
 <span class="sd">	:type unit: str</span>
 <span class="sd">	:param unit: Physical unit of gas flow vector</span>
-<span class="sd">	:type position: float</span>
+<span class="sd">	:type position: :class:`numpy.ndarray`</span>
 <span class="sd">	:param position: Measurement location or grid origin in decimal degrees for longitude and latitude and m above sea level for elevation (lon, lat, elev).</span>
-<span class="sd">	:type position_error: float</span>
+<span class="sd">	:type position_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param position_error: Location uncertainty</span>
 <span class="sd">	:type grid_bearing: float</span>
 <span class="sd">	:param grid_bearing: X-axis angle from grid north in decimal degrees.</span>
-<span class="sd">	:type grid_increments: float</span>
+<span class="sd">	:type grid_increments: :class:`numpy.ndarray`</span>
 <span class="sd">	:param grid_increments: Grid increments along the x-, y-, and z-axis </span>
 <span class="sd">	:type pressure: float</span>
 <span class="sd">	:param pressure: Atmospheric pressure [Pa]</span>
 <span class="sd">	:type temperature: float</span>
 <span class="sd">	:param temperature: Temperature [degC]</span>
-<span class="sd">	:type datetime: datetime</span>
+<span class="sd">	:type datetime: :class:`numpy.ndarray`</span>
 <span class="sd">	:param datetime: Date Time [UTC] in ISO 8601 format</span>
 <span class="sd">	:type user_notes: str</span>
 <span class="sd">	:param user_notes: Any additional information that may be relevant.</span>
@@ -398,12 +398,13 @@
 		<span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;value_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;analyst_contact&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
 	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,(</span><span class="n">_Method</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;gasflow&#39;</span><span class="p">,(</span><span class="n">_GasFlow</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;rawdata&#39;</span><span class="p">,(</span><span class="n">_RawData</span><span class="p">,))])</span>
+		<span class="p">(</span><span class="s1">&#39;rawdata&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">_RawData</span><span class="p">))])</span>
 
 
 <span class="n">__ConcentrationBuffer</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span>
@@ -421,10 +422,10 @@
 <span class="sd">	:param method: Reference to the method used to obtain concentration estimates.</span>
 <span class="sd">	:type gasflow: reference to GasFlow</span>
 <span class="sd">	:param gasflow: Reference to gas flow model (if applicable).</span>
-<span class="sd">	:type rawdata: reference to RawData</span>
+<span class="sd">	:type rawdata: :class:`numpy.ndarray`</span>
 <span class="sd">	:param rawdata: Reference to raw measurements (if applicable).</span>
 <span class="sd">	:type rawdata_indices: :class:`numpy.ndarray`</span>
-<span class="sd">	:param rawdata_indices: Range of raw data used to estimate concentration</span>
+<span class="sd">	:param rawdata_indices: Index of raw data used to estimate concentration</span>
 <span class="sd">	:type gas_species: str</span>
 <span class="sd">	:param gas_species: Gas type (e.g. SO2)</span>
 <span class="sd">	:type value: :class:`numpy.ndarray`</span>
@@ -433,6 +434,8 @@
 <span class="sd">	:param value_error: Concentration uncertainty.</span>
 <span class="sd">	:type unit: str</span>
 <span class="sd">	:param unit: Unit of gas concentration.</span>
+<span class="sd">	:type datetime: :class:`numpy.ndarray`</span>
+<span class="sd">	:param datetime: Dates of concentration estimates in ISO 8601 format</span>
 <span class="sd">	:type analyst_contact: str</span>
 <span class="sd">	:param analyst_contact: Contact (e.g. email) of person running software</span>
 <span class="sd">	:type user_notes: str</span>
@@ -444,12 +447,13 @@
 <span class="sd">	&#39;&#39;&#39;</span>
 
 
-<span class="n">__Flux</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Flux&#39;</span><span class="p">,</span> <span class="s1">&#39;extendable&#39;</span><span class="p">,</span>
+<span class="n">__Flux</span> <span class="o">=</span> <span class="n">_class_factory</span><span class="p">(</span><span class="s1">&#39;__Flux&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span>
 	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;concentration_indices&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;value_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;unit&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;analyst_contact&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
@@ -473,15 +477,17 @@
 <span class="sd">	:type method: reference to Method</span>
 <span class="sd">	:param method: Reference to software used</span>
 <span class="sd">	:type concentration: reference to Concentration</span>
-<span class="sd">	:param concentration: </span>
+<span class="sd">	:param concentration: Reference to concentration values used to compute flux.</span>
 <span class="sd">	:type concentration_indices: :class:`numpy.ndarray`</span>
-<span class="sd">	:param concentration_indices: Indices of concentrations</span>
+<span class="sd">	:param concentration_indices: Index of concentrations used to compute flux</span>
 <span class="sd">	:type gasflow: reference to GasFlow</span>
 <span class="sd">	:param gasflow: </span>
 <span class="sd">	:type value: :class:`numpy.ndarray`</span>
 <span class="sd">	:param value: Flux estimates</span>
 <span class="sd">	:type value_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param value_error: Flux estimate errors</span>
+<span class="sd">	:type datetime: :class:`numpy.ndarray`</span>
+<span class="sd">	:param datetime: Datetime (in ISO 8601 format) that is assigned to the flux estimates.</span>
 <span class="sd">	:type unit: str</span>
 <span class="sd">	:param unit: Physical unit of flux.</span>
 <span class="sd">	:type analyst_contact: str</span>
@@ -499,12 +505,12 @@
 	<span class="n">class_attributes</span><span class="o">=</span><span class="p">[</span>
 		<span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,(</span><span class="nb">set</span><span class="p">,)),</span>
 		<span class="p">(</span><span class="s1">&#39;flux_indices&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)),</span>
-		<span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)),</span>
-		<span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
-		<span class="p">(</span><span class="s1">&#39;value_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,)),</span>
+		<span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;value_error&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;user_notes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,))],</span>
 	<span class="n">class_references</span><span class="o">=</span><span class="p">[</span>
-		<span class="p">(</span><span class="s1">&#39;flux_ids&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">_Flux</span><span class="p">)),</span>
+		<span class="p">(</span><span class="s1">&#39;fluxes&#39;</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">_Flux</span><span class="p">)),</span>
 		<span class="p">(</span><span class="s1">&#39;method_id&#39;</span><span class="p">,(</span><span class="n">_Method</span><span class="p">,))])</span>
 
 
@@ -519,15 +525,15 @@
 
 <span class="sd">	:type tags: set</span>
 <span class="sd">	:param tags: List of human readable tags</span>
-<span class="sd">	:type flux_ids: :class:`numpy.ndarray`</span>
-<span class="sd">	:param flux_ids: References to flux estimates used to compute derived flux</span>
+<span class="sd">	:type fluxes: :class:`numpy.ndarray`</span>
+<span class="sd">	:param fluxes: References to flux estimates used to compute derived flux</span>
 <span class="sd">	:type flux_indices: :class:`numpy.ndarray`</span>
 <span class="sd">	:param flux_indices: Indices of flux values used to compute derived flux</span>
-<span class="sd">	:type date: :class:`numpy.ndarray`</span>
-<span class="sd">	:param date: Dates of derived flux values in ISO 8601 format.</span>
-<span class="sd">	:type value: float</span>
+<span class="sd">	:type datetime: :class:`numpy.ndarray`</span>
+<span class="sd">	:param datetime: Dates of derived flux values in ISO 8601 format.</span>
+<span class="sd">	:type value: :class:`numpy.ndarray`</span>
 <span class="sd">	:param value: Derived flux value</span>
-<span class="sd">	:type value_error: float</span>
+<span class="sd">	:type value_error: :class:`numpy.ndarray`</span>
 <span class="sd">	:param value_error: Flux value error</span>
 <span class="sd">	:type method_id: reference to Method</span>
 <span class="sd">	:param method_id: Reference to method</span>
