@@ -259,7 +259,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         xnew = range(0,2048)
         wavelengths = f(xnew)
 
-        d = Dataset('/tmp/flyspec_test.hdf5', 'w')
+        d = Dataset(tempfile.mktemp(), 'w')
         ib = InstrumentBuffer(location='Te Maari crater',
                               type='FlySpec',
                               name='TOFP04')
@@ -378,7 +378,6 @@ class FlySpecPluginTestCase(unittest.TestCase):
                                   value=[f.value[nos]],
                                   datetime=[f.datetime[nos]])
         d.new(pfb)
-
 
 
 def suite():
