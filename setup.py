@@ -23,4 +23,5 @@ setup(
                       'dateutil', 'cartopy', 'pyproj'],
     packages=['spectroscopy', 'spectroscopy.flux', 'spectroscopy.doas',
                 'spectroscopy.plugins'],
+    test_suite="tests"
 )
