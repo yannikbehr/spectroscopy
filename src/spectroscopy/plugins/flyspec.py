@@ -10,8 +10,13 @@ import numpy as np
 
 from spectroscopy.datamodel import (RawDataBuffer, 
                                     ConcentrationBuffer,
-                                    RawDataTypeBuffer)
+                                    RawDataTypeBuffer,
+                                    MethodBuffer,
+                                    FluxBuffer,
+                                    GasFlowBuffer)
 from spectroscopy.plugins import DatasetPluginBase
+from spectroscopy.util import bearing2vec
+
 
 class FlySpecPluginException(Exception):
     pass
@@ -120,6 +125,113 @@ class FlySpecPlugin(DatasetPluginBase):
     @staticmethod
     def get_format():
         return 'flyspec'
+
+
+class FlySpecFluxPlugin(DatasetPluginBase):
+
+    def read(self, dataset, filename,  **kargs):
+        """
+        Read flux estimates.
+        """
+        data = np.fromregex(filename, r'(\S+ \S+)\s+(-?\d+\.\d+)',
+                            dtype={'names': ('datetime','flux'),
+                                   'formats':('S26',np.float)})
+        dt = data['datetime'].astype('datetime64[us]')
+        # convert milliseconds to microseconds to fix a bug in Nial's code
+        us = dt - dt.astype('datetime64[s]')
+        dtn = dt.astype('datetime64[s]') + us*1000
+        f = data['flux']
+       
+        mb = MethodBuffer(name='GNS FlySpec UI')
+        fb = FluxBuffer(value=f, datetime=dtn.astype(str))
+        return {str(fb):fb, str(mb):mb}
+
+    @staticmethod
+    def get_format():
+        return 'flyspecflux'
+
+
+class FlySpecRefPlugin(DatasetPluginBase):
+
+    def _read_spectra(self, fin):
+        """
+        Read spectra from binary file.
+        """
+        with open(fin,"rb") as ifp:
+            raw_data = ifp.read()
+        i = 0
+        counts = []
+        while i < len(raw_data):
+            counts.append(struct.unpack("2048f",raw_data[i:i+(2048 * 4)]))
+            i += (2048 * 4)
+        return counts
+
+    def read(self, dataset, filename,  **kargs):
+        """
+        Read reference spectra for FlySpec.
+        """
+        try:
+            wavelengths = kargs['wavelengths']
+            mtype = kargs['type']
+        except KeyError:
+            raise FlySpecPluginException('Please provide wavelengths and measurement type.')
+        
+        spectra = np.array(self._read_spectra(filename))
+        if spectra.shape[1] != wavelengths.size:
+            raise FlySpecPluginException("Spectra and wavelengths don't have the same size.")
+        rb = RawDataBuffer(ind_var=wavelengths, d_var=spectra)
+        rdtb = RawDataTypeBuffer(d_var_unit='ppm m', ind_var_unit='nm', name=mtype)
+        return {str(rb):rb, str(rdtb):rdtb}
+
+    def close(self, filename):
+        raise Exception('Close is undefined for the FlySpecRef backend')
+
+    @staticmethod
+    def get_format():
+        return 'flyspecref'
+
+
+class FlySpecWindPlugin(DatasetPluginBase):
+    
+    def read(self, dataset, filename, **kargs):
+        """
+        Read the wind data for the Flyspecs on Tongariro.
+        """
+        data = np.loadtxt(filename, dtype={'names':('date', 'wd', 'ws'), 
+                                           'formats':('S19', np.float, np.float)})
+
+        npts = data.shape[0]
+        position = np.tile(np.array([175.673, -39.108, 0.0]), (npts, 1)) 
+        vx = np.zeros(npts)
+        vy = np.zeros(npts)
+        vz = np.zeros(npts)
+        time = np.empty(npts,dtype='S19')
+        for i in range(npts):
+            ws = data['ws'][i]
+            wd = data['wd'][i]
+            date = data['date'][i]
+            # if windspeed is 0 give it a tiny value
+            # so that the bearing can be reconstructed
+            if ws == 0.:
+                ws = 0.0001
+            _vx, _vy = bearing2vec(wd, ws)
+            vx[i] = _vx
+            vy[i] = _vy
+            vz[i] = np.nan
+            time[i] = date 
+        description = 'Wind measurements and forecasts by NZ metservice \
+        for Te Maari.'
+        mb = MethodBuffer(name='some model')
+        m = dataset.new(mb)
+        gfb = GasFlowBuffer(methods=[m], vx=vx, vy=vy, vz=vz,
+                            position=position, datetime=time, 
+                            user_notes=description, unit='m/s')
+        gf = dataset.new(gfb)
+        return gf
+
+    @staticmethod
+    def get_format():
+        return 'flyspecwind'
 
 if __name__ == '__main__':
     import doctest

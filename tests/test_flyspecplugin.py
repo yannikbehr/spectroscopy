@@ -15,7 +15,7 @@ from scipy.interpolate import interp1d
 from spectroscopy.dataset import Dataset
 from spectroscopy.plugins.flyspec import FlySpecPlugin
 from spectroscopy.plugins.flyspec import FlySpecPluginException
-from spectroscopy.util import split_by_scan, _array_multi_sort
+from spectroscopy.util import split_by_scan, _array_multi_sort, vec2bearing
 from spectroscopy.visualize import plot
 from spectroscopy.datamodel import (InstrumentBuffer, 
                                     TargetBuffer,
@@ -123,6 +123,43 @@ class FlySpecPluginTestCase(unittest.TestCase):
         maxima = np.array([147., 25., 27., 86., 29., 31., 27., 27., 28., 137.,
                            34., 34.])
         np.testing.assert_array_almost_equal(maxima, bins[ids], 2)
+
+    def test_read_flux(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        fin = os.path.join(self.data_dir, 'TOFP04', 'TOFP04_2017_06_14.txt') 
+        e = d.read(fin, ftype='flyspecflux')
+        nlines = None
+        with open(fin) as fd:
+            nlines = len(fd.readlines())
+        self.assertEqual(e['FluxBuffer'].value.shape, (nlines-1,))
+
+    def test_read_refspec(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        x = [521,637,692,818]
+        y = [305.,315.,319.5,330.]
+        f = interp1d(x, y, fill_value='extrapolate')
+        xnew = range(0,2048)
+        wavelengths = f(xnew)
+        
+        with self.assertRaises(FlySpecPluginException):    
+            e = d.read(os.path.join(self.data_dir, 'TOFP04', 'Cal_20170602_0956_dark.bin'),
+                        ftype='FLYSPECREF', wavelengths=wavelengths)
+        
+        e = d.read(os.path.join(self.data_dir, 'TOFP04', 'Cal_20170602_0956_dark.bin'),
+                        ftype='FLYSPECREF', type='dark', wavelengths=wavelengths)
+        self.assertEqual(e['RawDataBuffer'].d_var.shape, (10,2048))
+
+    def test_read_wind(self):
+        d = Dataset(tempfile.mktemp(), 'w')
+        fin = os.path.join(self.data_dir, 'TOFP04', 'wind', '2017_06_14.txt')
+        gf = d.read(fin,ftype='flyspecwind')
+        vx = gf.vx[0]
+        vy = gf.vy[0]
+        dt = gf.datetime[0]
+        v = np.sqrt(vx*vx + vy*vy)
+        self.assertAlmostEqual(v, 10.88, 2)
+        self.assertAlmostEqual(vec2bearing(vx,vy), 255, 6)
+        self.assertEqual(dt, '2017-06-14T06:00:00')
 
     def test_plot(self):
         d = Dataset(tempfile.mktemp(), 'w')
