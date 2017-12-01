@@ -283,6 +283,12 @@ class DatamodelTestCase(unittest.TestCase):
             warnings.simplefilter('ignore')
             d.remove_tags(['Eruption16','blub'])
         self.assertEqual(list(t.tags), ['SomethingElse'])
+        
+        # Ensure the same tag is only added once
+        t.tags.append('SomethingElse')
+        self.assertEqual(list(t.tags), ['SomethingElse'])
+        self.assertEqual(len(d._f.root.tags._v_children['SomethingElse'][:]), 1)
+
 
     def test_dtbuffer(self):
         """
