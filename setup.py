@@ -19,9 +19,10 @@ setup(
     url="",
     license="GPL v3",
     package_dir={'': 'src'},
-    install_requires=['pytables', 'numpy', 'matplotlib', 'scipy', 
-                      'dateutil', 'cartopy', 'pyproj'],
+    install_requires=['tables', 'numpy', 'matplotlib', 'scipy',
+                      'python-dateutil', 'cartopy', 'pyproj'],
     packages=['spectroscopy', 'spectroscopy.flux', 'spectroscopy.doas',
                 'spectroscopy.plugins'],
-    test_suite="tests"
+    test_suite='nose.collector',
+    test_require=['nose']
 )
