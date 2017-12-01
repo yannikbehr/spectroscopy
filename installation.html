@@ -48,19 +48,22 @@
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
 <p>Currently the only available option is to install from source. The following
 shows, as an example, how to install it under Ubuntu.</p>
-<blockquote>
-<div><p>First install the dependencies:</p>
-<blockquote>
-<div>apt-get install python-pip git libgeos-dev libproj-dev proj-bin python-scipy python-numpy python-dateutil python-pyproj python-matplotlib python-tables python-nose python-pandas</div></blockquote>
-</div></blockquote>
+<p>First install the dependencies:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span> <span class="n">git</span> <span class="n">libgeos</span><span class="o">-</span><span class="n">dev</span> <span class="n">libproj</span><span class="o">-</span><span class="n">dev</span> <span class="n">proj</span><span class="o">-</span><span class="nb">bin</span> \
+<span class="n">python</span><span class="o">-</span><span class="n">scipy</span> <span class="n">python</span><span class="o">-</span><span class="n">numpy</span> <span class="n">python</span><span class="o">-</span><span class="n">dateutil</span> <span class="n">python</span><span class="o">-</span><span class="n">pyproj</span> <span class="n">python</span><span class="o">-</span><span class="n">matplotlib</span> \
+<span class="n">python</span><span class="o">-</span><span class="n">tables</span> <span class="n">python</span><span class="o">-</span><span class="n">nose</span> <span class="n">python</span><span class="o">-</span><span class="n">pandas</span>
+</pre></div>
+</div>
 <p>Then clone the source code and install it:</p>
-<blockquote>
-<div>git clone &#8211;depth=1 <a class="reference external" href="https://github.com/yannikbehr/spectroscopy.git">https://github.com/yannikbehr/spectroscopy.git</a>
-cd spectroscopy
-python setup.py install</div></blockquote>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="o">--</span><span class="n">depth</span><span class="o">=</span><span class="mi">1</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">yannikbehr</span><span class="o">/</span><span class="n">spectroscopy</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">spectroscopy</span>
+<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+</pre></div>
+</div>
 <p>And finally run the tests:</p>
-<blockquote>
-<div>python setup.py test</div></blockquote>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">test</span>
+</pre></div>
+</div>
 </div>
 
 
