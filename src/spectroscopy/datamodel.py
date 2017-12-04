@@ -167,7 +167,7 @@ __RawData = _class_factory('__RawData', 'extendable',
 		('ind_var',(np.ndarray, np.float_)),
 		('datetime',(np.ndarray, datetime.datetime)),
 		('data_quality',(np.ndarray, np.float_)),
-		('integration_time',(np.float_,)),
+		('integration_time',(np.ndarray, np.float_)),
 		('no_averages',(np.float_,)),
 		('temperature',(np.float_,)),
 		('user_notes',(np.str_,))],
@@ -222,7 +222,7 @@ class RawDataBuffer(__RawDataBuffer):
 	:param data_quality: Data quality parameters.
 	:type data_quality_type: :class:`numpy.ndarray`
 	:param data_quality_type: List of references to data-quality-type.
-	:type integration_time: float
+	:type integration_time: :class:`numpy.ndarray`
 	:param integration_time: Exposure time [s].
 	:type no_averages: float
 	:param no_averages: Number/time measurements are averaged over.
