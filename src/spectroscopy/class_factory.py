@@ -513,8 +513,12 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             # Every time a new object is created it gets a new resource ID
             self.__dict__['_resource_id'] = ResourceIdentifier(oid=h5node._v_name,
                                                               referred_object=self)
-            self.__dict__['creation_time'] = datetime.datetime.utcnow().isoformat()
-            h5node._v_attrs.creation_time = self.creation_time
+            if not hasattr(h5node._v_attrs, 'creation_time'):
+                self.__dict__['creation_time'] = datetime.datetime.utcnow().isoformat()
+                h5node._v_attrs.creation_time = self.creation_time
+            else:
+                self.__dict__['creation_time'] = h5node._v_attrs.creation_time
+
 
             if data_buffer is not None:
                 dtp = []
@@ -611,6 +615,22 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                 msg = "{0:s} is not a property or reference of class {1:s}"
                 raise AttributeError(msg.format(name, type(self).__name__))
 
+        def __repr__(self):
+            msg = ''
+            msg += "ID: {:s}\n".format(self._root._v_name)
+            for n1 in self._root._v_children.iterkeys():
+                if n1 == 'data':
+                    continue
+                msg += "{0:s}: {1:}\n".format(n1, getattr(self._root, n1).shape)
+            
+            table = self._root.data
+            for n2 in table.cols._v_colnames:
+                if n2 == 'hash':
+                    continue
+                msg += "{0:s}: {1:}\n".format(n2, table[0][n2])
+            msg += "Created at: {:s}\n".format(self._root._v_attrs.creation_time)
+            return msg
+
         def append(self,databuffer):
             """
             A base element can't be extended.
@@ -626,6 +646,23 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             super(ExpandableDataElement,self).__init__(h5node,data_buffer,pedantic)
             self.__dict__['modification_time'] = self.creation_time 
             h5node._v_attrs.modification_time = self.modification_time
+
+        def __repr__(self):
+            msg = ''
+            msg += "ID: {:s}\n".format(self._root._v_name)
+            for n1 in self._root._v_children.iterkeys():
+                if n1 == 'data':
+                    continue
+                msg += "{0:s}: {1:}\n".format(n1, getattr(self._root, n1).shape)
+
+            table = self._root.data
+            for n2 in table.cols._v_colnames:
+                if n2 == 'hash':
+                    continue
+                msg += "{0:s}: {1:}\n".format(n2, table[0][n2])
+            msg += "Created at: {:s}\n".format(self._root._v_attrs.creation_time)
+            msg += "Last modified at: {:s}\n".format(self._root._v_attrs.creation_time)
+            return msg
 
         def append(self, databuffer):
             table = getattr(self._root, 'data')
