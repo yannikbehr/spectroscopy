@@ -79,6 +79,19 @@ class DatamodelTestCase(unittest.TestCase):
         r = d.new(rb)
         self.assertEqual(r.target.target_id[:],'WI001')
 
+    def test_repr(self):
+        d = Dataset(tempfile.mktemp(),'w')
+        tb = TargetBuffer(target_id='WI001', name='White Island main vent',
+                          position=(177.2, -37.5, 50),
+                          position_error=(0.2, 0.2, 20),
+                          description='Main vent in January 2017')
+        t = d.new(tb)
+        test_string = ['position_error:', '(3,)', 'position:', '(3,)',
+                       'description:', 'Main', 'vent', 'in', 'January',
+                       '2017', 'target_id:', 'WI001', 'name:', 'White',
+                       'Island', 'main', 'vent', 'Created']
+        # remove ID and creation time from test as they always change
+        self.assertEqual(str(repr(t)).split()[2:-2], test_string)
 
     def test_sum(self):
         d1 = Dataset(tempfile.mktemp(), 'w')
