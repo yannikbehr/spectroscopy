@@ -127,11 +127,13 @@ class FlySpecPluginTestCase(unittest.TestCase):
     def test_read_flux(self):
         d = Dataset(tempfile.mktemp(), 'w')
         fin = os.path.join(self.data_dir, 'TOFP04', 'TOFP04_2017_06_14.txt') 
-        e = d.read(fin, ftype='flyspecflux')
+        e = d.read(fin, ftype='flyspecflux', timeshift=13.0) 
         nlines = None
         with open(fin) as fd:
             nlines = len(fd.readlines())
         self.assertEqual(e['FluxBuffer'].value.shape, (nlines-1,))
+        fb = e['FluxBuffer']
+        self.assertEqual(fb.datetime[-1], '2017-06-14T03:29:38.033000')
 
     def test_read_refspec(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -152,14 +154,14 @@ class FlySpecPluginTestCase(unittest.TestCase):
     def test_read_wind(self):
         d = Dataset(tempfile.mktemp(), 'w')
         fin = os.path.join(self.data_dir, 'TOFP04', 'wind', '2017_06_14.txt')
-        gf = d.read(fin,ftype='flyspecwind')
+        gf = d.read(fin,ftype='flyspecwind', timeshift=13)
         vx = gf.vx[0]
         vy = gf.vy[0]
         dt = gf.datetime[0]
         v = np.sqrt(vx*vx + vy*vy)
         self.assertAlmostEqual(v, 10.88, 2)
         self.assertAlmostEqual(vec2bearing(vx,vy), 255, 6)
-        self.assertEqual(dt, '2017-06-14T06:00:00')
+        self.assertEqual(dt, '2017-06-13T17:00:00')
         
     @unittest.skip("Skipping")
     def test_plot(self):
@@ -262,7 +264,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         xnew = range(0,2048)
         wavelengths = f(xnew)
 
-        d = Dataset(tempfile.mktemp(), 'w')
+        #d = Dataset(tempfile.mktemp(), 'w')
+        d = Dataset('/tmp/flyspec_test.h5', 'w')
         ib = InstrumentBuffer(location='Te Maari crater',
                               type='FlySpec',
                               name='TOFP04')
@@ -295,7 +298,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
                 with open(_f) as fd:
                     nlines += len(fd.readlines())
                 e = d.read(_f, ftype='FLYSPEC', spectra=fin_bin,
-                           wavelengths=wavelengths, bearing=bearing)
+                           wavelengths=wavelengths, bearing=bearing,
+                           timeshift=12)
                 if r is None and c is None:
                     rdt = d.new(e['RawDataTypeBuffer'])
                     rb = e['RawDataBuffer']
@@ -323,8 +327,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.assertEqual(c.rawdata[4].inc_angle.shape, (nlines,))
         self.assertEqual(c.value[0], 119.93)
         self.assertEqual(c.value[-1], 23.30)
-        self.assertEqual(c.rawdata[4].datetime[-1], '2017-06-14T16:30:00.535000')
-        self.assertEqual(c.rawdata[4].datetime[0], '2017-06-14T08:30:49.512999')
+        self.assertEqual(c.rawdata[4].datetime[-1], '2017-06-14T04:30:00.535000')
+        self.assertEqual(c.rawdata[4].datetime[0], '2017-06-13T20:30:49.512999')
         if False:
             with tempfile.TemporaryFile() as fd:
             #with open('/tmp/file2.png', 'w+b') as fd:
@@ -340,9 +344,9 @@ class FlySpecPluginTestCase(unittest.TestCase):
                 self.assertTrue(rms <= 0.001)
 
         fe = d.read(os.path.join(self.data_dir, 'TOFP04', 'TOFP04_2017_06_14.txt'),
-                    ftype='flyspecflux')
+                    ftype='flyspecflux', timeshift=12)
         gf = d.read(os.path.join(self.data_dir, 'TOFP04', 'wind', '2017_06_14.txt'),
-                    ftype='flyspecwind')
+                    ftype='flyspecwind', timeshift=12)
         fb = fe['FluxBuffer']
         draw = r.datetime[:].astype('datetime64[us]')
         inds = []
@@ -375,7 +379,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.assertAlmostEqual(f.value[nos], 0.62, 2)
         self.assertEqual(rn.inc_angle[i0], 25.)
         self.assertEqual(rn.inc_angle[i1], 150.)
-        self.assertEqual(f.datetime[nos], '2017-06-14T09:20:17.196000')
+        self.assertEqual(f.datetime[nos], '2017-06-13T21:20:17.196000')
 
         pfb = PreferredFluxBuffer(fluxes=[f],
                                   flux_indices=[[nos]],

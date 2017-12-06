@@ -38,30 +38,33 @@ class MiniDoasPluginTestCase(unittest.TestCase):
             e1 = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_2016_11_01_Spectra.csv'),
                         ftype='minidoas-spectra')
         e1 = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_2016_11_01_Spectra.csv'),
-                    date='2016-11-01', ftype='minidoas-spectra')
+                    date='2016-11-01', ftype='minidoas-spectra', timeshift=13)
         cb = e1['ConcentrationBuffer']
+        self.assertEqual(cb.datetime[-1], '2016-11-01T03:28:07.410000')
 
         fn_wd = os.path.join(self.data_dir, 'minidoas', 'wind', '20161101_WD_00.txt')
         fn_ws = os.path.join(self.data_dir, 'minidoas', 'wind', '20161101_WS_00.txt')
 
-        e2 = d.read({'direction': fn_wd, 'speed': fn_ws}, ftype='minidoas-wind')
+        e2 = d.read({'direction': fn_wd, 'speed': fn_ws}, timeshift=13, ftype='minidoas-wind')
         gfb = e2['GasFlowBuffer']
         self.assertEqual(int(vec2bearing(gfb.vx[0], gfb.vy[0])), 240)
         self.assertAlmostEqual(np.sqrt(gfb.vx[0]**2 + gfb.vy[0]**2), 3.2, 1)
-        self.assertEqual(gfb.datetime[0], "2016-11-01T08:10:00")
+        self.assertEqual(gfb.datetime[0], "2016-10-31T19:10:00")
         e3 = d.read(os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
-                    date='2016-11-01', ftype='minidoas-scan', station='NE')
+                    date='2016-11-01', ftype='minidoas-scan', station='NE', timeshift=13)
         fb = e3['FluxBuffer']
         np.testing.assert_array_almost_equal(fb.value[:], np.array([328.2, 103.8]), 1)
+        self.assertEqual(fb.datetime[0], '2016-10-31T23:15:04')
 
     def test_readall(self):
         """
         Produce a complete HDF5 file for 1 day of MiniDOAS analysis at one station.
         """
-        d = Dataset(tempfile.mktemp(), 'w')
+        #d = Dataset(tempfile.mktemp(), 'w')
+        d = Dataset('/tmp/minidoas_test.h5', 'w')
         # Read the raw data
         e0 = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_20161101.csv'),
-                     ftype='minidoas-raw')
+                     ftype='minidoas-raw', timeshift=13)
         ib = InstrumentBuffer(name='WI301',
                               location='White Island North-East Point',
                               no_bits=16,
@@ -86,7 +89,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
 
         # Read the concentration
         e1 = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_2016_11_01_Spectra.csv'),
-                     date='2016-11-01', ftype='minidoas-spectra')
+                     date='2016-11-01', ftype='minidoas-spectra', timeshift=13)
         cb = e1['ConcentrationBuffer']
         wpoptions = "{'Pixel316nm':479, 'TrimLower':30, 'LPFilterCount':3, 'MinWindSpeed':3,"
         wpoptions += "'BrightEnough':500, 'BlueStep':5, 'MinR2:0.8, 'MaxFitCoeffError':50.0,"
@@ -112,11 +115,11 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         # Read in the raw wind data
         fn_wd = os.path.join(self.data_dir, 'minidoas', 'wind', '20161101_WD_00.txt')
         fn_ws = os.path.join(self.data_dir, 'minidoas', 'wind', '20161101_WS_00.txt')
-        e2 = d.read({'direction': fn_wd, 'speed': fn_ws}, ftype='minidoas-wind')
+        e2 = d.read({'direction': fn_wd, 'speed': fn_ws}, ftype='minidoas-wind', timeshift=13)
         gfb = e2['GasFlowBuffer']
         # Read in the flux estimates
         e3 = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_2016_11_01_Scans.csv'),
-                    date='2016-11-01', ftype='minidoas-scan')
+                    date='2016-11-01', ftype='minidoas-scan', timeshift=13)
         fb = e3['FluxBuffer']
         dt = fb.datetime[:].astype('datetime64[s]')
         indices = []
@@ -159,7 +162,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
 
         # Do the same thing with combined scan
         e4 = d.read(os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
-                    date='2016-11-01', ftype='minidoas-scan', station='NE')
+                    date='2016-11-01', ftype='minidoas-scan', station='NE', timeshift=13)
         fb1 = e4['FluxBuffer']
         dt = fb1.datetime[:].astype('datetime64[s]')
         indices = []
@@ -206,7 +209,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         data = np.loadtxt(os.path.join(self.data_dir, 'minidoas', 'FITS_NE_20161101_ah.csv'),
                           dtype=np.dtype([('date','S19'),('val',np.float),('err',np.float)]),
                           skiprows=1, delimiter=',')
-        dates = data['date'].astype('datetime64[s]')+ np.timedelta64(13,'h')
+        dates = data['date'].astype('datetime64[s]')
         indices = []
         for i, dt in enumerate(dates):
             idx = np.argmin(np.abs(f.datetime[:].astype('datetime64[s]') - dt))
@@ -222,7 +225,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         data = np.loadtxt(os.path.join(self.data_dir, 'minidoas', 'FITS_NE_20161101_ch.csv'),
                           dtype=np.dtype([('date','S19'),('val',np.float),('err',np.float)]),
                           skiprows=1, delimiter=',')
-        dates = data['date'].astype('datetime64[s]')+ np.timedelta64(13,'h')
+        dates = data['date'].astype('datetime64[s]')
         indices = []
         for i, dt in enumerate(dates):
             idx = np.argmin(np.abs(f1.datetime[:].astype('datetime64[s]') - dt))

@@ -37,7 +37,7 @@ class FlySpecPlugin(DatasetPluginBase):
             i += (2048 * 4)
         return counts
 
-    def read(self, dataset, filename, timeshift=0.0, **kargs):
+    def read(self, dataset, filename, timeshift=0, **kargs):
         """
         Load data from FlySpec instruments.
 
@@ -129,7 +129,7 @@ class FlySpecPlugin(DatasetPluginBase):
 
 class FlySpecFluxPlugin(DatasetPluginBase):
 
-    def read(self, dataset, filename,  **kargs):
+    def read(self, dataset, filename, timeshift=0, **kargs):
         """
         Read flux estimates.
         """
@@ -140,6 +140,9 @@ class FlySpecFluxPlugin(DatasetPluginBase):
         # convert milliseconds to microseconds to fix a bug in Nial's code
         us = dt - dt.astype('datetime64[s]')
         dtn = dt.astype('datetime64[s]') + us*1000
+        ts = np.timedelta64(int(timeshift), 'h')
+        # convert to UTC
+        dtn -= ts
         f = data['flux']
        
         mb = MethodBuffer(name='GNS FlySpec UI')
@@ -193,7 +196,7 @@ class FlySpecRefPlugin(DatasetPluginBase):
 
 class FlySpecWindPlugin(DatasetPluginBase):
     
-    def read(self, dataset, filename, **kargs):
+    def read(self, dataset, filename, timeshift=0, **kargs):
         """
         Read the wind data for the Flyspecs on Tongariro.
         """
@@ -219,12 +222,17 @@ class FlySpecWindPlugin(DatasetPluginBase):
             vy[i] = _vy
             vz[i] = np.nan
             time[i] = date 
+
+        dt = time.astype('datetime64[us]')
+        ts = np.timedelta64(int(timeshift), 'h')
+        # convert to UTC
+        dt -= ts
         description = 'Wind measurements and forecasts by NZ metservice \
         for Te Maari.'
         mb = MethodBuffer(name='some model')
         m = dataset.new(mb)
         gfb = GasFlowBuffer(methods=[m], vx=vx, vy=vy, vz=vz,
-                            position=position, datetime=time, 
+                            position=position, datetime=dt.astype(str), 
                             user_notes=description, unit='m/s')
         gf = dataset.new(gfb)
         return gf

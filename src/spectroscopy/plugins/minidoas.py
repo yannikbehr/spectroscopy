@@ -25,7 +25,7 @@ class MiniDoasException(DatasetPluginBaseException):
 
 class MiniDoasRaw(DatasetPluginBase):
 
-    def read(self, dataset, filename, timeshift=0.0, **kargs):
+    def read(self, dataset, filename, timeshift=0, **kargs):
         
         bearing=None
         try:
@@ -75,7 +75,7 @@ class MiniDoasRaw(DatasetPluginBase):
 
 class MiniDoasSpectra(DatasetPluginBase):
 
-    def read(self, dataset, filename, timeshift=0.0, **kargs):
+    def read(self, dataset, filename, timeshift=0, **kargs):
         try:
             date=kargs['date']
         except KeyError:
@@ -88,8 +88,10 @@ class MiniDoasSpectra(DatasetPluginBase):
                ('fitsqueezeerr', np.float)])
         data = np.loadtxt(filename, delimiter=',', skiprows=1, converters={0: lambda x: date+'T'+x},
                           dtype=dt)
+        dtm = data['datetime'].astype('datetime64[ms]')
+        dtm -= np.timedelta64(int(timeshift), 'h')
         cb = ConcentrationBuffer(value=data['value'],
-                                 datetime=data['datetime'].astype('datetime64[ms]').astype(str),
+                                 datetime=dtm.astype(str),
                                  gas_species='SO2',
                                  unit='ppm-m')
         return {str(cb):cb}
@@ -122,15 +124,15 @@ class MiniDoasScan(DatasetPluginBase):
             vx.extend([x]*3)
             vy.extend([y]*3)
             vz.extend([np.nan]*3)
-
         description = 'Plume velocity inferred from plume geometry and wind speed'
         mb = MethodBuffer(name='WS2PV', description=description)
         gfb = GasFlowBuffer(vx=vx, vy=vy, vz=vz,
-                            position=position, datetime=time, 
+                            position=position,
+                            datetime=np.array(time).astype(str), 
                             unit='m/s')
         return (mb, gfb) 
 
-    def read(self, dataset, filename, **kargs):
+    def read(self, dataset, filename, timeshift=0, **kargs):
         try:
             date = kargs['date']
         except KeyError:
@@ -149,15 +151,17 @@ class MiniDoasScan(DatasetPluginBase):
             idx = np.where(data['Station']==station)
         else:
             idx = np.arange(data.shape[0])
+        dtm = data['time'][idx].astype('datetime64[s]')
+        dtm -= np.timedelta64(int(timeshift), 'h')
         fb = FluxBuffer(value=data['Emission'][idx],
                         value_error=data['EmissionSE'][idx],
-                        datetime=data['time'][idx].astype('datetime64[s]').astype(str))
+                        datetime=dtm.astype(str))
         mb, gfb = self._plumegeometry2gasflow(data['PlumeHeight'][idx],
                                               data['PlumeWidth'][idx],
                                               data['Easting'][idx],
                                               data['Northing'][idx], 
                                               data['Track'][idx],
-                                              data['time'][idx])
+                                              dtm)
         return {str(fb):fb, str(mb):mb, str(gfb):gfb}
 
     @staticmethod
@@ -166,7 +170,7 @@ class MiniDoasScan(DatasetPluginBase):
 
 class MiniDoasWind(DatasetPluginBase):
 
-    def read(self, dataset, filename, **kargs):
+    def read(self, dataset, filename, timeshift=0, **kargs):
         try:
             fn_wd = filename['direction']
             fn_ws = filename['speed']
@@ -203,11 +207,13 @@ class MiniDoasWind(DatasetPluginBase):
             vx[i] = _vx
             vy[i] = _vy
             vz[i] = np.nan
+        dtm = data1['datetime'].astype("datetime64[s]")
+        dtm -= np.timedelta64(int(timeshift), 'h')
         description = 'Autonomous weather station operated by NZ metservice'
         mb = MethodBuffer(name='AWS', description=description)
         m = dataset.new(mb)
         gfb = GasFlowBuffer(methods=[m], vx=vx, vy=vy, vz=vz,
-                            datetime=data1['datetime'], unit='m/s')
+                            datetime=dtm.astype(str), unit='m/s')
         return {str(gfb): gfb}
 
     @staticmethod
