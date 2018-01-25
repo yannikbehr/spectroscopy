@@ -60,7 +60,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         """
         Produce a complete HDF5 file for 1 day of MiniDOAS analysis at one station.
         """
-        d = Dataset(tempfile.mktemp(), 'w')
+        #d = Dataset(tempfile.mktemp(), 'w')
+        d = Dataset('tests/data/minidoas_test.h5', 'w')
         # Read the raw data
         e0 = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_20161101.csv'),
                      ftype='minidoas-raw', timeshift=13)
@@ -82,7 +83,9 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         lat = np.ones(rb.d_var.shape[0])*-37.516690
         lon = np.ones(rb.d_var.shape[0])*177.1929793
         elev = np.ones(rb.d_var.shape[0])*30.0
+        bearing = np.ones(rb.d_var.shape[0])*np.rad2deg(6.0214)
         rb.position = np.array([lon, lat, elev]).T
+        rb.bearing = bearing
         rb.inc_angle_error = np.ones(rb.d_var.shape[0])*0.013127537*180./np.pi
         rr = d.new(rb)
 
@@ -131,27 +134,12 @@ class MiniDoasPluginTestCase(unittest.TestCase):
                     break
                 idx += 1
             idx1 = idx
-            indices.append([idx0, idx1])
+            indices.append([idx0, idx1+1])
         fb.concentration = cc
         fb.concentration_indices = indices
         
-        # Now combine the wind speed with the plume direction
         mb2 = e3['MethodBuffer']
         gfb1 = e3['GasFlowBuffer']
-        dt = gfb1.datetime[:].astype('datetime64[s]')
-        vx = []
-        vy = []
-        for i, _dt in enumerate(dt):
-            idx = np.argmin(np.abs(gfb.datetime[:].astype('datetime64[s]') - _dt))
-            vx1, vy1 = gfb.vx[idx], gfb.vy[idx]
-            ws = np.sqrt(vx1*vx1 + vy1*vy1)
-            vx2, vy2 = gfb1.vx[i], gfb1.vy[i]
-            wd = vec2bearing(vx2, vy2)
-            vx2, vy2 = bearing2vec(wd, ws)
-            vx.append(vx2)
-            vy.append(vy2)
-        gfb1.vx = vx
-        gfb1.vy = vy
         gf = d.new(gfb)
         m2 = d.new(mb2)
         gfb1.methods = [m2]
@@ -159,7 +147,6 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         fb.gasflow = gf1 
         f = d.new(fb)
 
-        # Do the same thing with combined scan
         e4 = d.read(os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
                     date='2016-11-01', ftype='minidoas-scan', station='NE', timeshift=13)
         fb1 = e4['FluxBuffer']
@@ -178,27 +165,12 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         fb1.concentration = cc
         fb1.concentration_indices = indices
         
-        # Now combine the wind speed with the plume direction
         mb3 = e4['MethodBuffer']
         new_description = mb3.description[0] + '; plume geometry inferred from triangulation'
         mb3.description = new_description
         mb3.name = 'WS2PVT'
         m3 = d.new(mb3)
         gfb2 = e4['GasFlowBuffer']
-        dt = gfb2.datetime[:].astype('datetime64[s]')
-        vx = []
-        vy = []
-        for i, _dt in enumerate(dt):
-            idx = np.argmin(np.abs(gfb.datetime[:].astype('datetime64[s]') - _dt))
-            vx1, vy1 = gfb.vx[idx], gfb.vy[idx]
-            ws = np.sqrt(vx1*vx1 + vy1*vy1)
-            vx2, vy2 = gfb2.vx[i], gfb2.vy[i]
-            wd = vec2bearing(vx2, vy2)
-            vx2, vy2 = bearing2vec(wd, ws)
-            vx.append(vx2)
-            vy.append(vy2)
-        gfb2.vx = vx
-        gfb2.vy = vy
         gfb2.methods = [m3]
         gf2 = d.new(gfb2)
         fb1.gasflow = gf2

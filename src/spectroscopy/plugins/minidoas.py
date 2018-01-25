@@ -90,7 +90,7 @@ class MiniDoasSpectra(DatasetPluginBase):
                           dtype=dt)
         dtm = data['datetime'].astype('datetime64[ms]')
         dtm -= np.timedelta64(int(timeshift), 'h')
-        cb = ConcentrationBuffer(value=data['value'],
+        cb = ConcentrationBuffer(value=data['model_value'],
                                  datetime=dtm.astype(str),
                                  gas_species='SO2',
                                  unit='ppm-m')
@@ -107,20 +107,20 @@ class MiniDoasScan(DatasetPluginBase):
         self.destp = pyproj.Proj(init="epsg:4326")
         self.srcp = pyproj.Proj(init="epsg:27200")
 
-    def _plumegeometry2gasflow(self, pheight, pwidth, peasting, pnorthing,
+    def _plumegeometry2gasflow(self, ws, pheight, pwidth, peasting, pnorthing,
                                ptrack, datetime):
         position = []
         time = []
         vx = []
         vy = []
         vz = []
-        for h,w,e,n,t,dt in zip(pheight,pwidth,peasting,pnorthing,ptrack, datetime):
+        for _ws, h,w,e,n,t,dt in zip(ws, pheight,pwidth,peasting,pnorthing,ptrack, datetime):
             lon,lat = pyproj.transform(self.srcp, self.destp, e, n)
             position.append([lon, lat, h-w/2.])
             position.append([lon, lat, h])
             position.append([lon, lat, h+w/2.])
             time.extend([dt]*3)
-            x,y = bearing2vec(t)
+            x,y = bearing2vec(t, _ws)
             vx.extend([x]*3)
             vy.extend([y]*3)
             vz.extend([np.nan]*3)
@@ -156,7 +156,8 @@ class MiniDoasScan(DatasetPluginBase):
         fb = FluxBuffer(value=data['Emission'][idx],
                         value_error=data['EmissionSE'][idx],
                         datetime=dtm.astype(str))
-        mb, gfb = self._plumegeometry2gasflow(data['PlumeHeight'][idx],
+        mb, gfb = self._plumegeometry2gasflow(data['ws'][idx],
+                                              data['PlumeHeight'][idx],
                                               data['PlumeWidth'][idx],
                                               data['Easting'][idx],
                                               data['Northing'][idx], 
