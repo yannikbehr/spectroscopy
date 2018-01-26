@@ -153,8 +153,8 @@ class MiniDoasScan(DatasetPluginBase):
             idx = np.arange(data.shape[0])
         dtm = data['time'][idx].astype('datetime64[s]')
         dtm -= np.timedelta64(int(timeshift), 'h')
-        fb = FluxBuffer(value=data['Emission'][idx],
-                        value_error=data['EmissionSE'][idx],
+        fb = FluxBuffer(value=data['Emission'][idx]/86.4,
+                        value_error=data['EmissionSE'][idx]/86.4,
                         datetime=dtm.astype(str))
         mb, gfb = self._plumegeometry2gasflow(data['ws'][idx],
                                               data['PlumeHeight'][idx],

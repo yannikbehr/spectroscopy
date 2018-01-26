@@ -53,7 +53,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         e3 = d.read(os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
                     date='2016-11-01', ftype='minidoas-scan', station='NE', timeshift=13)
         fb = e3['FluxBuffer']
-        np.testing.assert_array_almost_equal(fb.value[:], np.array([328.2, 103.8]), 1)
+        np.testing.assert_array_almost_equal(fb.value[:], np.array([3.8, 1.2]), 1)
         self.assertEqual(fb.datetime[0], '2016-10-31T23:15:04')
 
     def read_single_station(self, d, station_info):
@@ -135,7 +135,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
 
         # Read in the flux estimates for calculated height
         e4 = d.read(station_info['files']['flux_ch'],
-                    date='2016-11-01', ftype='minidoas-scan', station='NE', timeshift=13)
+                    date='2016-11-01', ftype='minidoas-scan',
+                    station=station_info['wp_station_id'], timeshift=13)
         fb1 = e4['FluxBuffer']
         dt = fb1.datetime[:].astype('datetime64[s]')
         indices = []
@@ -180,7 +181,7 @@ class MiniDoasPluginTestCase(unittest.TestCase):
             indices.append(idx)
         pfb = PreferredFluxBuffer(fluxes=[f],
                                   flux_indices=[indices],
-                                  value=data_ah['val']*86.4,
+                                  value=data_ah['val'],
                                   value_error=data_ah['err'],
                                   datetime=dates.astype(str))
         d.new(pfb)
@@ -196,18 +197,16 @@ class MiniDoasPluginTestCase(unittest.TestCase):
             indices.append(idx)
         pfb1 = PreferredFluxBuffer(fluxes=[f1],
                                   flux_indices=[indices],
-                                  value=data_ch['val']*86.4,
+                                  value=data_ch['val'],
                                   value_error=data_ch['err'],
                                   datetime=dates.astype(str))
         d.new(pfb1)
-        d.close()
 
     def test_readall(self):
         """
         Produce a complete HDF5 file for 1 day of MiniDOAS analysis at one station.
         """
-        #d = Dataset(tempfile.mktemp(), 'w')
-        d = Dataset('tests/data/minidoas_test.h5', 'w')
+        d = Dataset(tempfile.mktemp(), 'w')
 
         # ToDo: get correct plume coordinates
         tb = TargetBuffer(name='White Island main plume',
@@ -246,11 +245,29 @@ class MiniDoasPluginTestCase(unittest.TestCase):
                                           'fits_flux_ch':os.path.join(self.data_dir, 'minidoas', 'FITS_NE_20161101_ch.csv')},
                                  'stationID': 'WI301',
                                  'stationLoc':'White Island North-East Point', 
-                                 'target':t, 'bearing':6.0214,
-                                 'lon':177.1929793, 'lat':-37.516690, 'elev':30.0,
-                                 'widpro_method':m1}
-                                                                 
+                                 'target':t,
+                                 'bearing':6.0214,
+                                 'lon':177.192979384, 'lat':-37.5166903535, 'elev': 49.0,
+                                 'widpro_method':m1,
+                                 'wp_station_id':'NE'}
+
+        station_info['WI302'] = {'files':{'raw':os.path.join(self.data_dir, 'minidoas', 'SR_20161101.csv'),
+                                          'spectra':os.path.join(self.data_dir, 'minidoas', 'SR_2016_11_01_Spectra.csv'),
+                                          'flux_ah':os.path.join(self.data_dir, 'minidoas', 'SR_2016_11_01_Scans.csv'),
+                                          'flux_ch':os.path.join(self.data_dir, 'minidoas', 'XX_2016_11_01_Combined.csv'),
+                                          'fits_flux_ah':os.path.join(self.data_dir, 'minidoas', 'FITS_SR_20161101_ah.csv'),
+                                          'fits_flux_ch':os.path.join(self.data_dir, 'minidoas', 'FITS_SR_20161101_ch.csv')},
+                                 'stationID': 'WI302',
+                                 'stationLoc':'White Island South Rim', 
+                                 'target':t,
+                                 'bearing':3.8223,
+                                 'lon':177.189013316, 'lat':-37.5265334424, 'elev':96.0,
+                                 'widpro_method':m1,
+                                 'wp_station_id':'SR'}
+                                                                  
         self.read_single_station(d, station_info['WI301'])
+        self.read_single_station(d, station_info['WI302'])
+        d.close()
 
 
 def suite():
