@@ -35,13 +35,18 @@ class MiniDoasRaw(DatasetPluginBase):
         else:
             bearing = np.ones(data.shape[0])*bearing
 
-        fh = codecs.open(filename, encoding='utf-8-sig')
+        fh = codecs.open(filename, encoding='utf-8-sig', errors='ignore')
+        for line in fh.readlines():
+            a = line.encode('utf-8')
+            if a == b'\x00'*len(a):
+                raise MiniDoasException("File contains line of binary 0's")
+        fh.seek(0)
         dt = np.dtype([('station', 'S2'), ('date', 'S10'), ('time', np.float),
                        ('stept', np.int), ('angle', np.float), ('intt', np.int),
                        ('nspec', np.int), ('specin', np.float), 
                        ('counts', np.int, (482,))])
         data = np.loadtxt(fh, converters={1: lambda x: '%s-%s-%s' %(x[0:4], x[4:6], x[6:8])},
-                          dtype=dt, delimiter=',')
+                          dtype=dt, delimiter=',', ndmin=1)
         # Construct datetimes
         date = data['date'].astype('datetime64')
         hours = (data['time']/3600.).astype(int)
@@ -146,7 +151,8 @@ class MiniDoasScan(DatasetPluginBase):
                    ('PlumeWidth', np.float), ('PlumeHeight', np.float),
                    ('Easting', np.float), ('Northing', np.float), ('Track', np.float),
                    ('Emission', np.float), ('Station', 'S2'), ('EmissionSE', np.float)])
-        data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt, converters={0: lambda x: date+'T'+x})
+        data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt, converters={0: lambda x: date+'T'+x},
+                          ndmin=1)
         if station is not None:
             idx = np.where(data['Station']==station)
         else:
@@ -185,9 +191,9 @@ class MiniDoasWind(DatasetPluginBase):
             return datetime.datetime.strptime(x,'%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S')
 
         data1 = np.loadtxt(fn_wd, skiprows=1, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]), delimiter='\t',
-                  converters={0:dateconverter}) 
+                  converters={0:dateconverter}, ndmin=1) 
         data2 = np.loadtxt(fn_ws, skiprows=1, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]), delimiter='\t',
-                  converters={0:dateconverter}) 
+                  converters={0:dateconverter}, ndmin=1) 
 
         npts = data1.shape[0]
         if npts != data2.shape[0]:

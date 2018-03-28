@@ -24,6 +24,15 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         self.data_dir = os.path.join(os.path.dirname(os.path.abspath(
             inspect.getfile(inspect.currentframe()))), "data")
 
+    def test_utf8(self):
+        """
+        Test on handling non-utf8 entries.
+        """
+        d = Dataset(tempfile.mktemp(), 'w')
+        with self.assertRaises(MiniDoasException):
+            e = d.read(os.path.join(self.data_dir, 'SR_20170328_non_utf8_line.csv'),
+                       ftype='minidoas-raw')
+    
     def test_read(self):
         d = Dataset(tempfile.mktemp(), 'w')
         e = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_20161101.csv'),
