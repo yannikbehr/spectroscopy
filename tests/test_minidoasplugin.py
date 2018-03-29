@@ -32,7 +32,29 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         with self.assertRaises(MiniDoasException):
             e = d.read(os.path.join(self.data_dir, 'SR_20170328_non_utf8_line.csv'),
                        ftype='minidoas-raw')
-    
+
+    def test_wind(self):
+        """
+        Test handling of wind data files with different numbers 
+        of entries for wind speed and wind direction.
+        """
+        d = Dataset(tempfile.mktemp(), 'w')
+        windd_filepath = os.path.join(self.data_dir, '20170515_WD_00.txt')
+        winds_filepath = os.path.join(self.data_dir, '20170515_WS_00.txt')
+        e = d.read({'direction': windd_filepath,
+                    'speed': winds_filepath},
+                    ftype='minidoas-wind', timeshift=13)
+        gfb = e['GasFlowBuffer']
+        dates = gfb.datetime[:].astype('datetime64[s]')
+        dates += np.timedelta64(13, 'h')
+        self.assertEqual(dates.size, 5)
+        self.assertEqual(int(vec2bearing(gfb.vx[0], gfb.vy[0])), 240)
+        self.assertAlmostEqual(np.sqrt(gfb.vx[0]**2 + gfb.vy[0]**2), 2.5, 1)
+        self.assertEqual(int(vec2bearing(gfb.vx[-1], gfb.vy[-1])), 240)
+        self.assertAlmostEqual(np.sqrt(gfb.vx[-1]**2 + gfb.vy[-1]**2), 4.2, 1)
+
+
+
     def test_read(self):
         d = Dataset(tempfile.mktemp(), 'w')
         e = d.read(os.path.join(self.data_dir, 'minidoas', 'NE_20161101.csv'),

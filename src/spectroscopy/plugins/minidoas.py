@@ -39,7 +39,9 @@ class MiniDoasRaw(DatasetPluginBase):
         for line in fh.readlines():
             a = line.encode('utf-8')
             if a == b'\x00'*len(a):
-                raise MiniDoasException("File contains line of binary 0's")
+                fh.close()
+                msg = "File {} contains line of binary 0's"
+                raise MiniDoasException(msg.format(filename))
         fh.seek(0)
         dt = np.dtype([('station', 'S2'), ('date', 'S10'), ('time', np.float),
                        ('stept', np.int), ('angle', np.float), ('intt', np.int),
@@ -195,26 +197,33 @@ class MiniDoasWind(DatasetPluginBase):
         data2 = np.loadtxt(fn_ws, skiprows=1, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]), delimiter='\t',
                   converters={0:dateconverter}, ndmin=1) 
 
-        npts = data1.shape[0]
-        if npts != data2.shape[0]:
-            msg = "Wind direction and wind speed file don't "
-            msg += "have the same number of entries"
-            raise MiniDoasException(msg)
-        vx = np.zeros(npts)
-        vy = np.zeros(npts)
-        vz = np.zeros(npts)
-        for i in range(npts):
+       
+        # Some of the wind data files have been created
+        # by hand because the weather station didn't
+        # send any data. They then may have different
+        # number of entries, hence we have to find the 
+        # matching times
+        dates = []
+        vx = [] 
+        vy = [] 
+        vz = [] 
+        for i, _d in enumerate(data1['datetime'].astype("datetime64[s]")):
+            tdiff = np.abs(_d - data2['datetime'].astype("datetime64[s]"))
+            idx = np.argmin(tdiff)
+            if tdiff.astype('int').min() > 1:
+                continue
             wd = data1['direction'][i]
-            ws = data2['speed'][i]
+            ws = data2['speed'][idx]
             # if windspeed is 0 give it a tiny value
             # so that the bearing can be reconstructed
             if ws == 0.:
                 ws = 0.0001
             _vx, _vy = bearing2vec(wd, ws)
-            vx[i] = _vx
-            vy[i] = _vy
-            vz[i] = np.nan
-        dtm = data1['datetime'].astype("datetime64[s]")
+            vx.append(_vx)
+            vy.append(_vy)
+            vz.append(np.nan)
+            dates.append(_d)
+        dtm = np.array(dates, dtype="datetime64[s]")
         dtm -= np.timedelta64(int(timeshift), 'h')
         description = 'Autonomous weather station operated by NZ metservice'
         mb = MethodBuffer(name='AWS', description=description)
