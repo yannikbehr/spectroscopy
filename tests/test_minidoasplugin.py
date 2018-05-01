@@ -33,6 +33,16 @@ class MiniDoasPluginTestCase(unittest.TestCase):
             e = d.read(os.path.join(self.data_dir, 'SR_20170328_non_utf8_line.csv'),
                        ftype='minidoas-raw')
 
+    def test_missing_entries(self):
+        """
+        Test on handling missing entries.
+        """
+        d = Dataset(tempfile.mktemp(), 'w')
+        e = d.read(os.path.join(self.data_dir, 'SR_20160530_missing_entries.csv'),
+                   date='2016-05-30', ftype='minidoas-scan')
+        fb = e['FluxBuffer']
+        self.assertEqual(fb.value.size, 12)
+
     def test_wind(self):
         """
         Test handling of wind data files with different numbers 

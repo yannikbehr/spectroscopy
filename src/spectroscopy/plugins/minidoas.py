@@ -97,7 +97,11 @@ class MiniDoasSpectra(DatasetPluginBase):
                           dtype=dt)
         dtm = data['datetime'].astype('datetime64[ms]')
         dtm -= np.timedelta64(int(timeshift), 'h')
-        cb = ConcentrationBuffer(value=data['model_value'],
+        if kargs.get('model', False):
+            c = data['model_value']
+        else:
+            c = data['value'] 
+        cb = ConcentrationBuffer(value=c,
                                  datetime=dtm.astype(str),
                                  gas_species='SO2',
                                  unit='ppm-m')
@@ -107,7 +111,8 @@ class MiniDoasSpectra(DatasetPluginBase):
     @staticmethod
     def get_format():
         return 'minidoas-spectra'
-    
+
+
 class MiniDoasScan(DatasetPluginBase):
     def __init__(self):
         # setup projection from NZGD49 (NZMG) to WGS84
@@ -153,8 +158,30 @@ class MiniDoasScan(DatasetPluginBase):
                    ('PlumeWidth', np.float), ('PlumeHeight', np.float),
                    ('Easting', np.float), ('Northing', np.float), ('Track', np.float),
                    ('Emission', np.float), ('Station', 'S2'), ('EmissionSE', np.float)])
-        data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt, converters={0: lambda x: date+'T'+x},
-                          ndmin=1)
+        try:
+            data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt, converters={0: lambda x: date+'T'+x},
+                              ndmin=1)
+        except ValueError:
+            # Find the misformatted line
+            import io
+            master = io.StringIO()
+            fh = open(filename)
+            lines = fh.readlines()
+            for _l in lines[1:]:
+                fs = io.StringIO()
+                fs.write(unicode(_l))
+                fs.seek(0)
+                try:
+                    np.loadtxt(fs, delimiter=',', dtype=dt, converters={0: lambda x: date+'T'+x},
+                               ndmin=1)
+                except ValueError:
+                    pass
+                else:
+                    master.write(unicode(_l))
+            master.seek(0)
+            data = np.loadtxt(master, delimiter=',', dtype=dt, converters={0: lambda x: date+'T'+x},
+                              ndmin=1)
+
         if station is not None:
             idx = np.where(data['Station']==station)
         else:
