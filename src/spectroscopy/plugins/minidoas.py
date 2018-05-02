@@ -4,6 +4,7 @@ Plugin to read MiniDOAS data.
 import calendar
 import codecs
 import datetime
+import io
 import os
 import struct
 
@@ -18,6 +19,28 @@ from spectroscopy.datamodel import (RawDataBuffer,
                                     GasFlowBuffer)
 from spectroscopy.plugins import DatasetPluginBase, DatasetPluginBaseException
 from spectroscopy.util import bearing2vec
+
+def find_bad_lines(filename, **loadtxt_kargs):
+    """
+    Find lines that are not properly formatted and 
+    return a clean buffer.
+    """
+    master = io.StringIO()
+    fh = open(filename)
+    lines = fh.readlines()
+    for _l in lines[1:]:
+        fs = io.StringIO()
+        fs.write(unicode(_l))
+        fs.seek(0)
+        try:
+            np.loadtxt(fs, **loadtxt_kargs)
+        except ValueError:
+            pass
+        else:
+            master.write(unicode(_l))
+    master.seek(0)
+    return master
+
 
 class MiniDoasException(DatasetPluginBaseException):
     pass
@@ -162,24 +185,10 @@ class MiniDoasScan(DatasetPluginBase):
             data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt, converters={0: lambda x: date+'T'+x},
                               ndmin=1)
         except ValueError:
-            # Find the misformatted line
-            import io
-            master = io.StringIO()
-            fh = open(filename)
-            lines = fh.readlines()
-            for _l in lines[1:]:
-                fs = io.StringIO()
-                fs.write(unicode(_l))
-                fs.seek(0)
-                try:
-                    np.loadtxt(fs, delimiter=',', dtype=dt, converters={0: lambda x: date+'T'+x},
-                               ndmin=1)
-                except ValueError:
-                    pass
-                else:
-                    master.write(unicode(_l))
-            master.seek(0)
-            data = np.loadtxt(master, delimiter=',', dtype=dt, converters={0: lambda x: date+'T'+x},
+            buf = find_bad_lines(filename, delimiter=',', dtype=dt, 
+                                 converters={0: lambda x: date+'T'+x},
+                                 ndmin=1)
+            data = np.loadtxt(buf, delimiter=',', dtype=dt, converters={0: lambda x: date+'T'+x},
                               ndmin=1)
 
         if station is not None:
@@ -219,11 +228,25 @@ class MiniDoasWind(DatasetPluginBase):
         def dateconverter(x):
             return datetime.datetime.strptime(x,'%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S')
 
-        data1 = np.loadtxt(fn_wd, skiprows=1, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]), delimiter='\t',
-                  converters={0:dateconverter}, ndmin=1) 
-        data2 = np.loadtxt(fn_ws, skiprows=1, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]), delimiter='\t',
-                  converters={0:dateconverter}, ndmin=1) 
+        try:
+            data1 = np.loadtxt(fn_wd, skiprows=1, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]), delimiter='\t',
+                      converters={0:dateconverter}, ndmin=1) 
+        except ValueError:
+            buf = find_bad_lines(fn_wd, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]),
+                                 delimiter='\t',
+                                 converters={0:dateconverter}, ndmin=1) 
+            data1 = np.loadtxt(buf, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]), delimiter='\t',
+                               converters={0:dateconverter}, ndmin=1) 
 
+        try:
+            data2 = np.loadtxt(fn_ws, skiprows=1, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]), delimiter='\t',
+                               converters={0:dateconverter}, ndmin=1) 
+        except ValueError:
+            buf = find_bad_lines(fn_ws, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]),
+                                 delimiter='\t',
+                                 converters={0:dateconverter}, ndmin=1) 
+            data2 = np.loadtxt(buf, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]), delimiter='\t',
+                      converters={0:dateconverter}, ndmin=1) 
        
         # Some of the wind data files have been created
         # by hand because the weather station didn't
