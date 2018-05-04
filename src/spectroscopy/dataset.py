@@ -1,14 +1,16 @@
+"""
+Provide container class for gas chemistry data.
+"""
 import hashlib
 import warnings
 
 import numpy as np
 import tables
-from tables.group import Group
 from tables.exceptions import NoSuchNodeError, NodeError
 
 from spectroscopy.class_factory import ResourceIdentifier
 from spectroscopy.plugins import get_registered_plugins
-from spectroscopy.datamodel import all_classes
+from spectroscopy import datamodel
 
 
 class Dataset(object):
@@ -39,45 +41,46 @@ class Dataset(object):
     def __init__(self, filename, mode):
         self.elements = {}
         self.base_elements = {}
-        for c in all_classes:
-            name = c.__name__.strip('_') 
+        for _c in datamodel.all_classes:
+            name = _c.__name__.strip('_')
             self.elements[name] = []
-            self.base_elements[name+'Buffer'] = c
+            self.base_elements[name+'Buffer'] = _c
         self._rids = {}
         self._f = tables.open_file(filename, mode)
         # Create an array of sha224 hash values; when
         # opening an existing file this will throw an
         # exception
         try:
-            self._f.create_earray('/','hash',tables.StringAtom(itemsize=28),(0,))
+            self._f.create_earray('/', 'hash',
+                                  tables.StringAtom(itemsize=28), (0,))
         except NodeError:
             pass
 
     def __del__(self):
         self._f.close()
-    
+
     def __add__(self, other):
         msg = "__add__ is undefined as the return value would "
         msg += "be a new hdf5 file with unknown filename."
-        raise AttributeError(msg)                             
+        raise AttributeError(msg)
 
     def __iadd__(self, other):
         if self._f == other._f:
             raise ValueError("You can't add a dataset to itself.")
         update_refs = []
         rid_dict = {}
-        for e in other.elements.keys():
-            for k in other.elements[e]:
-                ne = self._copy_children(k)
-                self.elements[e].append(ne)
+        for _e in other.elements.keys():
+            for _k in other.elements[_e]:
+                ne = self._copy_children(_k)
+                self.elements[_e].append(ne)
                 update_refs.append(ne)
-                rid_dict[str(k._resource_id)] = str(ne._resource_id)
+                rid_dict[str(_k._resource_id)] = str(ne._resource_id)
 
         for ne in update_refs:
-            for k in ne._reference_keys:
-                table = getattr(ne._root,'data',None)
+            for _k in ne._reference_keys:
+                table = getattr(ne._root, 'data', None)
                 if table is not None:
-                    ref = getattr(ne._root.data.cols,k,None)
+                    ref = getattr(ne._root.data.cols, _k, None)
                     if ref is not None:
                         if type(ref[0]) == np.ndarray:
                             newentry = []
@@ -105,8 +108,8 @@ class Dataset(object):
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
                     group2 = self._f.create_group(group, nodename,
-                                                title=title,
-                                                filters=filters)
+                                                  title=title,
+                                                  filters=filters)
             group = group2
         return group
 
@@ -117,10 +120,10 @@ class Dataset(object):
         Copy the children from source group to destination group
         """
         srcgroup = src._root
-        # assign a new resource ID so that both objects can 
+        # assign a new resource ID so that both objects can
         # be referred to within the same session
-        dstgroup = srcgroup._v_parent._v_pathname+'/'+ str(ResourceIdentifier())
-        created_dstgroup = False
+        dstgroup = srcgroup._v_parent._v_pathname+'/'
+        dstgroup += str(ResourceIdentifier())
         # Create the new group
         dstgroup = self._newdst_group(dstgroup, title, filters)
 
@@ -149,7 +152,7 @@ class Dataset(object):
             s = hashlib.sha224()
             # If data buffer is empty raise an exception
             empty = True
-            for k,v in data_buffer.__dict__.iteritems():
+            for k, v in data_buffer.__dict__.iteritems():
                 if k == 'tags':
                     continue
                 if v is not None:
@@ -157,21 +160,22 @@ class Dataset(object):
                         s.update('{}'.format(v))
                     empty = False
             if empty:
-                raise ValueError("You can't add empty buffers if 'pedantic=True'.")
+                msg = "You can't add empty buffers if 'pedantic=True'."
+                raise ValueError(msg)
 
         _C = self.base_elements[type(data_buffer).__name__]
         group_name = _C.__name__.strip('_')
         rid = ResourceIdentifier()
         try:
-            self._f.create_group('/',group_name)
+            self._f.create_group('/', group_name)
         except tables.NodeError:
             pass
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            group = self._f.create_group('/'+group_name,str(rid))
-        e = _C(group,data_buffer, pedantic=pedantic)
+            group = self._f.create_group('/'+group_name, str(rid))
+        e = _C(group, data_buffer, pedantic=pedantic)
         self.elements[group_name].append(e)
-        return e         
+        return e
 
     def read(self, filename, ftype, **kwargs):
         """
@@ -179,16 +183,17 @@ class Dataset(object):
         """
         plugins = get_registered_plugins()
         pg = plugins[ftype.lower()]()
-        return pg.read(self,filename,**kwargs)
-    
+        return pg.read(self, filename, **kwargs)
+
     @staticmethod
     def open(filename):
         """
         Open an existing HDF5 file.
         """
-        dnew = Dataset(filename,'r+')         
+        dnew = Dataset(filename, 'r+')
         for group in dnew._f.walk_groups('/'):
-            if group._v_name is '/' or group._v_name+'Buffer' not in dnew.base_elements:
+            if group._v_name is '/' or group._v_name+'Buffer' \
+               not in dnew.base_elements:
                 continue
             for sgroup in group._v_groups.keys():
                 _C = dnew.base_elements[group._v_name+'Buffer']
@@ -210,14 +215,16 @@ class Dataset(object):
         Register one or more tag names.
         """
         try:
-            self._f.create_group('/','tags')
+            self._f.create_group('/', 'tags')
         except NodeError:
             pass
         for tag in tags:
             try:
-                self._f.create_earray('/tags', tag, tables.StringAtom(itemsize=60), (0,))
+                self._f.create_earray('/tags', tag,
+                                      tables.StringAtom(itemsize=60), (0,))
             except NodeError:
-                raise ValueError("Tag '{:s}' has already been registered".format(tag))
+                msg = "Tag '{:s}' has already been registered".format(tag)
+                raise ValueError(msg)
 
     def remove_tags(self, tags):
         """
@@ -231,7 +238,8 @@ class Dataset(object):
                     e = ResourceIdentifier(rid).get_referred_object()
                     e.tags.remove(tag)
             except (KeyError, NoSuchNodeError):
-                warnings.warn("Can't remove tag {} as it doesn't exist.".format(tag)) 
+                msg = "Can't remove tag {} as it doesn't exist.".format(tag)
+                warnings.warn(msg)
 
     def select(self, *args, **kargs):
         """
@@ -243,13 +251,11 @@ class Dataset(object):
             etype = False
 
         if etype:
-            retval = []
+            # retval = []
             for _e in self.elements[etype]:
                 pass
 
-                
-           
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod(exclude_empty=True)
-

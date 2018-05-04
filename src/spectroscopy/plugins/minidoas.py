@@ -1,17 +1,14 @@
 """
 Plugin to read MiniDOAS data.
 """
-import calendar
 import codecs
 import datetime
 import io
-import os
-import struct
 
 import numpy as np
 import pyproj
 
-from spectroscopy.datamodel import (RawDataBuffer, 
+from spectroscopy.datamodel import (RawDataBuffer,
                                     ConcentrationBuffer,
                                     RawDataTypeBuffer,
                                     FluxBuffer,
@@ -20,9 +17,10 @@ from spectroscopy.datamodel import (RawDataBuffer,
 from spectroscopy.plugins import DatasetPluginBase, DatasetPluginBaseException
 from spectroscopy.util import bearing2vec
 
+
 def find_bad_lines(filename, **loadtxt_kargs):
     """
-    Find lines that are not properly formatted and 
+    Find lines that are not properly formatted and
     return a clean buffer.
     """
     master = io.StringIO()
@@ -49,14 +47,6 @@ class MiniDoasException(DatasetPluginBaseException):
 class MiniDoasRaw(DatasetPluginBase):
 
     def read(self, dataset, filename, timeshift=0, **kargs):
-        
-        bearing=None
-        try:
-            bearing = kargs['bearing']
-        except KeyError:
-            pass
-        else:
-            bearing = np.ones(data.shape[0])*bearing
 
         fh = codecs.open(filename, encoding='utf-8-sig', errors='ignore')
         for line in fh.readlines():
@@ -67,37 +57,43 @@ class MiniDoasRaw(DatasetPluginBase):
                 raise MiniDoasException(msg.format(filename))
         fh.seek(0)
         dt = np.dtype([('station', 'S2'), ('date', 'S10'), ('time', np.float),
-                       ('stept', np.int), ('angle', np.float), ('intt', np.int),
-                       ('nspec', np.int), ('specin', np.float), 
-                       ('counts', np.int, (482,))])
-        data = np.loadtxt(fh, converters={1: lambda x: '%s-%s-%s' %(x[0:4], x[4:6], x[6:8])},
+                       ('stept', np.int), ('angle', np.float),
+                       ('intt', np.int), ('nspec', np.int),
+                       ('specin', np.float), ('counts', np.int, (482,))])
+
+        def date_converter(x):
+            return '%s-%s-%s' % (x[0:4], x[4:6], x[6:8])
+
+        data = np.loadtxt(fh, converters={1: date_converter},
                           dtype=dt, delimiter=',', ndmin=1)
         # Construct datetimes
         date = data['date'].astype('datetime64')
         hours = (data['time']/3600.).astype(int)
         minutes = ((data['time'] - hours*3600.)/60.).astype(int)
-        seconds = (data['time'] - hours*3600. - minutes*60.).astype(int)
-        mseconds = np.round((data['time'] - hours*3600. - minutes*60. - seconds), 3)*1e3
-        datetime = date + hours.astype('timedelta64[h]') + minutes.astype('timedelta64[m]') \
-        + seconds.astype('timedelta64[s]') + mseconds.astype('timedelta64[ms]')
+        fseconds = data['time'] - hours*3600. - minutes*60.
+        iseconds = (fseconds).astype(int)
+        mseconds = np.round((fseconds - iseconds), 3)*1e3
+        datetime = date + hours.astype('timedelta64[h]') \
+            + minutes.astype('timedelta64[m]') \
+            + iseconds.astype('timedelta64[s]') \
+            + mseconds.astype('timedelta64[ms]')
         datetime -= np.timedelta64(int(timeshift), 'h')
 
         # Convert radians to decimal degrees
         angles = data['angle']*360./(2.*np.pi)
-        rdtb = RawDataTypeBuffer(d_var_unit='ppm-m', 
+        rdtb = RawDataTypeBuffer(d_var_unit='ppm-m',
                                  ind_var_unit='nm',
                                  name='measurement',
                                  acquisition='stationary')
-        wavelengths = np.arange(30,512)
+        wavelengths = np.arange(30, 512)
         rb = RawDataBuffer(inc_angle=angles,
                            datetime=datetime.astype(str),
                            ind_var=wavelengths,
                            d_var=data['counts'],
                            integration_time=data['intt'])
-                            
-        return {str(rb):rb, str(rdtb):rdtb}
- 
-        
+
+        return {str(rb): rb, str(rdtb): rdtb}
+
     @staticmethod
     def get_format():
         return 'minidoas-raw'
@@ -107,29 +103,29 @@ class MiniDoasSpectra(DatasetPluginBase):
 
     def read(self, dataset, filename, timeshift=0, **kargs):
         try:
-            date=kargs['date']
+            date = kargs['date']
         except KeyError:
             raise MiniDoasException("'date' unspecified.")
-        
-        dt = np.dtype([('datetime', 'S26'),('angle', np.float), ('value', np.float),
-               ('model_value', np.float), ('fitcoeff', np.float),
-               ('fitcoeff_err', np.float), ('fitshift', np.float),
-               ('fitshift_err', np.float), ('fitsqueeze', np.float),
-               ('fitsqueezeerr', np.float)])
-        data = np.loadtxt(filename, delimiter=',', skiprows=1, converters={0: lambda x: date+'T'+x},
+
+        dt = np.dtype([('datetime', 'S26'), ('angle', np.float),
+                       ('value', np.float), ('model_value', np.float),
+                       ('fitcoeff', np.float), ('fitcoeff_err', np.float),
+                       ('fitshift', np.float), ('fitshift_err', np.float),
+                       ('fitsqueeze', np.float), ('fitsqueezeerr', np.float)])
+        data = np.loadtxt(filename, delimiter=',', skiprows=1,
+                          converters={0: lambda x: date+'T'+x},
                           dtype=dt)
         dtm = data['datetime'].astype('datetime64[ms]')
         dtm -= np.timedelta64(int(timeshift), 'h')
         if kargs.get('model', False):
             c = data['model_value']
         else:
-            c = data['value'] 
+            c = data['value']
         cb = ConcentrationBuffer(value=c,
                                  datetime=dtm.astype(str),
                                  gas_species='SO2',
                                  unit='ppm-m')
-        return {str(cb):cb}
-        
+        return {str(cb): cb}
 
     @staticmethod
     def get_format():
@@ -149,23 +145,25 @@ class MiniDoasScan(DatasetPluginBase):
         vx = []
         vy = []
         vz = []
-        for _ws, h,w,e,n,t,dt in zip(ws, pheight,pwidth,peasting,pnorthing,ptrack, datetime):
-            lon,lat = pyproj.transform(self.srcp, self.destp, e, n)
+        for _ws, h, w, e, n, t, dt in zip(ws, pheight, pwidth, peasting,
+                                          pnorthing, ptrack, datetime):
+            lon, lat = pyproj.transform(self.srcp, self.destp, e, n)
             position.append([lon, lat, h-w/2.])
             position.append([lon, lat, h])
             position.append([lon, lat, h+w/2.])
             time.extend([dt]*3)
-            x,y = bearing2vec(t, _ws)
+            x, y = bearing2vec(t, _ws)
             vx.extend([x]*3)
             vy.extend([y]*3)
             vz.extend([np.nan]*3)
-        description = 'Plume velocity inferred from plume geometry and wind speed'
+        description = 'Plume velocity inferred from plume geometry'
+        description += 'and wind speed'
         mb = MethodBuffer(name='WS2PV', description=description)
         gfb = GasFlowBuffer(vx=vx, vy=vy, vz=vz,
                             position=position,
-                            datetime=np.array(time).astype(str), 
+                            datetime=np.array(time).astype(str),
                             unit='m/s')
-        return (mb, gfb) 
+        return (mb, gfb)
 
     def read(self, dataset, filename, timeshift=0, **kargs):
         try:
@@ -175,24 +173,28 @@ class MiniDoasScan(DatasetPluginBase):
 
         station = kargs.get('station', None)
 
-        dt = np.dtype([('time','S19'), ('ws', np.float), ('wd', np.float), 
-                   ('R2', np.float), ('SO2Start', np.float), ('SO2Max', np.float),
-                   ('SO2End', np.float), ('PlumeRange', np.float),
-                   ('PlumeWidth', np.float), ('PlumeHeight', np.float),
-                   ('Easting', np.float), ('Northing', np.float), ('Track', np.float),
-                   ('Emission', np.float), ('Station', 'S2'), ('EmissionSE', np.float)])
+        dt = np.dtype([('time', 'S19'), ('ws', np.float), ('wd', np.float),
+                       ('R2', np.float), ('SO2Start', np.float),
+                       ('SO2Max', np.float), ('SO2End', np.float),
+                       ('PlumeRange', np.float), ('PlumeWidth', np.float),
+                       ('PlumeHeight', np.float), ('Easting', np.float),
+                       ('Northing', np.float), ('Track', np.float),
+                       ('Emission', np.float), ('Station', 'S2'),
+                       ('EmissionSE', np.float)])
         try:
-            data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt, converters={0: lambda x: date+'T'+x},
+            data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt,
+                              converters={0: lambda x: date+'T'+x},
                               ndmin=1)
         except ValueError:
-            buf = find_bad_lines(filename, delimiter=',', dtype=dt, 
+            buf = find_bad_lines(filename, delimiter=',', dtype=dt,
                                  converters={0: lambda x: date+'T'+x},
                                  ndmin=1)
-            data = np.loadtxt(buf, delimiter=',', dtype=dt, converters={0: lambda x: date+'T'+x},
+            data = np.loadtxt(buf, delimiter=',', dtype=dt,
+                              converters={0: lambda x: date+'T'+x},
                               ndmin=1)
 
         if station is not None:
-            idx = np.where(data['Station']==station)
+            idx = np.where(data['Station'] == station)
         else:
             idx = np.arange(data.shape[0])
         dtm = data['time'][idx].astype('datetime64[s]')
@@ -204,14 +206,15 @@ class MiniDoasScan(DatasetPluginBase):
                                               data['PlumeHeight'][idx],
                                               data['PlumeWidth'][idx],
                                               data['Easting'][idx],
-                                              data['Northing'][idx], 
+                                              data['Northing'][idx],
                                               data['Track'][idx],
                                               dtm)
-        return {str(fb):fb, str(mb):mb, str(gfb):gfb}
+        return {str(fb): fb, str(mb): mb, str(gfb): gfb}
 
     @staticmethod
     def get_format():
         return 'minidoas-scan'
+
 
 class MiniDoasWind(DatasetPluginBase):
 
@@ -226,37 +229,38 @@ class MiniDoasWind(DatasetPluginBase):
             raise MiniDoasException(msg)
 
         def dateconverter(x):
-            return datetime.datetime.strptime(x,'%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S')
+            return (datetime.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
+                    .strftime('%Y-%m-%dT%H:%M:%S'))
 
         try:
-            data1 = np.loadtxt(fn_wd, skiprows=1, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]), delimiter='\t',
-                      converters={0:dateconverter}, ndmin=1) 
+            dtp1 = np.dtype([('datetime', 'S19'), ('direction', np.float)])
+            data1 = np.loadtxt(fn_wd, skiprows=1, dtype=dtp1, delimiter='\t',
+                               converters={0: dateconverter}, ndmin=1)
         except ValueError:
-            buf = find_bad_lines(fn_wd, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]),
-                                 delimiter='\t',
-                                 converters={0:dateconverter}, ndmin=1) 
-            data1 = np.loadtxt(buf, dtype=np.dtype([('datetime','S19'), ('direction', np.float)]), delimiter='\t',
-                               converters={0:dateconverter}, ndmin=1) 
+            buf = find_bad_lines(fn_wd, dtype=dtp1, delimiter='\t',
+                                 converters={0: dateconverter}, ndmin=1)
+            data1 = np.loadtxt(buf, dtype=dtp1, delimiter='\t',
+                               converters={0: dateconverter}, ndmin=1)
 
         try:
-            data2 = np.loadtxt(fn_ws, skiprows=1, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]), delimiter='\t',
-                               converters={0:dateconverter}, ndmin=1) 
+            dtp2 = np.dtype([('datetime', 'S19'), ('speed', np.float)])
+            data2 = np.loadtxt(fn_ws, skiprows=1, dtype=dtp2, delimiter='\t',
+                               converters={0: dateconverter}, ndmin=1)
         except ValueError:
-            buf = find_bad_lines(fn_ws, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]),
-                                 delimiter='\t',
-                                 converters={0:dateconverter}, ndmin=1) 
-            data2 = np.loadtxt(buf, dtype=np.dtype([('datetime','S19'), ('speed', np.float)]), delimiter='\t',
-                      converters={0:dateconverter}, ndmin=1) 
-       
+            buf = find_bad_lines(fn_ws, dtype=dtp2, delimiter='\t',
+                                 converters={0: dateconverter}, ndmin=1)
+            data2 = np.loadtxt(buf, dtype=dtp2, delimiter='\t',
+                               converters={0: dateconverter}, ndmin=1)
+
         # Some of the wind data files have been created
         # by hand because the weather station didn't
         # send any data. They then may have different
-        # number of entries, hence we have to find the 
+        # number of entries, hence we have to find the
         # matching times
         dates = []
-        vx = [] 
-        vy = [] 
-        vz = [] 
+        vx = []
+        vy = []
+        vz = []
         for i, _d in enumerate(data1['datetime'].astype("datetime64[s]")):
             tdiff = np.abs(_d - data2['datetime'].astype("datetime64[s]"))
             idx = np.argmin(tdiff)
@@ -285,4 +289,3 @@ class MiniDoasWind(DatasetPluginBase):
     @staticmethod
     def get_format():
         return 'minidoas-wind'
-
