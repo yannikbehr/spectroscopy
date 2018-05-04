@@ -1,24 +1,20 @@
-import calendar
+"""
+Generate classes defined in the datamodel.
+"""
 import collections
-from copy import copy, deepcopy
+from copy import deepcopy
 import datetime
 import hashlib
 import inspect
-import string
 from uuid import uuid4
 import warnings
 import weakref
 
-from dateutil import tz
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize, LogNorm
-from matplotlib.pyplot import cm
 import numpy as np
 import tables
-from scipy.stats import binned_statistic
 
-from spectroscopy.plugins import get_registered_plugins, DatasetPluginBase
 import spectroscopy.util
+
 
 class ResourceIdentifier(object):
     """
@@ -377,7 +373,7 @@ class RetVal(object):
             return object.__getattribute__(self, key)
         return getattr(self._wrapped_object, key)
 
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         return self._wrapped_object.__getitem__(key)
 
     def __str__(self):
@@ -391,7 +387,7 @@ class H5Set(set):
 
     def __init__(self, h5node):
         self.h5node = h5node
-        # check for already existing tags e.g. when 
+        # check for already existing tags e.g. when
         # reading in a file
         f = self.h5node._v_file
         try:
@@ -399,7 +395,7 @@ class H5Set(set):
                 ea = f.root.tags._v_children[_t]
                 entries = ea[np.where(ea[:] == self.h5node._v_name.encode())]
                 if len(entries) > 0:
-                    super(H5Set,self).add(_t)
+                    super(H5Set, self).add(_t)
         except (KeyError, tables.NoSuchNodeError):
             pass
 
@@ -408,13 +404,13 @@ class H5Set(set):
         if val in self:
             return
         try:
-            super(H5Set,self).add(val)
-        except Exception,e:
-            print val
+            super(H5Set, self).add(val)
+        except Exception as e:
+            print(val)
             raise e
         try:
             ea = f.root.tags._v_children[val]
-        except (KeyError,tables.NoSuchNodeError):
+        except (KeyError, tables.NoSuchNodeError):
             msg = "Tag {:s} has not been registered yet. "
             msg += "Use the 'Dataset.register_tags' function first."
             raise ValueError(msg.format(val))
@@ -437,7 +433,7 @@ class H5Set(set):
 
     def remove(self, val):
         f = self.h5node._v_file
-        super(H5Set,self).remove(val)
+        super(H5Set, self).remove(val)
         ea = f.root.tags._v_children[val]
         ea[np.where(ea[:] == self.h5node._v_name.encode())] = np.array(
             [''], dtype='S60')
@@ -471,16 +467,19 @@ class H5Set(set):
             self.discard(v)
 
 
-def _class_factory(class_name, class_type='base', class_attributes=[], class_references=[]):
+def _class_factory(class_name, class_type='base', class_attributes=[],
+                   class_references=[]):
     """
     Class factory to unify the creation of all the types in the datamodel.
     """
 
     class DataElementBase(object):
         """
-        A base class with type checking for non-extendable elements in the datamodel.
+        A base class with type checking for non-extendable
+        elements in the datamodel.
         """
-        # Assign properties of the data element including the expected data types
+        # Assign properties of the data element including
+        # the expected data types
         _properties = []
         for item in class_attributes:
             _properties.append((item[0], item[1]))
@@ -492,11 +491,11 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         # Assign references to other elements in the datamodel
         _references = []
         for item in class_references:
-            _references.append((item[0],item[1]))
-        _reference_keys = [_i[0] for _i in _references] 
+            _references.append((item[0], item[1]))
+        _reference_keys = [_i[0] for _i in _references]
         _reference_dict = {}
         for key, val in _references:
-            _reference_dict[key] = val 
+            _reference_dict[key] = val
 
         # Map numpy types to pytables types
         dtmap = {np.float64: tables.Float64Atom(),
@@ -505,27 +504,27 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
 
         def __init__(self, h5node, data_buffer=None, pedantic=False):
             # Set the parent HDF5 group after type checking
-            if (type(h5node) is not tables.group.Group):
+            if type(h5node) is not tables.group.Group:
                 raise Exception("%s and %s are incompatible types." %
                                 (type(h5node), tables.group.Group))
             self.__dict__['_root'] = h5node
             self.__dict__['_tags'] = H5Set(h5node)
             # Every time a new object is created it gets a new resource ID
-            self.__dict__['_resource_id'] = ResourceIdentifier(oid=h5node._v_name,
-                                                              referred_object=self)
+            ri = ResourceIdentifier(oid=h5node._v_name, referred_object=self)
+            self.__dict__['_resource_id'] = ri
             if not hasattr(h5node._v_attrs, 'creation_time'):
-                self.__dict__['creation_time'] = datetime.datetime.utcnow().isoformat()
+                self.__dict__['creation_time'] = \
+                        datetime.datetime.utcnow().isoformat()
                 h5node._v_attrs.creation_time = self.creation_time
             else:
                 self.__dict__['creation_time'] = h5node._v_attrs.creation_time
-
 
             if data_buffer is not None:
                 dtp = []
                 vals = {}
                 avals = {}
                 for key, prop_type in self._property_dict.iteritems():
-                    val = getattr(data_buffer,key,None)
+                    val = getattr(data_buffer, key, None)
                     if val is None:
                         continue
                     if key == 'tags':
@@ -533,43 +532,46 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                             self._tags.add(_v)
                         continue
                     if prop_type[0] == datetime.datetime:
-                        vals[key] = val 
-                        dtp.append((key,np.dtype('S'+str(len(val))),()))
+                        vals[key] = val
+                        dtp.append((key, np.dtype('S'+str(len(val))), ()))
                     elif prop_type[0] == np.ndarray:
                         avals[key] = val
-                    else: 
+                    else:
                         vals[key] = val
-                        dtp.append((key,val.dtype,val.shape))
+                        dtp.append((key, val.dtype, val.shape))
 
                 for key, prop_type in self._reference_dict.iteritems():
-                    val = getattr(data_buffer,key,None)
+                    val = getattr(data_buffer, key, None)
                     if val is None:
                         continue
                     vals[key] = val
                     # References are either strings or arrays of strings
                     if prop_type[0] == np.ndarray:
-                        dtp.append((key,val.dtype,val.shape))
+                        dtp.append((key, val.dtype, val.shape))
                     else:
-                        dtp.append((key,np.dtype('S'+str(len(val))),()))            
-                # Add a hash column to avoid adding the same entries more than once
-                dtp.append(('hash','S28',()))
+                        dtp.append((key, np.dtype('S'+str(len(val))), ()))
+                # Add a hash column to avoid adding the same
+                # entries more than once
+                dtp.append(('hash', 'S28', ()))
                 # Allow to create empty elements for testing
                 if len(dtp) > 0:
                     s = hashlib.sha224()
                     f = h5node._v_file
-                    table = f.create_table(h5node,'data', np.dtype(dtp))
+                    table = f.create_table(h5node, 'data', np.dtype(dtp))
                     entry = table.row
-                    for key,val in vals.iteritems():
-                        entry[key]  = val
+                    for key, val in vals.iteritems():
+                        entry[key] = val
                         s.update('{}'.format(val))
                     for key, val in avals.iteritems():
                         try:
                             shape = list(val.shape)
                             shape[0] = 0
-                            vl = f.create_earray(h5node, key, atom=self.dtmap[val.dtype.type],
-                                                shape=tuple(shape))
-                        except Exception, e:
-                            print val.dtype.type
+                            at = self.dtmap[val.dtype.type]
+                            vl = f.create_earray(h5node, key,
+                                                 atom=at,
+                                                 shape=tuple(shape))
+                        except Exception as e:
+                            print(val.dtype.type)
                             raise e
                         vl.append(val)
                         s.update('{}'.format(val))
@@ -581,9 +583,9 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                         msg = "You can't add the same dataset "
                         msg += "more than once if 'pedantic=True'."
                         raise ValueError(msg)
-                    ea.append(np.array([h],dtype='S28'))
+                    ea.append(np.array([h], dtype='S28'))
                     entry.append()
-                    table.flush() 
+                    table.flush()
 
         @property
         def tags(self):
@@ -594,23 +596,25 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
 
         def __setattr__(self, name, value):
             # Raise an exception if not a property or attribute
-            raise AttributeError(
-                '{} attributes are read only. Use append method instead.'.format(type(self).__name__))
+            msg = '{} attributes are read only. Use append method instead.'
+            raise AttributeError(msg.format(type(self).__name__))
 
         def __getattr__(self, name):
-            table = getattr(self._root,'data')
+            table = getattr(self._root, 'data')
             if name in self._property_keys:
                 if self._property_dict[name][0] == np.ndarray:
-                    return RetVal(getattr(self._root,name))
-                return RetVal(getattr(table.cols,name))
+                    return RetVal(getattr(self._root, name))
+                return RetVal(getattr(table.cols, name))
             elif name in self._reference_keys:
                 if self._reference_dict[name][0] == np.ndarray:
                     _t = []
                     for val in table[0][name]:
-                        _t.append(ResourceIdentifier(val).get_referred_object())
+                        _t.append((ResourceIdentifier(val).
+                                   get_referred_object()))
                     return _t
                 else:
-                    return ResourceIdentifier(table[0][name]).get_referred_object()
+                    return (ResourceIdentifier(table[0][name]).
+                            get_referred_object())
             else:
                 msg = "{0:s} is not a property or reference of class {1:s}"
                 raise AttributeError(msg.format(name, type(self).__name__))
@@ -621,30 +625,33 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             for n1 in self._root._v_children.iterkeys():
                 if n1 == 'data':
                     continue
-                msg += "{0:s}: {1:}\n".format(n1, getattr(self._root, n1).shape)
-            
+                msg += ("{0:s}: {1:}\n"
+                        .format(n1, getattr(self._root, n1).shape))
+
             table = self._root.data
             for n2 in table.cols._v_colnames:
                 if n2 == 'hash':
                     continue
                 msg += "{0:s}: {1:}\n".format(n2, table[0][n2])
-            msg += "Created at: {:s}\n".format(self._root._v_attrs.creation_time)
+            msg += ("Created at: {:s}\n"
+                    .format(self._root._v_attrs.creation_time))
             return msg
 
-        def append(self,databuffer):
+        def append(self, databuffer):
             """
             A base element can't be extended.
             """
             raise AttributeError("A base element can't be extended")
-                
 
     class ExpandableDataElement(DataElementBase):
         """
-        A base class with type checking for extendable elements in the datamodel.
+        A base class with type checking for extendable
+        elements in the datamodel.
         """
         def __init__(self, h5node, data_buffer=None, pedantic=False):
-            super(ExpandableDataElement,self).__init__(h5node,data_buffer,pedantic)
-            self.__dict__['modification_time'] = self.creation_time 
+            super(ExpandableDataElement, self).__init__(h5node, data_buffer,
+                                                        pedantic)
+            self.__dict__['modification_time'] = self.creation_time
             h5node._v_attrs.modification_time = self.modification_time
 
         def __repr__(self):
@@ -653,30 +660,33 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             for n1 in self._root._v_children.iterkeys():
                 if n1 == 'data':
                     continue
-                msg += "{0:s}: {1:}\n".format(n1, getattr(self._root, n1).shape)
+                msg += "{0:s}: {1:}\n".format(n1,
+                                              getattr(self._root, n1).shape)
 
             table = self._root.data
             for n2 in table.cols._v_colnames:
                 if n2 == 'hash':
                     continue
                 msg += "{0:s}: {1:}\n".format(n2, table[0][n2])
-            msg += "Created at: {:s}\n".format(self._root._v_attrs.creation_time)
-            msg += "Last modified at: {:s}\n".format(self._root._v_attrs.creation_time)
+            msg += ("Created at: {:s}\n"
+                    .format(self._root._v_attrs.creation_time))
+            msg += ("Last modified at: {:s}\n"
+                    .format(self._root._v_attrs.creation_time))
             return msg
 
         def append(self, databuffer):
             table = getattr(self._root, 'data')
             s = hashlib.sha1()
             entry = table.row
-            for key,val in databuffer.__dict__.iteritems():
+            for key, val in databuffer.__dict__.iteritems():
                 if val is not None:
                     try:
                         prop_type = self._property_dict[key]
                     except KeyError:
                         prop_type = self._reference_dict[key]
-                        
+
                     if prop_type[0] == np.ndarray:
-                        vl = getattr(self._root,key)
+                        vl = getattr(self._root, key)
                         vl.append(val)
                     else:
                         entry[key] = val
@@ -687,9 +697,9 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
             entry['hash'] = h
             entry.append()
             table.flush()
-            self.__dict__['modification_time'] = datetime.datetime.utcnow().isoformat()
+            self.__dict__['modification_time'] = \
+                datetime.datetime.utcnow().isoformat()
             self._root._v_attrs.modification_time = self.modification_time
-
 
     class DataElementBuffer(object):
         # Every element has to have an ID and a reference to the plugin
@@ -705,11 +715,11 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
         # Assign references to other elements in the datamodel
         _references = []
         for item in class_references:
-            _references.append((item[0],item[1]))
-        _reference_keys = [_i[0] for _i in _references] 
+            _references.append((item[0], item[1]))
+        _reference_keys = [_i[0] for _i in _references]
         _reference_dict = {}
         for key, value in _references:
-            _reference_dict[key] = value 
+            _reference_dict[key] = value
 
         def __init__(self, **kwargs):
             # Set all property values to None or the kwarg value.
@@ -717,9 +727,9 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                 value = kwargs.pop(key, None)
                 setattr(self, key, value)
             for key in self._reference_keys:
-                value = kwargs.pop(key,None)
+                value = kwargs.pop(key, None)
                 setattr(self, key, value)
-            
+
             if len(kwargs.keys()) > 0:
                 msg = "The following names are not a "
                 msg += "property or reference of class {:s}: "
@@ -739,8 +749,8 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                     raise AttributeError(
                         "%s is not a property or reference of class %s" %
                         (name, type(self).__name__))
-            
-            # Try to convert values into the specified datatypes 
+
+            # Try to convert values into the specified datatypes
             if value is not None:
                 try:
                     if name in self._reference_keys:
@@ -750,14 +760,16 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                             for n in value:
                                 if type(n) is not attrib_type[1]:
                                     msg = "{:s} has to be of type: {}"
-                                    raise ValueError(msg.format(name, attrib_type[0]))
-                                _t.append(str(getattr(n,'_resource_id')))
+                                    msg = msg.format(name, attrib_type[0])
+                                    raise ValueError(msg)
+                                _t.append(str(getattr(n, '_resource_id')))
                             value = np.array(_t)
                         else:
                             if type(value) is not attrib_type[0]:
                                 msg = "{:s} has to be of type: {}"
-                                raise ValueError(msg.format(name, attrib_type[0]))
-                            value = str(getattr(value,'_resource_id'))
+                                raise ValueError(msg.format(name,
+                                                            attrib_type[0]))
+                            value = str(getattr(value, '_resource_id'))
                     else:
                         if attrib_type[0] == np.ndarray:
                             # if the array contains datetime we need to convert
@@ -766,18 +778,22 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
                             if attrib_type[1] == datetime.datetime:
                                 _vals = []
                                 for v in value:
-                                    _vals.append(spectroscopy.util.parse_iso_8601(v).isoformat())
+                                    _vals.append((spectroscopy.util
+                                                  .parse_iso_8601(v)
+                                                  .isoformat()))
                                 value = np.array(_vals)
                             else:
                                 value = np.array(value).astype(attrib_type[1])
                         elif self._property_dict[name][0] == datetime.datetime:
-                            value = spectroscopy.util.parse_iso_8601(value).isoformat()
+                            value = (spectroscopy.util
+                                     .parse_iso_8601(value)
+                                     .isoformat())
                         else:
                             value = attrib_type[0](value)
                 except ValueError:
                     msg = "'{:s}' can't be converted to: {}"
                     raise ValueError(msg.format(name, attrib_type))
- 
+
             self.__dict__[name] = value
 
     if class_type == 'base':
@@ -792,7 +808,6 @@ def _class_factory(class_name, class_type='base', class_attributes=[], class_ref
 
 
 class _DataElementWriter(object):
-    
+
     def __init__(self):
         pass
- 

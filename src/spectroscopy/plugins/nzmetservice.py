@@ -1,18 +1,16 @@
 """
 Plugin to read and write FlySpec data.
 """
-import calendar
 from collections import defaultdict
 import datetime
 import os
 import re
 
 import numpy as np
-import pyproj
 from pytz import timezone
 
 from spectroscopy.datamodel import GasFlowBuffer, MethodBuffer
-from spectroscopy.plugins import DatasetPluginBase, DatasetPluginBaseException
+from spectroscopy.plugins import DatasetPluginBase
 from spectroscopy.util import bearing2vec
 
 
@@ -22,12 +20,12 @@ class NZMetservicePluginException(Exception):
 
 class NZMetservicePlugin(DatasetPluginBase):
 
-
     def __init__(self):
         # Geographic coordinates of volcanoes
-        self.volc_dict_keys = ['Auckland', 'Haroharo', 'Mayor Island', 'Ngauruhoe',
-                               'Ruapehu', 'Taranaki', 'Tarawera', 'Taupo',
-                               'Tongariro', 'White Island']
+        self.volc_dict_keys = ['Auckland', 'Haroharo', 'Mayor Island',
+                               'Ngauruhoe', 'Ruapehu', 'Taranaki',
+                               'Tarawera', 'Taupo', 'Tongariro',
+                               'White Island']
         self.volc_dict_values = [(174.735, -36.890), (176.466, -38.147),
                                  (176.256, -37.287), (175.632, -39.157),
                                  (175.564, -39.281), (174.064, -39.297),
@@ -39,7 +37,6 @@ class NZMetservicePlugin(DatasetPluginBase):
 
         self.met_models = ['ecmwf', 'gfs', 'ukmo']
 
-
     def _parse_model(self, md, ct, lines):
         """
         Parse the forecasts for each volcano.
@@ -50,12 +47,14 @@ class NZMetservicePlugin(DatasetPluginBase):
         _a = lines[2].split()
         if len(_a) < 1:
             raise NZMetservicePluginException('No data.')
-        _d = timezone('Pacific/Auckland').localize(
-             datetime.datetime.strptime('{0:4d}{1:02d}{2:s}'.format(ct.year, ct.month, _a[0]),
-                                  '%Y%m%d%H%M'))
+        _d = (timezone('Pacific/Auckland')
+              .localize(datetime.datetime
+                        .strptime(('{0:4d}{1:02d}{2:s}'
+                                   .format(ct.year, ct.month, _a[0])),
+                                  '%Y%m%d%H%M')))
         for i in range(len(_a)):
             times.append(_d.astimezone(timezone('UTC')))
-            _d += datetime.timedelta(hours=6)        
+            _d += datetime.timedelta(hours=6)
 
         for _l in lines[3:-1]:
             _a = _l.split()
@@ -64,7 +63,8 @@ class NZMetservicePlugin(DatasetPluginBase):
                 if _e == '-':
                     continue
                 d, s = map(float, _e.split('/'))
-                vals.append((times[_i], self.volc_dict[md][0], self.volc_dict[md][1], _h, d, s * 0.514444))
+                vals.append((times[_i], self.volc_dict[md][0],
+                             self.volc_dict[md][1], _h, d, s * 0.514444))
         return vals
 
     def _readfile(self, filename):
@@ -78,11 +78,13 @@ class NZMetservicePlugin(DatasetPluginBase):
             match = re.search(
                 r'(?P<time>\d{2}\:\d{2}\S{2}) (?P<date>\d{2}-\d{2}-\d{4})', _l)
             try:
-                ct = datetime.datetime.strptime(' '.join((match.group('date'),
-                                                 match.group('time'))),
-                                       '%d-%m-%Y %I:%M%p')
+                ct = (datetime.datetime.
+                      strptime(' '.join((match.group('date'),
+                                         match.group('time'))),
+                               '%d-%m-%Y %I:%M%p'))
             except:
-                raise NZMetservicePluginException('Unexpected file format on line %s.' % _l)
+                msg = 'Unexpected file format on line %s.' % _l
+                raise NZMetservicePluginException(msg)
             # ignore the next two lines
             fd.readline()
             fd.readline()
@@ -92,25 +94,27 @@ class NZMetservicePlugin(DatasetPluginBase):
                 _mod = re.match(r'Model of the day is (\S+)', _l).group(1)
                 _mod = _mod.lower()
             except:
-                raise NZMetservicePluginException('Unexpected file format on line %s.' % _l)
+                msg = 'Unexpected file format on line %s.' % _l
+                raise NZMetservicePluginException(msg)
             fd.readline()
             # which model is this
             _l = fd.readline()
             try:
-                _mdl = re.match(r'Data for model (\S+)', _l).group(1).lower()
+                re.match(r'Data for model (\S+)', _l).group(1).lower()
             except:
                 raise NZMetservicePluginException(
                     'Unexpected file format on line %s.' % _l)
-            # check whether model file is empty in which 
+            # check whether model file is empty in which
             # case it'll be ignored
             try:
-                _mdl = re.match(r'Data for model (\S+) is unavailable.', _l).group(1).lower()
+                (re.match(r'Data for model (\S+) is unavailable.', _l)
+                 .group(1).lower())
             except:
                 # parse the rest of the file
                 retvals = []
                 for _v in self.volc_dict_keys:
                     lines = []
-                    for _i in xrange(12):
+                    for _i in range(12):
                         lines.append(fd.readline())
                     try:
                         re.match(r'(^%s\s+)' % _v, lines[0]).group(1)
@@ -127,23 +131,21 @@ class NZMetservicePlugin(DatasetPluginBase):
                 return (_mod, retvals)
             else:
                 return (_mod, None)
- 
 
     def read(self, dataset, filename, **kargs):
-        
+
         if not os.path.isfile(filename):
             raise NZMetservicePluginException('File %s does not exist.' %
-                                             filename)
+                                              filename)
         # Construct the filenames for all three model files
         mdl = os.path.basename(filename).split('_')[4]
-        _data_dir = os.path.dirname(filename)
         _mdls = defaultdict(list)
         for _mdl in self.met_models:
             _fn = filename.replace(mdl, _mdl)
             if os.path.isfile(_fn):
-               _mod, vals = self._readfile(_fn)
-               if vals is not None:
-                   _mdls[_mdl] = vals
+                _mod, vals = self._readfile(_fn)
+                if vals is not None:
+                    _mdls[_mdl] = vals
         _mod = kargs.get('preferred_model', _mod)
         if _mod not in _mdls:
             # if data for model of the day is unavailable raise an exception
@@ -155,7 +157,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         vy = np.zeros(npts)
         vz = np.zeros(npts)
         position = np.zeros((npts, 3))
-        time = np.empty(npts,dtype='S26')
+        time = np.empty(npts, dtype='S26')
         for _i, _e in enumerate(_mdls[_mod]):
             t, lon, lat, h, d, s = _e
             # if windspeed is 0 give it a tiny value
@@ -173,7 +175,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         mb = MethodBuffer(name=_mod)
         m = dataset.new(mb)
         gfb = GasFlowBuffer(methods=[m], vx=vx, vy=vy, vz=vz,
-                            position=position, datetime=time, 
+                            position=position, datetime=time,
                             user_notes=description, unit='m/s')
         gf = dataset.new(gfb)
         return gf

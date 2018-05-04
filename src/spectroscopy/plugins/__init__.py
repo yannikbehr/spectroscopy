@@ -1,6 +1,5 @@
 import os
 import warnings
-import numpy as np
 
 
 class DatasetPluginBaseException(Exception):
@@ -12,10 +11,10 @@ class DatasetPluginBase(object):
     Default plugin to keep a Dataset instance in memory.
     """
 
-    def read(self, dataset, filename, **kargs ):
+    def read(self, dataset, filename, **kargs):
         raise Exception("'read' is undefined")
 
-    def write(self, dataset, filename, **kargs ):
+    def write(self, dataset, filename, **kargs):
         raise Exception("'write' is undefined")
 
     def close(self, filename):
@@ -28,8 +27,9 @@ class DatasetPluginBase(object):
 
 def load_all_plugins():
     """
-    Loads all installed spectroscopy dataset plug-ins. Plugins that cannot be loaded
-    will be skipped and a warning message issued.
+    Loads all installed spectroscopy dataset plug-ins.
+    Plugins that cannot be loaded will be skipped and
+    a warning message issued.
     """
     # import all the plugins from the plugins directory
     plugins_directory = __path__[0]
@@ -60,10 +60,11 @@ def load_all_plugins():
             __import__("spectroscopy.plugins." + plugin.rstrip(".py"),
                        fromlist=["spectroscopy.plugins"], globals=globals(),
                        locals=locals())
-        except Exception, e:
+        except Exception as e:
             # skip over any plugins that we cannot import
-            warnings.warn('Failed to import plug-in \'%s\'. \n\nregister() '
-                          'raised the exception: \'%s\'.' % (plugin, e.args[0]))
+            msg = "Failed to import plug-in {}\n"
+            msg += "register() raised the exception: {}"
+            warnings.warn(msg.format(plugin, e.args[0]))
 
     # return to the old working dir
     os.chdir(cur_dir)

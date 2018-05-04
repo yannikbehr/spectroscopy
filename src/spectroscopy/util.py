@@ -160,7 +160,7 @@ def parse_iso_8601(value):
     return dt + datetime.timedelta(seconds=float(delta) + ms)
 
 
-def get_wind_speed(gf,lon,lat,elev,date):
+def get_wind_speed(gf, lon, lat, elev, date):
     """
     Given a GasFlow object return the wind speed vector
     closest to the requested location and time.
@@ -179,12 +179,12 @@ def get_wind_speed(gf,lon,lat,elev,date):
     """
     from scipy.spatial import KDTree
     from spectroscopy.util import parse_iso_8601
-    if not isinstance(date,datetime.datetime):
+    if not isinstance(date, datetime.datetime):
         _d = parse_iso_8601(date)
     else:
         _d = date
     _ts = calendar.timegm((_d.utctimetuple()))
-    _dt = gf.datetime[:].astype(np.datetime64) 
+    _dt = gf.datetime[:].astype(np.datetime64)
     # find nearest point
     _t = np.atleast_2d(_dt).T
     # TODO: this needs to be changed to account for regular and irregular
@@ -206,7 +206,8 @@ def get_wind_speed(gf,lon,lat,elev,date):
         vz_error = None
     time = gf.datetime[:][ndx[0]]
     lon, lat, hght = gf.position[:][ndx[0], :]
-    return (lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error, distances[0])
+    return (lon, lat, hght, time, vx, vx_error,
+            vy, vy_error, vz, vz_error, distances[0])
 
 
 def _array_multi_sort(*arrays):
@@ -226,11 +227,11 @@ def _array_multi_sort(*arrays):
 
 def split_by_scan(angles, *vars_):
     """
-    Returns an iterator that will split lists/arrays of data by scan (i.e. 
-    between start and end angle) an arbitrary number of lists of data can 
-    be passed in - the iterator will return a list of arrays of length 
-    len(vars_) + 1 with the split angles array at index one, and the 
-    remaining data lists in order afterwards. The lists will be sorted 
+    Returns an iterator that will split lists/arrays of data by scan (i.e.
+    between start and end angle) an arbitrary number of lists of data can
+    be passed in - the iterator will return a list of arrays of length
+    len(vars_) + 1 with the split angles array at index one, and the
+    remaining data lists in order afterwards. The lists will be sorted
     into ascending angle order.
 
     >>> angles = np.array([30, 35, 40, 35, 30, 35, 40])
@@ -244,9 +245,10 @@ def split_by_scan(angles, *vars_):
                              angles[2:] == angles[:-2])):
         idx = np.argmax(np.logical_and(
             (angles[1:] == angles[:-1])[:-1], angles[2:] == angles[:-2]))
-        raise ValueError, "Data at line " + str(idx + 2) + \
-            " contains three or more repeated angle entries (in a row). \
-            Don't know how to split this into scans."
+        msg = "Data at line {} ".format(str(idx + 2))
+        msg += "contains three or more repeated angle entries (in a row)."
+        msg += "Don't know how to split this into scans."
+        raise ValueError(msg)
 
     anglegradient = np.zeros(angles.shape)
     anglegradient[1:] = np.diff(angles)
@@ -300,6 +302,7 @@ def split_by_scan(angles, *vars_):
         for l in vars_:
             d.append(l[inflectionpoints[i]:])
         yield _array_multi_sort(*tuple(d))
+
 
 if __name__ == '__main__':
     import doctest

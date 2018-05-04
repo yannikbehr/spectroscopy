@@ -1,14 +1,13 @@
 """
 Plugin to read FlySpec data.
 """
-import calendar
 import datetime
 import os
 import struct
 
 import numpy as np
 
-from spectroscopy.datamodel import (RawDataBuffer, 
+from spectroscopy.datamodel import (RawDataBuffer,
                                     ConcentrationBuffer,
                                     RawDataTypeBuffer,
                                     MethodBuffer,
@@ -28,12 +27,12 @@ class FlySpecPlugin(DatasetPluginBase):
         """
         Read spectra from binary file.
         """
-        with open(fin,"rb") as ifp:
+        with open(fin, "rb") as ifp:
             raw_data = ifp.read()
         i = 0
         counts = []
         while i < len(raw_data):
-            counts.append(struct.unpack("2048f",raw_data[i:i+(2048 * 4)]))
+            counts.append(struct.unpack("2048f", raw_data[i:i+(2048 * 4)]))
             i += (2048 * 4)
         return counts
 
@@ -50,7 +49,7 @@ class FlySpecPlugin(DatasetPluginBase):
         # load data and convert southern hemisphere to negative
         # latitudes and western hemisphere to negative longitudes
         def todd(x):
-            """ 
+            """
             Convert degrees and decimal minutes to decimal degrees.
             """
             idx = x.find('.')
@@ -82,7 +81,7 @@ class FlySpecPlugin(DatasetPluginBase):
                 'File %s contains only one data point.'
                 % (os.path.basename(filename)))
 
-        bearing=None
+        bearing = None
         try:
             bearing = kargs['bearing']
         except KeyError:
@@ -107,17 +106,22 @@ class FlySpecPlugin(DatasetPluginBase):
         if specfile is not None:
             rb = RawDataBuffer(inc_angle=angles,
                                bearing=bearing,
-                               position=np.array([longitude, latitude, elevation]).T,
+                               position=np.array([longitude,
+                                                  latitude,
+                                                  elevation]).T,
                                datetime=unix_times,
-                               ind_var = wavelengths,
-                               d_var = spectra)
+                               ind_var=wavelengths,
+                               d_var=spectra)
         else:
             rb = RawDataBuffer(inc_angle=angles,
-                               position=np.array([longitude, latitude, elevation]).T,
+                               position=np.array([longitude,
+                                                  latitude,
+                                                  elevation]).T,
                                datetime=unix_times)
-        rdtb = RawDataTypeBuffer(d_var_unit='ppm m', ind_var_unit='nm', name='measurement')
+        rdtb = RawDataTypeBuffer(d_var_unit='ppm m',
+                                 ind_var_unit='nm', name='measurement')
         cb = ConcentrationBuffer(gas_species='SO2', value=so2)
-        return {str(rb):rb, str(rdtb):rdtb, str(cb):cb}
+        return {str(rb): rb, str(rdtb): rdtb, str(cb): cb}
 
     def close(self, filename):
         raise Exception('Close is undefined for the FlySpec backend')
@@ -134,8 +138,8 @@ class FlySpecFluxPlugin(DatasetPluginBase):
         Read flux estimates.
         """
         data = np.fromregex(filename, r'(\S+ \S+)\s+(-?\d+\.\d+)',
-                            dtype={'names': ('datetime','flux'),
-                                   'formats':('S26',np.float)})
+                            dtype={'names': ('datetime', 'flux'),
+                                   'formats': ('S26', np.float)})
         dt = data['datetime'].astype('datetime64[us]')
         # convert milliseconds to microseconds to fix a bug in Nial's code
         us = dt - dt.astype('datetime64[s]')
@@ -144,10 +148,10 @@ class FlySpecFluxPlugin(DatasetPluginBase):
         # convert to UTC
         dtn -= ts
         f = data['flux']
-       
+
         mb = MethodBuffer(name='GNS FlySpec UI')
         fb = FluxBuffer(value=f, datetime=dtn.astype(str))
-        return {str(fb):fb, str(mb):mb}
+        return {str(fb): fb, str(mb): mb}
 
     @staticmethod
     def get_format():
@@ -160,7 +164,7 @@ class FlySpecRefPlugin(DatasetPluginBase):
         """
         Read spectra from binary file.
         """
-        with open(fin,"rb") as ifp:
+        with open(fin, "rb") as ifp:
             raw_data = ifp.read()
         i = 0
         counts = []

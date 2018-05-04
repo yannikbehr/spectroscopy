@@ -17,9 +17,10 @@ from spectroscopy.plugins.flyspec import FlySpecPlugin
 from spectroscopy.plugins.flyspec import FlySpecPluginException
 from spectroscopy.util import split_by_scan, _array_multi_sort, vec2bearing
 from spectroscopy.visualize import plot
-from spectroscopy.datamodel import (InstrumentBuffer, 
+from spectroscopy.datamodel import (InstrumentBuffer,
                                     TargetBuffer,
                                     PreferredFluxBuffer)
+
 
 class FlySpecPluginTestCase(unittest.TestCase):
     """
@@ -30,7 +31,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.data_dir = os.path.join(os.path.dirname(os.path.abspath(
             inspect.getfile(inspect.currentframe()))), "data")
 
-    def compare_images(self,fh,image_fn):
+    def compare_images(self, fh, image_fn):
         fh.seek(0)
         actual_image = matplotlib.image.imread(fh, format='png')
         expected_image = matplotlib.image.imread(image_fn, format='png')
@@ -51,11 +52,10 @@ class FlySpecPluginTestCase(unittest.TestCase):
             float(expected_image.size))
         return rms
 
-
     def test_add(self):
         d1 = Dataset(tempfile.mktemp(), 'w')
         e = d1.read(os.path.join(self.data_dir, '2016_06_11_0830_TOFP04.txt'),
-                         ftype='FLYSPEC', timeshift=12.0)
+                    ftype='FLYSPEC', timeshift=12.0)
         r = d1.new(e['RawDataBuffer'])
         cb = e['ConcentrationBuffer']
         cb.rawdata = [r]
@@ -63,7 +63,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         d2 = Dataset(tempfile.mktemp(), 'w')
         e = d2.read(os.path.join(self.data_dir, '2016_06_11_0900_TOFP04.txt'),
-                         ftype='FLYSPEC', timeshift=12.0)
+                    ftype='FLYSPEC', timeshift=12.0)
         r = d2.new(e['RawDataBuffer'])
         cb = e['ConcentrationBuffer']
         cb.rawdata = [r]
@@ -72,11 +72,11 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.assertEqual(len(d1.elements['Concentration']), 2)
         self.assertEqual(len(d1.elements['RawData']), 2)
 
-
     def test_read(self):
         d = Dataset(tempfile.mktemp(), 'w')
-        e = d.read(os.path.join(self.data_dir,'2012_02_29_1340_CHILE.txt'),
-                        ftype='FLYSPEC')
+        e = d.read(os.path.join(self.data_dir,
+                                '2012_02_29_1340_CHILE.txt'),
+                   ftype='FLYSPEC')
         r = d.new(e['RawDataBuffer'])
         cb = e['ConcentrationBuffer']
         cb.rawdata = [r]
@@ -92,7 +92,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         # dicretize all retrievals onto a grid to show a daily plot
         bins = np.arange(0, 180, 1.0)
-        m = [] 
+        m = []
         for _angle, _so2 in split_by_scan(r1.inc_angle[:], c.value[:]):
             _so2_binned = binned_statistic(_angle, _so2, 'mean', bins)
             m.append(_so2_binned.statistic)
@@ -107,14 +107,14 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
         d1 = Dataset(tempfile.mktemp(), 'w')
         e = d1.read(os.path.join(self.data_dir, '2016_06_11_0830_TOFP04.txt'),
-                         ftype='FLYSPEC', timeshift=12.0)
+                    ftype='FLYSPEC', timeshift=12.0)
         r = d1.new(e['RawDataBuffer'])
         cb = e['ConcentrationBuffer']
         cb.rawdata = [r]
         d1.new(cb)
         c = d1.elements['Concentration'][0]
         r = c.rawdata[0]
-        m = [] 
+        m = []
         for _angle, _so2 in split_by_scan(r.inc_angle[:], c.value[:]):
             _so2_binned = binned_statistic(_angle, _so2, 'mean', bins)
             m.append(_so2_binned.statistic)
@@ -126,8 +126,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
     def test_read_flux(self):
         d = Dataset(tempfile.mktemp(), 'w')
-        fin = os.path.join(self.data_dir, 'TOFP04', 'TOFP04_2017_06_14.txt') 
-        e = d.read(fin, ftype='flyspecflux', timeshift=13.0) 
+        fin = os.path.join(self.data_dir, 'TOFP04', 'TOFP04_2017_06_14.txt')
+        e = d.read(fin, ftype='flyspecflux', timeshift=13.0)
         nlines = None
         with open(fin) as fd:
             nlines = len(fd.readlines())
@@ -137,40 +137,42 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
     def test_read_refspec(self):
         d = Dataset(tempfile.mktemp(), 'w')
-        x = [521,637,692,818]
-        y = [305.,315.,319.5,330.]
+        x = [521, 637, 692, 818]
+        y = [305., 315., 319.5, 330.]
         f = interp1d(x, y, fill_value='extrapolate')
-        xnew = range(0,2048)
+        xnew = range(0, 2048)
         wavelengths = f(xnew)
-        
-        with self.assertRaises(FlySpecPluginException):    
-            e = d.read(os.path.join(self.data_dir, 'TOFP04', 'Cal_20170602_0956_dark.bin'),
-                        ftype='FLYSPECREF', wavelengths=wavelengths)
-        
-        e = d.read(os.path.join(self.data_dir, 'TOFP04', 'Cal_20170602_0956_dark.bin'),
-                        ftype='FLYSPECREF', type='dark', wavelengths=wavelengths)
-        self.assertEqual(e['RawDataBuffer'].d_var.shape, (10,2048))
+
+        with self.assertRaises(FlySpecPluginException):
+            e = d.read(os.path.join(self.data_dir, 'TOFP04',
+                                    'Cal_20170602_0956_dark.bin'),
+                       ftype='FLYSPECREF', wavelengths=wavelengths)
+
+        e = d.read(os.path.join(self.data_dir, 'TOFP04',
+                                'Cal_20170602_0956_dark.bin'),
+                   ftype='FLYSPECREF', type='dark', wavelengths=wavelengths)
+        self.assertEqual(e['RawDataBuffer'].d_var.shape, (10, 2048))
 
     def test_read_wind(self):
         d = Dataset(tempfile.mktemp(), 'w')
         fin = os.path.join(self.data_dir, 'TOFP04', 'wind', '2017_06_14.txt')
-        gf = d.read(fin,ftype='flyspecwind', timeshift=13)
+        gf = d.read(fin, ftype='flyspecwind', timeshift=13)
         vx = gf.vx[0]
         vy = gf.vy[0]
         dt = gf.datetime[0]
         v = np.sqrt(vx*vx + vy*vy)
         self.assertAlmostEqual(v, 10.88, 2)
-        self.assertAlmostEqual(vec2bearing(vx,vy), 255, 6)
+        self.assertAlmostEqual(vec2bearing(vx, vy), 255, 6)
         self.assertEqual(dt, '2017-06-13T17:00:00')
-        
+
     @unittest.skip("Skipping")
     def test_plot(self):
         d = Dataset(tempfile.mktemp(), 'w')
         e = d.read(os.path.join(self.data_dir, '2012_02_29_1340_CHILE.txt'),
-                        ftype='FLYSPEC', timeshift=12.0)
+                   ftype='FLYSPEC', timeshift=12.0)
         rdt = d.new(e['RawDataTypeBuffer'])
         rb = e['RawDataBuffer']
-        rb.type = rdt    
+        rb.type = rdt
         r = d.new(rb)
         cb = e['ConcentrationBuffer']
         cb.rawdata = [r]
@@ -178,33 +180,37 @@ class FlySpecPluginTestCase(unittest.TestCase):
         c = d.new(cb)
         if False:
             with tempfile.TemporaryFile() as fd:
-            #with open('/tmp/file1.png', 'w+b') as fd:
                 plot(c, savefig=fd, timeshift=12.0)
-                expected_image = os.path.join(self.data_dir, 'chile_retrievals_overview.png')
+                expected_image = os.path.join(self.data_dir,
+                                              'chile_retrievals_overview.png')
                 rms = self.compare_images(fd, expected_image)
                 self.assertTrue(rms <= 0.001)
 
     def test_spectra(self):
         """
-        Test reading binary file containing the raw spectra together with 
+        Test reading binary file containing the raw spectra together with
         the text file.
         """
         d = Dataset(tempfile.mktemp(), 'w')
-        fin_txt = os.path.join(self.data_dir,'TOFP04', '2017_06_14_0930.txt')
-        fin_bin = os.path.join(self.data_dir,'TOFP04', '2017_06_14_0930.bin')
-        fin_high = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_high.bin')
-        fin_low = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_low.bin')
-        fin_dark = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_dark.bin')
-        fin_ref = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_ref.bin')
-        
-        x = [521,637,692,818]
-        y = [305.,315.,319.5,330.]
+        fin_txt = os.path.join(self.data_dir, 'TOFP04', '2017_06_14_0930.txt')
+        fin_bin = os.path.join(self.data_dir, 'TOFP04', '2017_06_14_0930.bin')
+        fin_high = os.path.join(self.data_dir, 'TOFP04',
+                                'Cal_20170602_0956_high.bin')
+        fin_low = os.path.join(self.data_dir, 'TOFP04',
+                               'Cal_20170602_0956_low.bin')
+        fin_dark = os.path.join(self.data_dir, 'TOFP04',
+                                'Cal_20170602_0956_dark.bin')
+        fin_ref = os.path.join(self.data_dir, 'TOFP04',
+                               'Cal_20170602_0956_ref.bin')
+
+        x = [521, 637, 692, 818]
+        y = [305., 315., 319.5, 330.]
         f = interp1d(x, y, fill_value='extrapolate')
-        xnew = range(0,2048)
+        xnew = range(0, 2048)
         wavelengths = f(xnew)
         e = d.read(fin_txt, spectra=fin_bin, wavelengths=wavelengths,
                    ftype='flyspec', timeshift=12.0)
-        self.assertEqual(e['RawDataBuffer'].d_var.shape, (1321,2048))
+        self.assertEqual(e['RawDataBuffer'].d_var.shape, (1321, 2048))
         rdtb = e['RawDataTypeBuffer']
         rdt = d.new(rdtb)
         rb = e['RawDataBuffer']
@@ -213,7 +219,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         cb = e['ConcentrationBuffer']
         rdlist = [r]
         for _f in [fin_high, fin_low, fin_dark, fin_ref]:
-            e = d.read(_f, ftype='flyspecref', wavelengths=wavelengths, type=_f.replace('fin_',''))
+            e = d.read(_f, ftype='flyspecref', wavelengths=wavelengths,
+                       type=_f.replace('fin_', ''))
             rdtb = e['RawDataTypeBuffer']
             rdt = d.new(rdtb)
             rb = e['RawDataBuffer']
@@ -227,12 +234,12 @@ class FlySpecPluginTestCase(unittest.TestCase):
                 break
         if False:
             with tempfile.TemporaryFile() as fd:
-            #with open('/tmp/file1.png', 'w+b') as fd:
                 plot(_r, savefig=fd)
-                expected_image = os.path.join(self.data_dir, 'raw_data_plot.png')
+                expected_image = os.path.join(self.data_dir,
+                                              'raw_data_plot.png')
                 rms = self.compare_images(fd, expected_image)
                 self.assertTrue(rms <= 0.001)
-            
+
     def test_readabunch(self):
         """
         Read in a whole day's worth of data including the reference spectra,
@@ -241,10 +248,12 @@ class FlySpecPluginTestCase(unittest.TestCase):
         def mycmp(fn1, fn2):
             date1 = os.path.basename(fn1).split('.')[0]
             date2 = os.path.basename(fn2).split('.')[0]
-            year,month,day,hourmin = date1.split('_')
-            d1 = datetime.datetime(int(year), int(month), int(day), int(hourmin[0:2]), int(hourmin[2:]))
-            year,month,day,hourmin = date2.split('_')
-            d2 = datetime.datetime(int(year), int(month), int(day), int(hourmin[0:2]), int(hourmin[2:]))
+            year, month, day, hourmin = date1.split('_')
+            d1 = datetime.datetime(int(year), int(month), int(day),
+                                   int(hourmin[0:2]), int(hourmin[2:]))
+            year, month, day, hourmin = date2.split('_')
+            d2 = datetime.datetime(int(year), int(month), int(day),
+                                   int(hourmin[0:2]), int(hourmin[2:]))
             if d1 < d2:
                 return -1
             if d1 > d2:
@@ -252,16 +261,20 @@ class FlySpecPluginTestCase(unittest.TestCase):
             return 0
 
         # Reference spectra
-        fin_high = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_high.bin')
-        fin_low = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_low.bin')
-        fin_dark = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_dark.bin')
-        fin_ref = os.path.join(self.data_dir,'TOFP04', 'Cal_20170602_0956_ref.bin')
- 
+        fin_high = os.path.join(self.data_dir, 'TOFP04',
+                                'Cal_20170602_0956_high.bin')
+        fin_low = os.path.join(self.data_dir, 'TOFP04',
+                               'Cal_20170602_0956_low.bin')
+        fin_dark = os.path.join(self.data_dir, 'TOFP04',
+                                'Cal_20170602_0956_dark.bin')
+        fin_ref = os.path.join(self.data_dir, 'TOFP04',
+                               'Cal_20170602_0956_ref.bin')
+
         bearing = 285.
-        x = [521,637,692,818]
-        y = [305.,315.,319.5,330.]
+        x = [521, 637, 692, 818]
+        y = [305., 315., 319.5, 330.]
         f = interp1d(x, y, fill_value='extrapolate')
-        xnew = range(0,2048)
+        xnew = range(0, 2048)
         wavelengths = f(xnew)
 
         d = Dataset(tempfile.mktemp(), 'w')
@@ -274,7 +287,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         t = d.new(tb)
 
         rdlist = []
-        for _k, _f in zip(['high', 'low', 'dark', 'ref'],[fin_high, fin_low, fin_dark, fin_ref]):
+        for _k, _f in zip(['high', 'low', 'dark', 'ref'],
+                          [fin_high, fin_low, fin_dark, fin_ref]):
             e = d.read(_f, ftype='flyspecref', wavelengths=wavelengths,
                        type=_k)
             rdtb = e['RawDataTypeBuffer']
@@ -285,7 +299,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
             r = d.new(rb)
             rdlist.append(r)
 
-        files = glob.glob(os.path.join(self.data_dir,'TOFP04','2017*.txt'))
+        files = glob.glob(os.path.join(self.data_dir, 'TOFP04', '2017*.txt'))
         files.sort(cmp=mycmp)
         r = None
         c = None
@@ -293,7 +307,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         last_index = 0
         for _f in files:
             try:
-                fin_bin = _f.replace('.txt','.bin')
+                fin_bin = _f.replace('.txt', '.bin')
                 with open(_f) as fd:
                     nlines += len(fd.readlines())
                 e = d.read(_f, ftype='FLYSPEC', spectra=fin_bin,
@@ -315,36 +329,41 @@ class FlySpecPluginTestCase(unittest.TestCase):
                 else:
                     r.append(e['RawDataBuffer'])
                     cb = e['ConcentrationBuffer']
-                    cb.rawdata_indices = last_index + 1 + np.arange(cb.value.shape[0])
+                    cb.rawdata_indices = (last_index + 1 +
+                                          np.arange(cb.value.shape[0]))
                     last_index = last_index + cb.value.shape[0]
                     c.append(cb)
-            except Exception, ex:
-                print ex, _f, fin_bin
+            except Exception as ex:
+                print(ex, _f, fin_bin)
                 continue
         # Check all data has been read
-        self.assertEqual(c.rawdata[4].d_var.shape, (nlines,2048))
+        self.assertEqual(c.rawdata[4].d_var.shape, (nlines, 2048))
         self.assertEqual(c.rawdata[4].inc_angle.shape, (nlines,))
         self.assertEqual(c.value[0], 119.93)
         self.assertEqual(c.value[-1], 23.30)
-        self.assertEqual(c.rawdata[4].datetime[-1], '2017-06-14T04:30:00.535000')
-        self.assertEqual(c.rawdata[4].datetime[0], '2017-06-13T20:30:49.512999')
+        self.assertEqual(c.rawdata[4].datetime[-1],
+                         '2017-06-14T04:30:00.535000')
+        self.assertEqual(c.rawdata[4].datetime[0],
+                         '2017-06-13T20:30:49.512999')
         if False:
             with tempfile.TemporaryFile() as fd:
-            #with open('/tmp/file2.png', 'w+b') as fd:
                 plot(c, savefig=fd)
-                expected_image =os.path.join(self.data_dir, 'TOFP04', 'concentration_plot.png')
+                expected_image = os.path.join(self.data_dir, 'TOFP04',
+                                              'concentration_plot.png')
                 rms = self.compare_images(fd, expected_image)
                 self.assertTrue(rms <= 0.001)
             with tempfile.TemporaryFile() as fd:
-            #with open('/tmp/file3.png', 'w+b') as fd:
                 plot(c.rawdata[0], savefig=fd)
-                expected_image =os.path.join(self.data_dir, 'TOFP04', 'ref_spectrum.png')
+                expected_image = os.path.join(self.data_dir, 'TOFP04',
+                                              'ref_spectrum.png')
                 rms = self.compare_images(fd, expected_image)
                 self.assertTrue(rms <= 0.001)
 
-        fe = d.read(os.path.join(self.data_dir, 'TOFP04', 'TOFP04_2017_06_14.txt'),
+        fe = d.read(os.path.join(self.data_dir, 'TOFP04',
+                                 'TOFP04_2017_06_14.txt'),
                     ftype='flyspecflux', timeshift=12)
-        gf = d.read(os.path.join(self.data_dir, 'TOFP04', 'wind', '2017_06_14.txt'),
+        gf = d.read(os.path.join(self.data_dir, 'TOFP04', 'wind',
+                                 '2017_06_14.txt'),
                     ftype='flyspecwind', timeshift=12)
         fb = fe['FluxBuffer']
         draw = r.datetime[:].astype('datetime64[us]')
@@ -352,7 +371,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         for i in range(fb.value.shape[0]):
             d0 = fb.datetime[i].astype('datetime64[us]')
             idx0 = np.argmin(abs(draw-d0))
-            if i < fb.value.shape[0]-1:     
+            if i < fb.value.shape[0]-1:
                 d1 = fb.datetime[i+1].astype('datetime64[us]')
                 idx1 = np.argmin(abs(draw-d1))
                 # There is a small bug in Nial's program that gets
@@ -362,7 +381,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
                     fb.datetime[i+1] = r.datetime[idx1]
             else:
                 idx1 = r.datetime.shape[0]
-            inds.append([idx0,idx1-1])
+            inds.append([idx0, idx1-1])
 
         fb.concentration_indices = inds
         fb.concentration = c
@@ -372,7 +391,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         fb.gasflow = gf
         f = d.new(fb)
         nos = 18
-        i0,i1 = f.concentration_indices[nos]
+        i0, i1 = f.concentration_indices[nos]
         cn = f.concentration
         rn = cn.rawdata[4]
         self.assertAlmostEqual(f.value[nos], 0.62, 2)
@@ -389,6 +408,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
 
 def suite():
     return unittest.makeSuite(FlySpecPluginTestCase, 'test')
+
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

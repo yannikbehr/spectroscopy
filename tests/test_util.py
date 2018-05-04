@@ -4,6 +4,7 @@ import numpy as np
 
 from spectroscopy.util import split_by_scan, _array_multi_sort
 
+
 class UtilTestCase(unittest.TestCase):
     """
     Test plugin to read FlySpec data.
@@ -17,7 +18,8 @@ class UtilTestCase(unittest.TestCase):
             np.testing.assert_array_equal(a[0], result[i])
 
         result1 = [np.array([1, 2, 3]), np.array([5, 4]), np.array([6, 7])]
-        for i, a in enumerate(split_by_scan(angles, np.array([1, 2, 3, 4, 5, 6, 7]))):
+        for i, a in enumerate(split_by_scan(angles,
+                                            np.array([1, 2, 3, 4, 5, 6, 7]))):
             np.testing.assert_array_equal(a[1], result1[i])
 
         angles1 = np.array([30, 30, 35, 40, 35, 30, 35, 40, 40])
@@ -58,8 +60,10 @@ class UtilTestCase(unittest.TestCase):
         np.testing.assert_array_equal(out[0], result[0])
         np.testing.assert_array_equal(out[1], result[1])
 
+
 def suite():
     return unittest.makeSuite(UtilTestCase, 'test')
+
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

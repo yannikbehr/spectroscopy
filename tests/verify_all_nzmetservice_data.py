@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
 import datetime
-import filecmp 
+import filecmp
 import math
 import os
 import re
-import sys
 import tempfile
 
 import numpy as np
@@ -32,17 +31,22 @@ nztz = timezone('Pacific/Auckland')
 for _k, _v in zip(volc_dict_keys, volc_dict_values):
     volc_dict[_k] = _v
 
+
 def ord(n):
     """
     Add one of 'st', 'nd', 'rd', 'th' to the day number.
     """
-    return str(n)+("th" if 4<=n%100<=20 else {1:"st",2:"nd",3:"rd"}.get(n%10, "th"))
+    return str(n)+("th" if 4 <= n % 100 <= 20
+                   else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th"))
+
 
 def ampm(n):
     """
     Change 24-h format to 12-h format.
     """
-    return ('{:d}am'.format(n) if n < 12 else {24:"12am", 12: "12pm"}.get(n, '{:d}pm'.format(n%12))) 
+    return ('{:d}am'.format(n) if n < 12
+            else {24: "12am", 12: "12pm"}.get(n, '{:d}pm'.format(n % 12)))
+
 
 def write_testfile(d, date, time, fin):
     """
@@ -55,11 +59,13 @@ def write_testfile(d, date, time, fin):
     hour, minute = int(time[0:2]), int(time[2:4])
     lines = []
     # Write the header
-    _h, _s = re.match('(\d+)(\S+)',ampm(hour)).groups()
+    _h, _s = re.match('(\d+)(\S+)', ampm(hour)).groups()
     line = 'Forecast issued by MetService at '
-    line += '{0:02d}:{1:02d}{2:s} {3:02d}-{4:02d}-{5:4d}\n\n'.format(int(_h),minute,_s,day,month,year)
+    line += '{:02d}:{:02d}{:s} '.format(int(_h), minute, _s)
+    line += '{:02d}-{:02d}-{:4d}\n\n'.format(day, month, year)
     line += 'For GNS Wairakei Research Centre - Volcano Watch All times NZDT '
-    line += 'e.g. {0:02d}{1:02d}00 is {2:s} on {3:s}. '.format(day, hour, ampm(hour), ord(day))
+    line += 'e.g. {:02d}{:02d}00 '.format(day, hour)
+    line += 'is {:s} on {:s}. '.format(ampm(hour), ord(day))
     line += 'Winds in degrees/knots, heights in metres.\n'
     line += 'Model of the day is {:s}\n\n'.format(mod.upper())
     line += 'Data for model {:s}\n'.format(mod.upper())
@@ -77,7 +83,8 @@ def write_testfile(d, date, time, fin):
         lines.append(line)
         line = '{:8}'.format('')
         # Write datetimes
-        dt = nztz.localize(datetime.datetime(year,month,day,hour)).astimezone(timezone('UTC'))
+        dt = (nztz.localize(datetime.datetime(year, month, day, hour)).
+              astimezone(timezone('UTC')))
         otimes = np.unique(gf.datetime[:])
         otimes.sort()
         for t in otimes:
@@ -86,14 +93,16 @@ def write_testfile(d, date, time, fin):
             line += '{:<14s}'.format(dt.astimezone(nztz).strftime('%d%H%M'))
         line += '\n'
         lines.append(line)
-        ln,lt = volc_dict[point]
+        ln, lt = volc_dict[point]
         # Write actual wind data
-        for height in [1000,2000,3000,4000,6000,8000,10000,12000]:
+        for height in [1000, 2000, 3000, 4000, 6000, 8000, 10000, 12000]:
             line = ''
             line += '{:<8d}'.format(height)
             for i, dt in enumerate(times):
-                lon, lat, hght, time, vx, vx_error, vy, vy_error, vz, vz_error, dist = \
-                        get_wind_speed(gf, ln, lt, height, dt.astimezone(pytz.utc))
+                res = get_wind_speed(gf, ln, lt, height,
+                                     dt.astimezone(pytz.utc))
+                (lon, lat, hght, time, vx, vx_error,
+                 vy, vy_error, vz, vz_error, dist) = res
                 if dist > 0.0001:
                     line += '{0:<14s}'.format('-')
                 else:
@@ -102,8 +111,8 @@ def write_testfile(d, date, time, fin):
                         vd = int(round(vec2bearing(vx, vy)))
                         if vd == 0:
                             vd = 360
-                    except Exception, e:
-                        print point, hght, time
+                    except Exception as e:
+                        print(point, hght, time)
                         raise e
                     line += '{0:03d}/{1:02d}{2:8}'.format(vd, v, '')
             line += '\n'
@@ -111,35 +120,39 @@ def write_testfile(d, date, time, fin):
         lines.append('\n')
     fin = fin.replace('ecmwf', mod)
     fout = os.path.basename(fin)
-    fout = os.path.join('/tmp',fout.replace('.txt','_test.txt'))
+    fout = os.path.join('/tmp', fout.replace('.txt', '_test.txt'))
     fh = open(fout, 'w')
     fh.writelines(lines)
     fh.close()
     # Now compare with the original
     if not filecmp.cmp(fout, fin, shallow=False):
-        raise Exception('Files %s and %s are not identical!' %(fin, fout))
+        raise Exception('Files %s and %s are not identical!' % (fin, fout))
     else:
         os.unlink(fout)
+
 
 def main(rootdir):
     for root, dirs, files in os.walk(rootdir):
         for f in files:
-            match = re.match('gns_wind_model_data_ecmwf_(\d+)_(\d+).txt',f)
+            match = re.match('gns_wind_model_data_ecmwf_(\d+)_(\d+).txt', f)
             if match:
-                print "reading ", os.path.join(root,f), " for day ", match.group(1)
-                d = Dataset(tempfile.mktemp(),'w')
+                msg = "reading " + os.path.join(root, f)
+                msg += " for day " + match.group(1)
+                print(msg)
+                d = Dataset(tempfile.mktemp(), 'w')
                 try:
-                    d.read(os.path.join(root,f), ftype='NZMETSERVICE')
-                    write_testfile(d, match.group(1), match.group(2), os.path.join(root,f))
-                except NZMetservicePluginException, e:
-                    print e
+                    d.read(os.path.join(root, f), ftype='NZMETSERVICE')
+                    write_testfile(d, match.group(1), match.group(2),
+                                   os.path.join(root, f))
+                except NZMetservicePluginException as e:
+                    print(e)
                 del d
+
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('directory',
                         help="root directory to start search")
-    args=parser.parse_args()
+    args = parser.parse_args()
     main(args.directory)
-                        
