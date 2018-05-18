@@ -1,7 +1,12 @@
 """
 Overview plots for different elements in a dataset.
 """
+from __future__ import division
 
+from builtins import zip
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
@@ -74,11 +79,11 @@ def plot_concentration(c, savefig=None, angle_bin=1.0, **kargs):
     fig = plt.figure()
     if log:
         z = np.where(m > 0.0, m, 0.1)
-        plt.contourf(range(nretrieval), angle_bins[1:], z.T, ncontours,
+        plt.contourf(list(range(nretrieval)), angle_bins[1:], z.T, ncontours,
                      norm=LogNorm(z.min(), z.max()), cmap=cmap)
     else:
         z = np.ma.masked_invalid(m)
-        plt.contourf(range(nretrieval), angle_bins[1:], m.T, ncontours,
+        plt.contourf(list(range(nretrieval)), angle_bins[1:], m.T, ncontours,
                      norm=Normalize(z.min(), z.max()), cmap=cmap)
     new_labels = []
     new_ticks = []
@@ -131,11 +136,11 @@ def plot_rawdata(r, savefig=None, **kargs):
     cax, kw = matplotlib.colorbar.make_axes(plt.gca())
     norm = Normalize(vmin=0, vmax=nc, clip=False)
     c = matplotlib.colorbar.ColorbarBase(cax, cmap='RdBu', norm=norm)
-    ticks = np.array([0, int(nc/2.), nc-1])
+    ticks = np.array([0, int(old_div(nc,2.)), nc-1])
     c.set_ticks(ticks)
     try:
         times = r.datetime[idx]
-        labels = np.array([times[0], times[int(nc/2.)], times[nc-1]])
+        labels = np.array([times[0], times[int(old_div(nc,2.))], times[nc-1]])
         c.set_ticklabels(labels)
     except tables.NoSuchNodeError:
         pass

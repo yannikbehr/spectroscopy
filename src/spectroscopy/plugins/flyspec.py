@@ -1,6 +1,10 @@
 """
 Plugin to read FlySpec data.
 """
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import datetime
 import os
 import struct
@@ -53,11 +57,11 @@ class FlySpecPlugin(DatasetPluginBase):
             Convert degrees and decimal minutes to decimal degrees.
             """
             idx = x.find('.')
-            minutes = float(x[idx - 2:]) / 60.
+            minutes = old_div(float(x[idx - 2:]), 60.)
             deg = float(x[:idx - 2])
             return deg + minutes
 
-        data = np.loadtxt(filename, usecols=range(0, 21),
+        data = np.loadtxt(filename, usecols=list(range(0, 21)),
                           converters={
                               8: todd,
                               9: lambda x: -1.0 if x.lower() == 's' else 1.0,

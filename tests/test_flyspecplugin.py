@@ -1,3 +1,8 @@
+from __future__ import division
+from __future__ import print_function
+from builtins import zip
+from builtins import range
+from past.utils import old_div
 import datetime
 import glob
 import inspect
@@ -48,8 +53,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         # any other fancy considerations. It also uses the alpha channel of
         # the images. Scaled by 255.
         rms = np.sqrt(
-            np.sum((255.0 * (expected_image - actual_image)) ** 2) /
-            float(expected_image.size))
+            old_div(np.sum((255.0 * (expected_image - actual_image)) ** 2),
+            float(expected_image.size)))
         return rms
 
     def test_add(self):
@@ -140,7 +145,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         x = [521, 637, 692, 818]
         y = [305., 315., 319.5, 330.]
         f = interp1d(x, y, fill_value='extrapolate')
-        xnew = range(0, 2048)
+        xnew = list(range(0, 2048))
         wavelengths = f(xnew)
 
         with self.assertRaises(FlySpecPluginException):
@@ -206,7 +211,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         x = [521, 637, 692, 818]
         y = [305., 315., 319.5, 330.]
         f = interp1d(x, y, fill_value='extrapolate')
-        xnew = range(0, 2048)
+        xnew = list(range(0, 2048))
         wavelengths = f(xnew)
         e = d.read(fin_txt, spectra=fin_bin, wavelengths=wavelengths,
                    ftype='flyspec', timeshift=12.0)
@@ -274,7 +279,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         x = [521, 637, 692, 818]
         y = [305., 315., 319.5, 330.]
         f = interp1d(x, y, fill_value='extrapolate')
-        xnew = range(0, 2048)
+        xnew = list(range(0, 2048))
         wavelengths = f(xnew)
 
         d = Dataset(tempfile.mktemp(), 'w')
@@ -334,7 +339,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
                     last_index = last_index + cb.value.shape[0]
                     c.append(cb)
             except Exception as ex:
-                print(ex, _f, fin_bin)
+                print((ex, _f, fin_bin))
                 continue
         # Check all data has been read
         self.assertEqual(c.rawdata[4].d_var.shape, (nlines, 2048))

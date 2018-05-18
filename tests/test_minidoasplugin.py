@@ -210,6 +210,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
                 m3 = _m
         if m3 is None:
             mb3 = e4['MethodBuffer']
+            import ipdb
+            ipdb.set_trace()
             new_description = mb3.description[0]
             new_description += '; plume geometry inferred from triangulation'
             mb3.description = new_description

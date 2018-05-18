@@ -6,12 +6,12 @@ from spectroscopy.class_factory import _class_factory
 __Instrument = _class_factory('__Instrument', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('name',(np.str_,)),
-		('sensor_id',(np.str_,)),
-		('location',(np.str_,)),
+		('name',(np.bytes_,)),
+		('sensor_id',(np.bytes_,)),
+		('location',(np.bytes_,)),
 		('no_bits',(np.int_,)),
-		('type',(np.str_,)),
-		('description',(np.str_,))],
+		('type',(np.bytes_,)),
+		('description',(np.bytes_,))],
 	class_references=[])
 
 
@@ -49,11 +49,11 @@ class _Instrument(__Instrument):
 __Target = _class_factory('__Target', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('target_id',(np.str_,)),
-		('name',(np.str_,)),
+		('target_id',(np.bytes_,)),
+		('name',(np.bytes_,)),
 		('position',(np.ndarray, np.float_)),
 		('position_error',(np.ndarray, np.float_)),
-		('description',(np.str_,))],
+		('description',(np.bytes_,))],
 	class_references=[])
 
 
@@ -89,10 +89,10 @@ class _Target(__Target):
 __RawDataType = _class_factory('__RawDataType', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('d_var_unit',(np.str_,)),
-		('ind_var_unit',(np.str_,)),
-		('name',(np.str_,)),
-		('acquisition',(np.str_,))],
+		('d_var_unit',(np.bytes_,)),
+		('ind_var_unit',(np.bytes_,)),
+		('name',(np.bytes_,)),
+		('acquisition',(np.bytes_,))],
 	class_references=[])
 
 
@@ -125,8 +125,8 @@ class _RawDataType(__RawDataType):
 __DataQualityType = _class_factory('__DataQualityType', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('name',(np.str_,)),
-		('reference',(np.str_,))],
+		('name',(np.bytes_,)),
+		('reference',(np.bytes_,))],
 	class_references=[])
 
 
@@ -170,7 +170,7 @@ __RawData = _class_factory('__RawData', 'extendable',
 		('integration_time',(np.ndarray, np.float_)),
 		('no_averages',(np.float_,)),
 		('temperature',(np.float_,)),
-		('user_notes',(np.str_,))],
+		('user_notes',(np.bytes_,))],
 	class_references=[
 		('instrument',(_Instrument,)),
 		('target',(_Target,)),
@@ -240,10 +240,10 @@ class _RawData(__RawData):
 __Method = _class_factory('__Method', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
-		('name',(np.str_,)),
-		('description',(np.str_,)),
-		('settings',(np.str_,)),
-		('reference',(np.str_,))],
+		('name',(np.bytes_,)),
+		('description',(np.bytes_,)),
+		('settings',(np.bytes_,)),
+		('reference',(np.bytes_,))],
 	class_references=[])
 
 
@@ -282,7 +282,7 @@ __GasFlow = _class_factory('__GasFlow', 'base',
 		('vy_error',(np.ndarray, np.float_)),
 		('vz',(np.ndarray, np.float_)),
 		('vz_error',(np.ndarray, np.float_)),
-		('unit',(np.str_,)),
+		('unit',(np.bytes_,)),
 		('position',(np.ndarray, np.float_)),
 		('position_error',(np.ndarray, np.float_)),
 		('grid_bearing',(np.float_,)),
@@ -290,7 +290,7 @@ __GasFlow = _class_factory('__GasFlow', 'base',
 		('pressure',(np.float_,)),
 		('temperature',(np.float_,)),
 		('datetime',(np.ndarray, datetime.datetime)),
-		('user_notes',(np.str_,))],
+		('user_notes',(np.bytes_,))],
 	class_references=[
 		('methods',(np.ndarray, _Method))])
 
@@ -349,13 +349,13 @@ __Concentration = _class_factory('__Concentration', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
 		('rawdata_indices',(np.ndarray, np.int_)),
-		('gas_species',(np.str_,)),
+		('gas_species',(np.bytes_,)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
-		('unit',(np.str_,)),
+		('unit',(np.bytes_,)),
 		('datetime',(np.ndarray, datetime.datetime)),
-		('analyst_contact',(np.str_,)),
-		('user_notes',(np.str_,))],
+		('analyst_contact',(np.bytes_,)),
+		('user_notes',(np.bytes_,))],
 	class_references=[
 		('method',(_Method,)),
 		('gasflow',(_GasFlow,)),
@@ -409,9 +409,9 @@ __Flux = _class_factory('__Flux', 'base',
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
 		('datetime',(np.ndarray, datetime.datetime)),
-		('unit',(np.str_,)),
-		('analyst_contact',(np.str_,)),
-		('user_notes',(np.str_,))],
+		('unit',(np.bytes_,)),
+		('analyst_contact',(np.bytes_,)),
+		('user_notes',(np.bytes_,))],
 	class_references=[
 		('method',(_Method,)),
 		('concentration',(_Concentration,)),
@@ -463,7 +463,7 @@ __PreferredFlux = _class_factory('__PreferredFlux', 'base',
 		('datetime',(np.ndarray, datetime.datetime)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
-		('user_notes',(np.str_,))],
+		('user_notes',(np.bytes_,))],
 	class_references=[
 		('fluxes',(np.ndarray, _Flux)),
 		('method_id',(_Method,))])

@@ -1,6 +1,9 @@
 """
 Provide container class for gas chemistry data.
 """
+from future.utils import native
+from builtins import str
+from builtins import object
 import hashlib
 import warnings
 
@@ -69,7 +72,7 @@ class Dataset(object):
             raise ValueError("You can't add a dataset to itself.")
         update_refs = []
         rid_dict = {}
-        for _e in other.elements.keys():
+        for _e in list(other.elements.keys()):
             for _k in other.elements[_e]:
                 ne = self._copy_children(_k)
                 self.elements[_e].append(ne)
@@ -85,10 +88,10 @@ class Dataset(object):
                         if type(ref[0]) == np.ndarray:
                             newentry = []
                             for iref in ref[0]:
-                                newentry.append(rid_dict[iref])
+                                newentry.append(rid_dict[iref.decode('ascii')])
                             ref[0] = np.array(newentry)
                         else:
-                            ref[0] = rid_dict[ref[0]]
+                            ref[0] = rid_dict[ref[0].decode('ascii')]
         return self
 
     def _newdst_group(self, dstgroup, title='', filters=None):
@@ -107,7 +110,7 @@ class Dataset(object):
                 # The group does not exist. Create it.
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
-                    group2 = self._f.create_group(group, nodename,
+                    group2 = self._f.create_group(group, native(nodename),
                                                   title=title,
                                                   filters=filters)
             group = group2
@@ -152,12 +155,12 @@ class Dataset(object):
             s = hashlib.sha224()
             # If data buffer is empty raise an exception
             empty = True
-            for k, v in data_buffer.__dict__.iteritems():
+            for k, v in list(data_buffer.__dict__.items()):
                 if k == 'tags':
                     continue
                 if v is not None:
-                    if k in data_buffer._property_dict.keys():
-                        s.update('{}'.format(v))
+                    if k in list(data_buffer._property_dict.keys()):
+                        s.update('{}'.format(v).encode('utf-8'))
                     empty = False
             if empty:
                 msg = "You can't add empty buffers if 'pedantic=True'."
@@ -172,7 +175,7 @@ class Dataset(object):
             pass
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            group = self._f.create_group('/'+group_name, str(rid))
+            group = self._f.create_group('/'+group_name, native(str(rid)))
         e = _C(group, data_buffer, pedantic=pedantic)
         self.elements[group_name].append(e)
         return e
@@ -195,7 +198,7 @@ class Dataset(object):
             if group._v_name is '/' or group._v_name+'Buffer' \
                not in dnew.base_elements:
                 continue
-            for sgroup in group._v_groups.keys():
+            for sgroup in list(group._v_groups.keys()):
                 _C = dnew.base_elements[group._v_name+'Buffer']
                 e = _C(group._v_groups[sgroup])
                 dnew.elements[group._v_name].append(e)
@@ -235,7 +238,8 @@ class Dataset(object):
             try:
                 ea = self._f.root.tags._v_children[tag]
                 for rid in ea[:]:
-                    e = ResourceIdentifier(rid).get_referred_object()
+                    e = (ResourceIdentifier(rid.astype(np.str_))
+                         .get_referred_object())
                     e.tags.remove(tag)
             except (KeyError, NoSuchNodeError):
                 msg = "Can't remove tag {} as it doesn't exist.".format(tag)

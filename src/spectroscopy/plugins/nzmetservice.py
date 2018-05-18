@@ -1,6 +1,9 @@
 """
 Plugin to read and write FlySpec data.
 """
+from builtins import zip
+from builtins import map
+from builtins import range
 from collections import defaultdict
 import datetime
 import os
@@ -62,7 +65,7 @@ class NZMetservicePlugin(DatasetPluginBase):
             for _i, _e in enumerate(_a[1:]):
                 if _e == '-':
                     continue
-                d, s = map(float, _e.split('/'))
+                d, s = list(map(float, _e.split('/')))
                 vals.append((times[_i], self.volc_dict[md][0],
                              self.volc_dict[md][1], _h, d, s * 0.514444))
         return vals
