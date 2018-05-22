@@ -131,7 +131,8 @@ class MyPyRenderer(ObjRenderer):
         s = ""
         s += "import numpy as np\n"
         s += "import datetime\n"
-        s += "from spectroscopy.class_factory import _class_factory\n" 
+        s += "from spectroscopy.class_factory import _base_class_factory, "
+        s += "_buffer_class_factory\n"
         return s
 
     def build_documentation(self,k):
@@ -167,8 +168,7 @@ class MyPyRenderer(ObjRenderer):
                        'json':'np.str_', 'set':'set'}
         d = {}
         s = "\n\n"
-        s += "__{0:s} = _class_factory('__{0:s}', '{1:s}',\n".format(k.name,k.stereotype)
-        s += "\tclass_attributes=[\n"
+        s += "__{0:s} = _base_class_factory('__{0:s}', '{1:s}',\n".format(k.name,k.stereotype)
         attributes = []
         for n,att in k.attributes:
             if n in ['resource_id', 'creation_time', 'modification_time']:
@@ -185,12 +185,14 @@ class MyPyRenderer(ObjRenderer):
                 dt = "({:s},)".format(type_lookup[att[0].strip()])
             attributes.append("('{0:s}',{1:s})".format(n,dt))
         i = 0
+        cls_attrs = "\tclass_attributes=[\n"
         for a in attributes:
             i += 1
-            s += "\t\t{:s}".format(a)
+            cls_attrs += "\t\t{:s}".format(a)
             if i < len(attributes):
-                s += ",\n"
-        s += "],\n"
+                cls_attrs += ",\n"
+        cls_attrs += "],\n"
+        s += cls_attrs
 
         references = []
         # Dependencies have to be tracked so the 
@@ -211,22 +213,24 @@ class MyPyRenderer(ObjRenderer):
                     dependencies.append("_{:s}".format(ref_class))
                 references.append("('{0:s}',{1:s})".format(n,dt))
 
+        cls_refs = "\tclass_references=[\n" 
         if len(references) > 0:
             i = 0
-            s += "\tclass_references=[\n"
             for r in references:
                 i += 1
-                s += "\t\t{:s}".format(r)
+                cls_refs += "\t\t{:s}".format(r)
                 if i < len(references):
-                    s += ",\n"
-            s += "])\n"
+                    cls_refs += ",\n"
+            cls_refs += "])\n"
         else:
-            s += "\tclass_references=[])\n"
-
+            cls_refs = "\tclass_references=[])\n"
+        s += cls_refs
+ 
         s += "\n\n"
-        s += "__{0:s}Buffer = _class_factory(\n".format(k.name)
-        s += "\t'__{0:s}Buffer', 'buffer',\n".format(k.name)
-        s += "\t__{0:s}._properties, __{0:s}._references)\n".format(k.name)
+        s += "__{0:s}Buffer = _buffer_class_factory(\n".format(k.name)
+        s += "\t'__{0:s}Buffer', \n".format(k.name)
+        s += cls_attrs
+        s += cls_refs
         s += "\n\n"
         s += "class {0:s}Buffer(__{0:s}Buffer):\n".format(k.name)
         s += self.build_documentation(k)

@@ -1,23 +1,31 @@
 import numpy as np
 import datetime
-from spectroscopy.class_factory import _class_factory
+from spectroscopy.class_factory import _base_class_factory, _buffer_class_factory
 
 
-__Instrument = _class_factory('__Instrument', 'base',
+__Instrument = _base_class_factory('__Instrument', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('name',(np.bytes_,)),
-		('sensor_id',(np.bytes_,)),
-		('location',(np.bytes_,)),
+		('name',(np.str_,)),
+		('sensor_id',(np.str_,)),
+		('location',(np.str_,)),
 		('no_bits',(np.int_,)),
-		('type',(np.bytes_,)),
-		('description',(np.bytes_,))],
+		('type',(np.str_,)),
+		('description',(np.str_,))],
 	class_references=[])
 
 
-__InstrumentBuffer = _class_factory(
-	'__InstrumentBuffer', 'buffer',
-	__Instrument._properties, __Instrument._references)
+__InstrumentBuffer = _buffer_class_factory(
+	'__InstrumentBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('name',(np.str_,)),
+		('sensor_id',(np.str_,)),
+		('location',(np.str_,)),
+		('no_bits',(np.int_,)),
+		('type',(np.str_,)),
+		('description',(np.str_,))],
+	class_references=[])
 
 
 class InstrumentBuffer(__InstrumentBuffer):
@@ -46,20 +54,27 @@ class _Instrument(__Instrument):
 	'''
 
 
-__Target = _class_factory('__Target', 'base',
+__Target = _base_class_factory('__Target', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('target_id',(np.bytes_,)),
-		('name',(np.bytes_,)),
+		('target_id',(np.str_,)),
+		('name',(np.str_,)),
 		('position',(np.ndarray, np.float_)),
 		('position_error',(np.ndarray, np.float_)),
-		('description',(np.bytes_,))],
+		('description',(np.str_,))],
 	class_references=[])
 
 
-__TargetBuffer = _class_factory(
-	'__TargetBuffer', 'buffer',
-	__Target._properties, __Target._references)
+__TargetBuffer = _buffer_class_factory(
+	'__TargetBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('target_id',(np.str_,)),
+		('name',(np.str_,)),
+		('position',(np.ndarray, np.float_)),
+		('position_error',(np.ndarray, np.float_)),
+		('description',(np.str_,))],
+	class_references=[])
 
 
 class TargetBuffer(__TargetBuffer):
@@ -86,19 +101,25 @@ class _Target(__Target):
 	'''
 
 
-__RawDataType = _class_factory('__RawDataType', 'base',
+__RawDataType = _base_class_factory('__RawDataType', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('d_var_unit',(np.bytes_,)),
-		('ind_var_unit',(np.bytes_,)),
-		('name',(np.bytes_,)),
-		('acquisition',(np.bytes_,))],
+		('d_var_unit',(np.str_,)),
+		('ind_var_unit',(np.str_,)),
+		('name',(np.str_,)),
+		('acquisition',(np.str_,))],
 	class_references=[])
 
 
-__RawDataTypeBuffer = _class_factory(
-	'__RawDataTypeBuffer', 'buffer',
-	__RawDataType._properties, __RawDataType._references)
+__RawDataTypeBuffer = _buffer_class_factory(
+	'__RawDataTypeBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('d_var_unit',(np.str_,)),
+		('ind_var_unit',(np.str_,)),
+		('name',(np.str_,)),
+		('acquisition',(np.str_,))],
+	class_references=[])
 
 
 class RawDataTypeBuffer(__RawDataTypeBuffer):
@@ -122,17 +143,21 @@ class _RawDataType(__RawDataType):
 	'''
 
 
-__DataQualityType = _class_factory('__DataQualityType', 'base',
+__DataQualityType = _base_class_factory('__DataQualityType', 'base',
 	class_attributes=[
 		('tags',(set,)),
-		('name',(np.bytes_,)),
-		('reference',(np.bytes_,))],
+		('name',(np.str_,)),
+		('reference',(np.str_,))],
 	class_references=[])
 
 
-__DataQualityTypeBuffer = _class_factory(
-	'__DataQualityTypeBuffer', 'buffer',
-	__DataQualityType._properties, __DataQualityType._references)
+__DataQualityTypeBuffer = _buffer_class_factory(
+	'__DataQualityTypeBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('name',(np.str_,)),
+		('reference',(np.str_,))],
+	class_references=[])
 
 
 class DataQualityTypeBuffer(__DataQualityTypeBuffer):
@@ -152,7 +177,7 @@ class _DataQualityType(__DataQualityType):
 	'''
 
 
-__RawData = _class_factory('__RawData', 'extendable',
+__RawData = _base_class_factory('__RawData', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
 		('inc_angle',(np.ndarray, np.float_)),
@@ -170,7 +195,7 @@ __RawData = _class_factory('__RawData', 'extendable',
 		('integration_time',(np.ndarray, np.float_)),
 		('no_averages',(np.float_,)),
 		('temperature',(np.float_,)),
-		('user_notes',(np.bytes_,))],
+		('user_notes',(np.str_,))],
 	class_references=[
 		('instrument',(_Instrument,)),
 		('target',(_Target,)),
@@ -178,9 +203,31 @@ __RawData = _class_factory('__RawData', 'extendable',
 		('data_quality_type',(np.ndarray, _DataQualityType))])
 
 
-__RawDataBuffer = _class_factory(
-	'__RawDataBuffer', 'buffer',
-	__RawData._properties, __RawData._references)
+__RawDataBuffer = _buffer_class_factory(
+	'__RawDataBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('inc_angle',(np.ndarray, np.float_)),
+		('inc_angle_error',(np.ndarray, np.float_)),
+		('bearing',(np.ndarray, np.float_)),
+		('bearing_error',(np.ndarray, np.float_)),
+		('position',(np.ndarray, np.float_)),
+		('position_error',(np.ndarray, np.float_)),
+		('path_length',(np.ndarray, np.float_)),
+		('path_length_error',(np.ndarray, np.float_)),
+		('d_var',(np.ndarray, np.float_)),
+		('ind_var',(np.ndarray, np.float_)),
+		('datetime',(np.ndarray, datetime.datetime)),
+		('data_quality',(np.ndarray, np.float_)),
+		('integration_time',(np.ndarray, np.float_)),
+		('no_averages',(np.float_,)),
+		('temperature',(np.float_,)),
+		('user_notes',(np.str_,))],
+	class_references=[
+		('instrument',(_Instrument,)),
+		('target',(_Target,)),
+		('type',(_RawDataType,)),
+		('data_quality_type',(np.ndarray, _DataQualityType))])
 
 
 class RawDataBuffer(__RawDataBuffer):
@@ -237,19 +284,25 @@ class _RawData(__RawData):
 	'''
 
 
-__Method = _class_factory('__Method', 'extendable',
+__Method = _base_class_factory('__Method', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
-		('name',(np.bytes_,)),
-		('description',(np.bytes_,)),
-		('settings',(np.bytes_,)),
-		('reference',(np.bytes_,))],
+		('name',(np.str_,)),
+		('description',(np.str_,)),
+		('settings',(np.str_,)),
+		('reference',(np.str_,))],
 	class_references=[])
 
 
-__MethodBuffer = _class_factory(
-	'__MethodBuffer', 'buffer',
-	__Method._properties, __Method._references)
+__MethodBuffer = _buffer_class_factory(
+	'__MethodBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('name',(np.str_,)),
+		('description',(np.str_,)),
+		('settings',(np.str_,)),
+		('reference',(np.str_,))],
+	class_references=[])
 
 
 class MethodBuffer(__MethodBuffer):
@@ -273,7 +326,7 @@ class _Method(__Method):
 	'''
 
 
-__GasFlow = _class_factory('__GasFlow', 'base',
+__GasFlow = _base_class_factory('__GasFlow', 'base',
 	class_attributes=[
 		('tags',(set,)),
 		('vx',(np.ndarray, np.float_)),
@@ -282,7 +335,7 @@ __GasFlow = _class_factory('__GasFlow', 'base',
 		('vy_error',(np.ndarray, np.float_)),
 		('vz',(np.ndarray, np.float_)),
 		('vz_error',(np.ndarray, np.float_)),
-		('unit',(np.bytes_,)),
+		('unit',(np.str_,)),
 		('position',(np.ndarray, np.float_)),
 		('position_error',(np.ndarray, np.float_)),
 		('grid_bearing',(np.float_,)),
@@ -290,14 +343,32 @@ __GasFlow = _class_factory('__GasFlow', 'base',
 		('pressure',(np.float_,)),
 		('temperature',(np.float_,)),
 		('datetime',(np.ndarray, datetime.datetime)),
-		('user_notes',(np.bytes_,))],
+		('user_notes',(np.str_,))],
 	class_references=[
 		('methods',(np.ndarray, _Method))])
 
 
-__GasFlowBuffer = _class_factory(
-	'__GasFlowBuffer', 'buffer',
-	__GasFlow._properties, __GasFlow._references)
+__GasFlowBuffer = _buffer_class_factory(
+	'__GasFlowBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('vx',(np.ndarray, np.float_)),
+		('vx_error',(np.ndarray, np.float_)),
+		('vy',(np.ndarray, np.float_)),
+		('vy_error',(np.ndarray, np.float_)),
+		('vz',(np.ndarray, np.float_)),
+		('vz_error',(np.ndarray, np.float_)),
+		('unit',(np.str_,)),
+		('position',(np.ndarray, np.float_)),
+		('position_error',(np.ndarray, np.float_)),
+		('grid_bearing',(np.float_,)),
+		('grid_increments',(np.ndarray, np.float_)),
+		('pressure',(np.float_,)),
+		('temperature',(np.float_,)),
+		('datetime',(np.ndarray, datetime.datetime)),
+		('user_notes',(np.str_,))],
+	class_references=[
+		('methods',(np.ndarray, _Method))])
 
 
 class GasFlowBuffer(__GasFlowBuffer):
@@ -345,26 +416,39 @@ class _GasFlow(__GasFlow):
 	'''
 
 
-__Concentration = _class_factory('__Concentration', 'extendable',
+__Concentration = _base_class_factory('__Concentration', 'extendable',
 	class_attributes=[
 		('tags',(set,)),
 		('rawdata_indices',(np.ndarray, np.int_)),
-		('gas_species',(np.bytes_,)),
+		('gas_species',(np.str_,)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
-		('unit',(np.bytes_,)),
+		('unit',(np.str_,)),
 		('datetime',(np.ndarray, datetime.datetime)),
-		('analyst_contact',(np.bytes_,)),
-		('user_notes',(np.bytes_,))],
+		('analyst_contact',(np.str_,)),
+		('user_notes',(np.str_,))],
 	class_references=[
 		('method',(_Method,)),
 		('gasflow',(_GasFlow,)),
 		('rawdata',(np.ndarray, _RawData))])
 
 
-__ConcentrationBuffer = _class_factory(
-	'__ConcentrationBuffer', 'buffer',
-	__Concentration._properties, __Concentration._references)
+__ConcentrationBuffer = _buffer_class_factory(
+	'__ConcentrationBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('rawdata_indices',(np.ndarray, np.int_)),
+		('gas_species',(np.str_,)),
+		('value',(np.ndarray, np.float_)),
+		('value_error',(np.ndarray, np.float_)),
+		('unit',(np.str_,)),
+		('datetime',(np.ndarray, datetime.datetime)),
+		('analyst_contact',(np.str_,)),
+		('user_notes',(np.str_,))],
+	class_references=[
+		('method',(_Method,)),
+		('gasflow',(_GasFlow,)),
+		('rawdata',(np.ndarray, _RawData))])
 
 
 class ConcentrationBuffer(__ConcentrationBuffer):
@@ -402,25 +486,37 @@ class _Concentration(__Concentration):
 	'''
 
 
-__Flux = _class_factory('__Flux', 'base',
+__Flux = _base_class_factory('__Flux', 'base',
 	class_attributes=[
 		('tags',(set,)),
 		('concentration_indices',(np.ndarray, np.int_)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
 		('datetime',(np.ndarray, datetime.datetime)),
-		('unit',(np.bytes_,)),
-		('analyst_contact',(np.bytes_,)),
-		('user_notes',(np.bytes_,))],
+		('unit',(np.str_,)),
+		('analyst_contact',(np.str_,)),
+		('user_notes',(np.str_,))],
 	class_references=[
 		('method',(_Method,)),
 		('concentration',(_Concentration,)),
 		('gasflow',(_GasFlow,))])
 
 
-__FluxBuffer = _class_factory(
-	'__FluxBuffer', 'buffer',
-	__Flux._properties, __Flux._references)
+__FluxBuffer = _buffer_class_factory(
+	'__FluxBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('concentration_indices',(np.ndarray, np.int_)),
+		('value',(np.ndarray, np.float_)),
+		('value_error',(np.ndarray, np.float_)),
+		('datetime',(np.ndarray, datetime.datetime)),
+		('unit',(np.str_,)),
+		('analyst_contact',(np.str_,)),
+		('user_notes',(np.str_,))],
+	class_references=[
+		('method',(_Method,)),
+		('concentration',(_Concentration,)),
+		('gasflow',(_GasFlow,))])
 
 
 class FluxBuffer(__FluxBuffer):
@@ -456,22 +552,31 @@ class _Flux(__Flux):
 	'''
 
 
-__PreferredFlux = _class_factory('__PreferredFlux', 'base',
+__PreferredFlux = _base_class_factory('__PreferredFlux', 'base',
 	class_attributes=[
 		('tags',(set,)),
 		('flux_indices',(np.ndarray, np.int_)),
 		('datetime',(np.ndarray, datetime.datetime)),
 		('value',(np.ndarray, np.float_)),
 		('value_error',(np.ndarray, np.float_)),
-		('user_notes',(np.bytes_,))],
+		('user_notes',(np.str_,))],
 	class_references=[
 		('fluxes',(np.ndarray, _Flux)),
 		('method_id',(_Method,))])
 
 
-__PreferredFluxBuffer = _class_factory(
-	'__PreferredFluxBuffer', 'buffer',
-	__PreferredFlux._properties, __PreferredFlux._references)
+__PreferredFluxBuffer = _buffer_class_factory(
+	'__PreferredFluxBuffer', 
+	class_attributes=[
+		('tags',(set,)),
+		('flux_indices',(np.ndarray, np.int_)),
+		('datetime',(np.ndarray, datetime.datetime)),
+		('value',(np.ndarray, np.float_)),
+		('value_error',(np.ndarray, np.float_)),
+		('user_notes',(np.str_,))],
+	class_references=[
+		('fluxes',(np.ndarray, _Flux)),
+		('method_id',(_Method,))])
 
 
 class PreferredFluxBuffer(__PreferredFluxBuffer):

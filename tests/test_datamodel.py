@@ -31,12 +31,12 @@ class DatamodelTestCase(unittest.TestCase):
         t = d.new(tb)
         np.testing.assert_almost_equal(np.squeeze(t.position[:]),
                                        np.array([177.2, -37.5, 50]), 1)
-        self.assertEqual(t.target_id[0], 'WI001')
+        self.assertEqual(t.target_id, 'WI001')
         with self.assertRaises(AttributeError):
             t.position = (177.2, -37.5, 50)
         with self.assertRaises(AttributeError):
             t.target_id = 'WI002'
-        self.assertEqual(t.target_id[0], 'WI001')
+        self.assertEqual(t.target_id, 'WI001')
 
     def test_typechecking(self):
         """
@@ -54,7 +54,7 @@ class DatamodelTestCase(unittest.TestCase):
         with self.assertRaises(ValueError):
             RawDataBuffer(instrument=t, d_var=np.zeros((1, 2048)),
                           ind_var=np.arange(2048),
-                          datetime=['2017-01-10T15:23:00'])
+                          datetime='2017-01-10T15:23:00')
 
     def test_RawData(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -88,7 +88,7 @@ class DatamodelTestCase(unittest.TestCase):
                            ind_var=np.arange(2048),
                            datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
-        self.assertEqual(r.target.target_id[0], 'WI001')
+        self.assertEqual(r.target.target_id, 'WI001')
 
     def test_repr(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -105,6 +105,8 @@ class DatamodelTestCase(unittest.TestCase):
         repr_string = str(repr(t)).split()[2:-2]
         for e in repr_string: 
             self.assertTrue(e in test_string)
+        for s in test_string:
+            self.assertTrue(s in repr_string)
 
     def test_sum(self):
         d1 = Dataset(tempfile.mktemp(), 'w')
@@ -138,11 +140,11 @@ class DatamodelTestCase(unittest.TestCase):
         rc4 = d3.elements['RawData'][1]
         rc1 = d1.elements['RawData'][0]
         # Check that the references are not the same anymore...
-        self.assertNotEqual(getattr(rc3._root.data.cols, 'target')[0],
-                            getattr(rc1._root.data.cols, 'target')[0])
+        self.assertNotEqual(getattr(rc3._root._v_attrs, 'target'),
+                            getattr(rc1._root._v_attrs, 'target'))
         # ...but that the copied elements contain the same information
-        self.assertEqual(rc3.target.target_id[:], rc1.target.target_id[:])
-        self.assertEqual(rc4.target.target_id[:], rc2.target.target_id[:])
+        self.assertEqual(rc3.target.target_id, rc1.target.target_id)
+        self.assertEqual(rc4.target.target_id, rc2.target.target_id)
 
         # Now check that this is also working for arrays of references
         mb1 = MethodBuffer(name='Method1')
@@ -154,10 +156,10 @@ class DatamodelTestCase(unittest.TestCase):
         gf = d4.new(gfb)
         d3 += d4
         gf2 = d3.elements['GasFlow'][0]
-        self.assertNotEqual(getattr(gf2._root.data.cols, 'methods')[0][0],
-                            getattr(gf._root.data.cols, 'methods')[0][0])
-        self.assertEqual(gf2.methods[0].name[:], gf.methods[0].name[:])
-        self.assertEqual(gf2.methods[1].name[:], gf.methods[1].name[:])
+        self.assertNotEqual(getattr(gf2._root._v_attrs, 'methods')[0],
+                            getattr(gf._root._v_attrs, 'methods')[0])
+        self.assertEqual(gf2.methods[0].name, gf.methods[0].name)
+        self.assertEqual(gf2.methods[1].name, gf.methods[1].name)
         # ToDo: not sure what the _rids feature was there for
         # tmp = {}
         # tmp.update(d1._rids)
@@ -244,7 +246,9 @@ class DatamodelTestCase(unittest.TestCase):
                                       ['2017-01-10T15:23:00',
                                        '2017-01-10T15:23:01'])
         with self.assertRaises(ValueError):
-            r.append(rb1)
+            r.append(rb1, pedantic=True)
+        with self.assertRaises(ValueError):
+            r.append(rb, pedantic=True)
         with self.assertRaises(AttributeError):
             t.append(tb)
         d.register_tags(['WI002'])
@@ -288,7 +292,7 @@ class DatamodelTestCase(unittest.TestCase):
 
         d1 = Dataset.open(fn)
         r1 = d1.elements['RawData'][0]
-        self.assertEqual(r1.target.name[0], 'White Island main vent')
+        self.assertEqual(r1.target.name, 'White Island main vent')
         self.assertEqual(list(r1.instrument.tags)[0], 'MD01')
 
     def test_tagging(self):
@@ -366,7 +370,6 @@ class DatamodelTestCase(unittest.TestCase):
         r = d.new(rb)
         rb1 = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
                             datetime=['2017-01-10T15:23:01'])
-        self.assertEqual(r.creation_time, r.modification_time)
         ct = r.creation_time
         r.append(rb1)
         self.assertGreater(r.modification_time, r.creation_time)
@@ -542,7 +545,6 @@ class DatamodelTestCase(unittest.TestCase):
                                       np.array([177.2, -37.5, 50.]))
         self.assertEqual(rd.target.name, 'White Island')
         self.assertEqual(rd.data_quality_type[1].name, 'q-measure 2')
-        print(repr(rd))
 
 
 def suite():

@@ -664,8 +664,8 @@ def _base_property_factory(name, datatype, reference=False):
         if reference:
             def get_reference_array(self):
                 try:
-                    value = getattr(self._root, name)
-                except tables.exceptions.NoSuchNodeError:
+                    value = self._root._v_attrs[name]
+                except KeyError:
                     return None
                 _t = []
                 for val in value:
@@ -731,6 +731,10 @@ def _base_property_factory(name, datatype, reference=False):
                     return None
                 return val.decode('ascii')
             fget = get_string
+        elif name == 'tags':
+            def get_tags(self):
+                return self._tags
+            fget = get_tags
 
     return property(fget=fget)
 
@@ -752,13 +756,6 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
         _references[item[0]] = item[1]
     cls_attrs['_references'] = _references
 
-    # Map numpy types to pytables types
-    dtmap = {np.float64: tables.Float64Atom(),
-             np.int64: tables.IntAtom(),
-             np.str_: tables.StringAtom(itemsize=128),
-             np.datetime64: tables.StringAtom(itemsize=19)}
-    cls_attrs['dtmap'] = dtmap
-
     def __init__(self, h5node, data_buffer=None, pedantic=False):
         # Set the parent HDF5 group after type checking
         if type(h5node) is not tables.group.Group:
@@ -779,8 +776,7 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
         if data_buffer is not None:
             f = h5node._v_file
             s = hashlib.sha224()
-            for key, prop_type in (list(self._properties.items())
-                                   + list(self._references.items())):
+            for key, prop_type in self._properties.items():
                 private_key = '_'+key
                 val = getattr(data_buffer, private_key)
                 if val is None:
@@ -805,17 +801,21 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
                     vl.append(val)
                 else:
                     h5node._v_attrs[key] = val
-
+            for key in self._references.keys():
+                private_key = '_'+key
+                val = getattr(data_buffer, private_key)
+                h5node._v_attrs[key] = val
             # Add a hash column to avoid adding the same
             # entries more than once
             h = s.digest()
             ea = f.root.hash
-            if pedantic and h in ea:
-                msg = "You can't add the same dataset "
-                msg += "more than once if 'pedantic=True'."
-                raise ValueError(msg)
+            if pedantic:
+                for i in range(ea.nrows):
+                    if (h == ea[i]):
+                        msg = "You can't add the same dataset "
+                        msg += "more than once if 'pedantic=True'."
+                        raise ValueError(msg)
             ea.append(np.array([h], dtype='S28'))
-            h5node._v_attrs['hash'] = h
 
     def __str__(self):
         return class_name.strip('_')
@@ -846,6 +846,59 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
     cls_attrs['__str__'] = __str__
     cls_attrs['__setattr__'] = __setattr__
     cls_attrs['__repr__'] = __repr__
+
+    if class_type == 'extendable':
+        def append(self, databuffer, pedantic=False):
+            s = hashlib.sha224()
+            for key, prop_type in self._properties.items():
+                private_key = '_'+key
+                val = getattr(databuffer, private_key)
+                if val is None:
+                    continue
+                tohash = '{}'.format(val)
+                s.update(tohash.encode('ascii'))
+                if prop_type[0] != np.ndarray:
+                    continue
+                vl = getattr(self._root, key)
+                vl.append(val)
+            h = s.digest()
+            f = self._root._v_file
+            ea = f.root.hash
+            if pedantic:
+                for i in range(ea.nrows):
+                    if (h == ea[i]):
+                        msg = "You can't add the same dataset "
+                        msg += "more than once if 'pedantic=True'."
+                        raise ValueError(msg)
+            ea.append(np.array([h], dtype='S28'))
+            self.__dict__['modification_time'] = \
+                datetime.datetime.utcnow().isoformat()
+            self._root._v_attrs.modification_time = self.modification_time
+
+        def __repr__(self):
+            msg = ''
+            msg += "ID: {:s}\n".format(self._root._v_name)
+            for key, datatype in list(self._properties.items()):
+                if key == 'tags':
+                    continue
+                prop = getattr(self.__class__, key, None)
+                if isinstance(prop, property):
+                    val = prop.fget(self)
+                    if val is not None:
+                        if datatype[0] == np.ndarray:
+                            msg += "{0:s}: {1:}\n".format(key, val.shape)
+                        else:
+                            msg += "{0:s}: {1:}\n".format(key, val)
+            ctime = self._root._v_attrs.creation_time
+            msg += "Last modified at: {:s}\n".format(ctime)
+            mtime = getattr(self._root._v_attrs, 'modification_time',
+                            ctime)
+            msg += "Created at: {:s}\n".format(mtime)
+            return msg
+
+        cls_attrs['append'] = append
+        cls_attrs['__repr__'] = __repr__
+
     return type(class_name, (object,), cls_attrs)
 
 
@@ -1198,9 +1251,3 @@ def _class_factory(class_name, class_type='base', class_attributes=[],
     # Set the class type name.
     setattr(base_class, "__name__", class_name)
     return base_class
-
-
-class _DataElementWriter(object):
-
-    def __init__(self):
-        pass
