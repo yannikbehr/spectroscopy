@@ -355,9 +355,8 @@ class RetVal(object):
     Wrapper to make tables.array.Array read only.
     """
 
-    def __init__(self, wrapped_object, datetime=False):
+    def __init__(self, wrapped_object):
         self.__dict__['_wrapped_object'] = wrapped_object
-        self.__dict__['_dt'] = datetime
         attributes = dir(wrapped_object)
         for attr in attributes:
             if hasattr(self, attr):
@@ -379,12 +378,7 @@ class RetVal(object):
         return getattr(self._wrapped_object, key)
 
     def __getitem__(self, key):
-        if self.__dict__['_dt']:
-            return self._wrapped_object.__getitem__(key).astype(np.str_)
-        try:
-            return self._wrapped_object.__getitem__(key).decode('ascii')
-        except AttributeError:
-            return self._wrapped_object.__getitem__(key)
+        return self._wrapped_object.__getitem__(key)
 
     def __str__(self):
         return self._wrapped_object.__str__()
@@ -410,6 +404,9 @@ class H5Set(set):
             pass
 
     def add(self, val):
+        """
+        Add an element to list of given tag.
+        """
         f = self.h5node._v_file
         if val in self:
             return
@@ -437,11 +434,14 @@ class H5Set(set):
 
     def append(self, val):
         """
-        Append a tag to the list of existing tags.
+        Append an element to the list of given tag.
         """
         self.add(val)
 
     def remove(self, val):
+        """
+        Remove element from list of given tag.
+        """
         f = self.h5node._v_file
         super(H5Set, self).remove(val)
         ea = f.root.tags._v_children[val]
@@ -608,12 +608,16 @@ def _buffer_property_factory(name, datatype, reference=False):
     return property(fget=fget, fset=fset)
 
 
-def _buffer_class_factory(class_name, class_attributes=[],
+def _buffer_class_factory(class_name, class_properties=[],
                           class_references=[]):
-
+    """
+    Class factory for buffer classes. These contain staged data, that
+    can then be written to the HDF5 file.
+    """
     cls_attrs = {}
     _properties = []
-    for item in class_attributes:
+    # Assign class properties
+    for item in class_properties:
         cls_attrs[item[0]] = _buffer_property_factory(item[0], item[1])
         _properties.append(item[0])
     cls_attrs['_properties'] = _properties
@@ -667,7 +671,7 @@ def _buffer_class_factory(class_name, class_attributes=[],
 
 def _base_property_factory(name, datatype, reference=False):
     """
-    Generate properties for a buffer class based on the datatype.
+    Generate properties for a base class based on the datatype.
     """
 
     def getter(self):
@@ -757,16 +761,24 @@ def _base_property_factory(name, datatype, reference=False):
     return property(fget=fget)
 
 
-def _base_class_factory(class_name, class_type='base', class_attributes=[],
+def _base_class_factory(class_name, class_type='base', class_properties=[],
                         class_references=[]):
+    """
+    Class factory for base classes. These are thin wrappers for the
+    underlying HDF5 file with methods to write and retrieve data. Only
+    buffer class instances can be written to file and no data can be
+    changed once written. If a base class is extendable, it can be appended
+    to.
+    """
     cls_attrs = {}
     _properties = {}
-    for item in class_attributes:
+    # Define class properties
+    for item in class_properties:
         cls_attrs[item[0]] = _base_property_factory(item[0], item[1])
         _properties[item[0]] = item[1]
     cls_attrs['_properties'] = _properties
 
-    # Assign references to other elements in the datamodel
+    # Define references to other elements in the datamodel
     _references = {}
     for item in class_references:
         cls_attrs[item[0]] = _base_property_factory(item[0], item[1],
@@ -823,7 +835,7 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
                 private_key = '_'+key
                 val = getattr(data_buffer, private_key)
                 h5node._v_attrs[key] = val
-            # Add a hash column to avoid adding the same
+            # Add a hash column to be able to avoid adding the same
             # entries more than once
             h = s.digest()
             ea = f.root.hash
@@ -839,8 +851,8 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
         return class_name.strip('_')
 
     def __setattr__(self, name, value):
-        msg = '{} attributes are read only.'
-        raise AttributeError(msg.format(type(self).__name__))
+        msg = '{} is read only.'
+        raise AttributeError(msg.format(self.__class__.__name__))
 
     def __repr__(self):
         msg = ''

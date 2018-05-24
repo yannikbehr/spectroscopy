@@ -4,7 +4,7 @@ from spectroscopy.class_factory import _base_class_factory, _buffer_class_factor
 
 
 __Instrument = _base_class_factory('__Instrument', 'base',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('name',(np.str_,)),
 		('sensor_id',(np.str_,)),
@@ -17,7 +17,7 @@ __Instrument = _base_class_factory('__Instrument', 'base',
 
 __InstrumentBuffer = _buffer_class_factory(
 	'__InstrumentBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('name',(np.str_,)),
 		('sensor_id',(np.str_,)),
@@ -55,7 +55,7 @@ class _Instrument(__Instrument):
 
 
 __Target = _base_class_factory('__Target', 'base',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('target_id',(np.str_,)),
 		('name',(np.str_,)),
@@ -67,7 +67,7 @@ __Target = _base_class_factory('__Target', 'base',
 
 __TargetBuffer = _buffer_class_factory(
 	'__TargetBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('target_id',(np.str_,)),
 		('name',(np.str_,)),
@@ -102,7 +102,7 @@ class _Target(__Target):
 
 
 __RawDataType = _base_class_factory('__RawDataType', 'base',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('d_var_unit',(np.str_,)),
 		('ind_var_unit',(np.str_,)),
@@ -113,7 +113,7 @@ __RawDataType = _base_class_factory('__RawDataType', 'base',
 
 __RawDataTypeBuffer = _buffer_class_factory(
 	'__RawDataTypeBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('d_var_unit',(np.str_,)),
 		('ind_var_unit',(np.str_,)),
@@ -144,7 +144,7 @@ class _RawDataType(__RawDataType):
 
 
 __DataQualityType = _base_class_factory('__DataQualityType', 'base',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('name',(np.str_,)),
 		('reference',(np.str_,))],
@@ -153,7 +153,7 @@ __DataQualityType = _base_class_factory('__DataQualityType', 'base',
 
 __DataQualityTypeBuffer = _buffer_class_factory(
 	'__DataQualityTypeBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('name',(np.str_,)),
 		('reference',(np.str_,))],
@@ -178,7 +178,7 @@ class _DataQualityType(__DataQualityType):
 
 
 __RawData = _base_class_factory('__RawData', 'extendable',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('inc_angle',(np.ndarray, np.float_)),
 		('inc_angle_error',(np.ndarray, np.float_)),
@@ -205,7 +205,7 @@ __RawData = _base_class_factory('__RawData', 'extendable',
 
 __RawDataBuffer = _buffer_class_factory(
 	'__RawDataBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('inc_angle',(np.ndarray, np.float_)),
 		('inc_angle_error',(np.ndarray, np.float_)),
@@ -285,7 +285,7 @@ class _RawData(__RawData):
 
 
 __Method = _base_class_factory('__Method', 'extendable',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('name',(np.str_,)),
 		('description',(np.str_,)),
@@ -296,7 +296,7 @@ __Method = _base_class_factory('__Method', 'extendable',
 
 __MethodBuffer = _buffer_class_factory(
 	'__MethodBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('name',(np.str_,)),
 		('description',(np.str_,)),
@@ -327,7 +327,7 @@ class _Method(__Method):
 
 
 __GasFlow = _base_class_factory('__GasFlow', 'base',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('vx',(np.ndarray, np.float_)),
 		('vx_error',(np.ndarray, np.float_)),
@@ -350,7 +350,7 @@ __GasFlow = _base_class_factory('__GasFlow', 'base',
 
 __GasFlowBuffer = _buffer_class_factory(
 	'__GasFlowBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('vx',(np.ndarray, np.float_)),
 		('vx_error',(np.ndarray, np.float_)),
@@ -417,7 +417,7 @@ class _GasFlow(__GasFlow):
 
 
 __Concentration = _base_class_factory('__Concentration', 'extendable',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('rawdata_indices',(np.ndarray, np.int_)),
 		('gas_species',(np.str_,)),
@@ -435,7 +435,7 @@ __Concentration = _base_class_factory('__Concentration', 'extendable',
 
 __ConcentrationBuffer = _buffer_class_factory(
 	'__ConcentrationBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('rawdata_indices',(np.ndarray, np.int_)),
 		('gas_species',(np.str_,)),
@@ -487,7 +487,7 @@ class _Concentration(__Concentration):
 
 
 __Flux = _base_class_factory('__Flux', 'base',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('concentration_indices',(np.ndarray, np.int_)),
 		('value',(np.ndarray, np.float_)),
@@ -504,7 +504,7 @@ __Flux = _base_class_factory('__Flux', 'base',
 
 __FluxBuffer = _buffer_class_factory(
 	'__FluxBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('concentration_indices',(np.ndarray, np.int_)),
 		('value',(np.ndarray, np.float_)),
@@ -553,7 +553,7 @@ class _Flux(__Flux):
 
 
 __PreferredFlux = _base_class_factory('__PreferredFlux', 'base',
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('flux_indices',(np.ndarray, np.int_)),
 		('datetime',(np.ndarray, datetime.datetime)),
@@ -567,7 +567,7 @@ __PreferredFlux = _base_class_factory('__PreferredFlux', 'base',
 
 __PreferredFluxBuffer = _buffer_class_factory(
 	'__PreferredFluxBuffer', 
-	class_attributes=[
+	class_properties=[
 		('tags',(set,)),
 		('flux_indices',(np.ndarray, np.int_)),
 		('datetime',(np.ndarray, datetime.datetime)),

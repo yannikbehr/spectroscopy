@@ -410,7 +410,7 @@ class DatamodelTestCase(unittest.TestCase):
         self.assertEqual(e['RawData'][0], r)
 
     def test_buffer_class_factory(self):
-        cls_attributes = [('tags', (set,)),
+        cls_properties = [('tags', (set,)),
                           ('inc_angle', (np.ndarray, np.float_)),
                           ('inc_angle_error', (np.ndarray, np.float_)),
                           ('bearing', (np.ndarray, np.float_)),
@@ -434,7 +434,7 @@ class DatamodelTestCase(unittest.TestCase):
                                                  _DataQualityType))]
 
         RawDataBuffer = _buffer_class_factory('RawDataBuffer',
-                                              class_attributes=cls_attributes,
+                                              class_properties=cls_properties,
                                               class_references=cls_references)
         rd = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
                            datetime=['2017-01-10T15:23:00'])
@@ -447,38 +447,38 @@ class DatamodelTestCase(unittest.TestCase):
         self.assertTrue(isinstance(rd1.datetime[0], np.datetime64))
 
     def test_base_class_factory(self):
-        cls_attr_target = [('tags', (set,)),
-                           ('target_id', (np.str_,)),
-                           ('name', (np.str_,)),
-                           ('position', (np.ndarray, np.float_)),
-                           ('position_error', (np.ndarray, np.float_)),
-                           ('description', (np.str_,))]
+        cls_props_target = [('tags', (set,)),
+                            ('target_id', (np.str_,)),
+                            ('name', (np.str_,)),
+                            ('position', (np.ndarray, np.float_)),
+                            ('position_error', (np.ndarray, np.float_)),
+                            ('description', (np.str_,))]
 
         _Target = _base_class_factory('_Target', class_type='base',
-                                      class_attributes=cls_attr_target)
-        cls_attr_dqt = [('tags', (set,)), ('name', (np.str_,)),
-                        ('reference', (np.str_,))]
+                                      class_properties=cls_props_target)
+        cls_props_dqt = [('tags', (set,)), ('name', (np.str_,)),
+                         ('reference', (np.str_,))]
 
         _DataQualityType = _base_class_factory('_DataQualityType', 'base',
-                                               class_attributes=cls_attr_dqt)
+                                               class_properties=cls_props_dqt)
 
-        cls_attr_rawdt = [('tags', (set,)),
-                          ('inc_angle', (np.ndarray, np.float_)),
-                          ('inc_angle_error', (np.ndarray, np.float_)),
-                          ('bearing', (np.ndarray, np.float_)),
-                          ('bearing_error', (np.ndarray, np.float_)),
-                          ('position', (np.ndarray, np.float_)),
-                          ('position_error', (np.ndarray, np.float_)),
-                          ('path_length', (np.ndarray, np.float_)),
-                          ('path_length_error', (np.ndarray, np.float_)),
-                          ('d_var', (np.ndarray, np.float_)),
-                          ('ind_var', (np.ndarray, np.float_)),
-                          ('datetime', (np.ndarray, datetime.datetime)),
-                          ('data_quality', (np.ndarray, np.float_)),
-                          ('integration_time', (np.ndarray, np.float_)),
-                          ('no_averages', (np.float_,)),
-                          ('temperature', (np.float_,)),
-                          ('user_notes', (np.str_,))]
+        cls_props_rawdt = [('tags', (set,)),
+                           ('inc_angle', (np.ndarray, np.float_)),
+                           ('inc_angle_error', (np.ndarray, np.float_)),
+                           ('bearing', (np.ndarray, np.float_)),
+                           ('bearing_error', (np.ndarray, np.float_)),
+                           ('position', (np.ndarray, np.float_)),
+                           ('position_error', (np.ndarray, np.float_)),
+                           ('path_length', (np.ndarray, np.float_)),
+                           ('path_length_error', (np.ndarray, np.float_)),
+                           ('d_var', (np.ndarray, np.float_)),
+                           ('ind_var', (np.ndarray, np.float_)),
+                           ('datetime', (np.ndarray, datetime.datetime)),
+                           ('data_quality', (np.ndarray, np.float_)),
+                           ('integration_time', (np.ndarray, np.float_)),
+                           ('no_averages', (np.float_,)),
+                           ('temperature', (np.float_,)),
+                           ('user_notes', (np.str_,))]
         cls_refr_rawdt = [('instrument', (_Instrument,)),
                           ('target', (_Target,)),
                           ('type', (_RawDataType,)),
@@ -490,10 +490,10 @@ class DatamodelTestCase(unittest.TestCase):
         h5f.create_earray('/', 'hash', tables.StringAtom(itemsize=28), (0,))
 
         TargetBuffer = _buffer_class_factory('TargetBuffer',
-                                             class_attributes=cls_attr_target)
+                                             class_properties=cls_props_target)
         DataQualityTypeBuffer = \
                 _buffer_class_factory('DataQualityTypeBuffer',
-                                      class_attributes=cls_attr_dqt)
+                                      class_properties=cls_props_dqt)
 
         dtb1 = DataQualityTypeBuffer(name='q-measure 1')
         dtb2 = DataQualityTypeBuffer(name='q-measure 2')
@@ -521,11 +521,11 @@ class DatamodelTestCase(unittest.TestCase):
         dt2 = _DataQualityType(group, dtb2)
 
         _RawData = _base_class_factory('_RawData', class_type='base',
-                                       class_attributes=cls_attr_rawdt,
+                                       class_properties=cls_props_rawdt,
                                        class_references=cls_refr_rawdt)
 
         RawDataBuffer = _buffer_class_factory('RawDataBuffer',
-                                              class_attributes=cls_attr_rawdt,
+                                              class_properties=cls_props_rawdt,
                                               class_references=cls_refr_rawdt)
         rdb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
                             datetime=['2017-01-10T15:23:00'], no_averages=23,
