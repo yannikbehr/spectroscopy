@@ -4,6 +4,7 @@ Plugin to read FlySpec data.
 from __future__ import division
 from builtins import str
 from builtins import range
+from functools import partial
 from past.utils import old_div
 import datetime
 import os
@@ -56,18 +57,28 @@ class FlySpecPlugin(DatasetPluginBase):
             """
             Convert degrees and decimal minutes to decimal degrees.
             """
-            idx = x.find('.')
-            minutes = old_div(float(x[idx - 2:]), 60.)
-            deg = float(x[:idx - 2])
+            xx = x.decode('ascii')
+            idx = xx.find('.')
+            minutes = old_div(float(xx[idx - 2:]), 60.)
+            deg = float(xx[:idx - 2])
             return deg + minutes
+
+        def hem2no(x, hem):
+            """
+            Convert hemisphere to sign.
+            """
+            xx = x.decode('ascii')
+            if xx.lower() == hem:
+                return -1.0
+            return 1.0
 
         data = np.loadtxt(filename, usecols=list(range(0, 21)),
                           converters={
                               8: todd,
-                              9: lambda x: -1.0 if x.lower() == 's' else 1.0,
+                              9: partial(hem2no, hem='s'),
                               10: todd,
-                              11: lambda x: -1.0 if x.lower() == 'w' else 1.0})
-        data = np.atleast_2d(data)
+                              11: partial(hem2no, hem='w')},
+                          ndmin=2)
         specfile = kargs.get('spectra', None)
         if specfile is not None:
             wavelengths = kargs.get('wavelengths', None)

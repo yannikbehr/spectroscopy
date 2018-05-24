@@ -181,13 +181,13 @@ class MiniDoasScan(DatasetPluginBase):
         def dateconverter(x):
             return date+'T'+x.decode('ascii')
 
-        dt = np.dtype([('time', 'S19'), ('ws', np.float), ('wd', np.float),
+        dt = np.dtype([('time', 'U19'), ('ws', np.float), ('wd', np.float),
                        ('R2', np.float), ('SO2Start', np.float),
                        ('SO2Max', np.float), ('SO2End', np.float),
                        ('PlumeRange', np.float), ('PlumeWidth', np.float),
                        ('PlumeHeight', np.float), ('Easting', np.float),
                        ('Northing', np.float), ('Track', np.float),
-                       ('Emission', np.float), ('Station', 'S2'),
+                       ('Emission', np.float), ('Station', 'U2'),
                        ('EmissionSE', np.float)])
         try:
             data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt,

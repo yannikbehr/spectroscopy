@@ -160,7 +160,7 @@ class NZMetservicePlugin(DatasetPluginBase):
         vy = np.zeros(npts)
         vz = np.zeros(npts)
         position = np.zeros((npts, 3))
-        time = np.empty(npts, dtype='S26')
+        time = np.empty(npts, dtype='U26')
         for _i, _e in enumerate(_mdls[_mod]):
             t, lon, lat, h, d, s = _e
             # if windspeed is 0 give it a tiny value

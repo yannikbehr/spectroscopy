@@ -495,6 +495,8 @@ def _buffer_property_factory(name, datatype, reference=False):
     if datatype[0] == np.ndarray:
         if reference:
             def set_reference_array(self, value):
+                if not isinstance(value, np.ndarray):
+                    value = np.array(value, ndmin=1)
                 _t = []
                 for n in value:
                     if not isinstance(n, datatype[1]):
@@ -510,12 +512,15 @@ def _buffer_property_factory(name, datatype, reference=False):
             # it into ascii byte strings as pytables can't handle datetime
             # objects
             def set_datetime_array(self, value):
+                if not isinstance(value, np.ndarray):
+                    value = np.array(value, ndmin=1).astype(np.str_)
                 _vals = []
                 for v in value:
                     _vals.append((spectroscopy.util
                                   .parse_iso_8601(v)
                                   .isoformat().encode('ascii')))
                     value = np.array(_vals)
+
                 self.__dict__[attr_name] = np.array(_vals)
             fset = set_datetime_array
 
@@ -526,7 +531,7 @@ def _buffer_property_factory(name, datatype, reference=False):
                 _vals = []
                 for _dt in dts:
                     _vals.append(_dt.decode('ascii'))
-                return np.array(_vals, dtype='datetime64[s]')
+                return np.array(_vals, dtype='datetime64[ms]')
 
             fget = get_datetime_array
 
@@ -535,6 +540,8 @@ def _buffer_property_factory(name, datatype, reference=False):
             # as this is how pytables stores strings
             # internally
             def set_string_array(self, value):
+                if not isinstance(value, np.ndarray):
+                    value = np.array(value, ndmin=1).astype(np.str_)
                 _vals = []
                 for v in value:
                     _vals.append(v.encode('ascii'))
@@ -553,13 +560,18 @@ def _buffer_property_factory(name, datatype, reference=False):
 
         else:
             def set_array(self, value):
-                self.__dict__[attr_name] = np.array(value).astype(datatype[1])
+                self.__dict__[attr_name] = (np.array(value, ndmin=1).
+                                            astype(datatype[1]))
             fset = set_array
 
     else:
         if reference:
             def set_reference(self, value):
                 if value is not None:
+                    if not isinstance(value, datatype[0]):
+                        msg = "{:s} has to be of type: {}"
+                        msg = msg.format(name, datatype[0])
+                        raise ValueError(msg)
                     rid = str(getattr(value, '_resource_id')).encode('ascii')
                 else:
                     rid = None
@@ -643,8 +655,13 @@ def _buffer_class_factory(class_name, class_attributes=[],
                     "%s is not an attribute or reference of class %s" %
                     (key, self.__class__.__name__))
 
+    def __str__(self):
+        return class_name.strip('_')
+
     cls_attrs['__init__'] = __init__
     cls_attrs['__setattr__'] = __setattr__
+    cls_attrs['__str__'] = __str__
+
     return type(class_name, (object,), cls_attrs)
 
 
@@ -680,7 +697,8 @@ def _base_property_factory(name, datatype, reference=False):
             # objects
             def get_datetime_array(self):
                 try:
-                    return RetVal(getattr(self._root, name), datetime=True)
+                    dt = getattr(self._root, name)[:]
+                    return dt.astype('datetime64[ms]')
                 except tables.exceptions.NoSuchNodeError:
                     return None
             fget = get_datetime_array
@@ -720,7 +738,7 @@ def _base_property_factory(name, datatype, reference=False):
                     dt = self._root._v_attrs[name]
                 except KeyError:
                     return None
-                return dt.astype('datetime64[s]')
+                return dt.astype('datetime64[ms]')
             fget = get_datetime
 
         elif datatype[0] == np.str_:
@@ -846,6 +864,7 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
     cls_attrs['__str__'] = __str__
     cls_attrs['__setattr__'] = __setattr__
     cls_attrs['__repr__'] = __repr__
+    cls_attrs['__str__'] = __str__
 
     if class_type == 'extendable':
         def append(self, databuffer, pedantic=False):
@@ -900,354 +919,3 @@ def _base_class_factory(class_name, class_type='base', class_attributes=[],
         cls_attrs['__repr__'] = __repr__
 
     return type(class_name, (object,), cls_attrs)
-
-
-def _class_factory(class_name, class_type='base', class_attributes=[],
-                   class_references=[]):
-    """
-    Class factory to unify the creation of all the types in the datamodel.
-    """
-
-    class DataElementBase(object):
-        """
-        A base class with type checking for non-extendable
-        elements in the datamodel.
-        """
-        # Assign properties of the data element including
-        # the expected data types
-        _properties = []
-        for item in class_attributes:
-            _properties.append((item[0], item[1]))
-        _property_keys = [_i[0] for _i in _properties]
-        _property_dict = {}
-        for key, val in _properties:
-            _property_dict[key] = val
-
-        # Assign references to other elements in the datamodel
-        _references = []
-        for item in class_references:
-            _references.append((item[0], item[1]))
-        _reference_keys = [_i[0] for _i in _references]
-        _reference_dict = {}
-        for key, val in _references:
-            _reference_dict[key] = val
-
-        # Map numpy types to pytables types
-        dtmap = {np.float64: tables.Float64Atom(),
-                 np.int64: tables.IntAtom(),
-                 np.str_: tables.StringAtom(itemsize=128)}
-
-        def __init__(self, h5node, data_buffer=None, pedantic=False):
-            # Set the parent HDF5 group after type checking
-            if type(h5node) is not tables.group.Group:
-                raise Exception("%s and %s are incompatible types." %
-                                (type(h5node), tables.group.Group))
-            self.__dict__['_root'] = h5node
-            self.__dict__['_tags'] = H5Set(h5node)
-            # Every time a new object is created it gets a new resource ID
-            ri = ResourceIdentifier(oid=h5node._v_name, referred_object=self)
-            self.__dict__['_resource_id'] = ri
-            if not hasattr(h5node._v_attrs, 'creation_time'):
-                self.__dict__['creation_time'] = \
-                        datetime.datetime.utcnow().isoformat()
-                h5node._v_attrs.creation_time = self.creation_time
-            else:
-                self.__dict__['creation_time'] = h5node._v_attrs.creation_time
-
-            if data_buffer is not None:
-                dtp = []
-                vals = {}
-                avals = {}
-                for key, prop_type in list(self._property_dict.items()):
-                    val = getattr(data_buffer, key, None)
-                    if val is None:
-                        continue
-                    if key == 'tags':
-                        for _v in val:
-                            self._tags.add(_v)
-                        continue
-                    if prop_type[0] == datetime.datetime:
-                        vals[key] = val
-                        dtp.append((key, np.dtype('S'+str(len(val))), ()))
-                    elif prop_type[0] == np.ndarray:
-                        avals[key] = val
-                    else:
-                        vals[key] = val
-                        dtp.append((key, val.dtype, val.shape))
-
-                for key, prop_type in list(self._reference_dict.items()):
-                    val = getattr(data_buffer, key, None)
-                    if val is None:
-                        continue
-                    vals[key] = val
-                    # References are either strings or arrays of strings
-                    if prop_type[0] == np.ndarray:
-                        dtp.append((key, val.dtype, val.shape))
-                    else:
-                        dtp.append((key, np.dtype('S'+str(len(val))), ()))
-                # Add a hash column to avoid adding the same
-                # entries more than once
-                dtp.append(('hash', 'S28', ()))
-                # Allow to create empty elements for testing
-                if len(dtp) > 0:
-                    s = hashlib.sha224()
-                    f = h5node._v_file
-                    table = f.create_table(h5node, 'data', np.dtype(dtp))
-                    entry = table.row
-                    for key, val in list(vals.items()):
-                        entry[key] = val
-                        tohash = '{}'.format(val)
-                        s.update(tohash.encode('ascii'))
-                    for key, val in list(avals.items()):
-                        try:
-                            shape = list(val.shape)
-                            shape[0] = 0
-                            at = self.dtmap[val.dtype.type]
-                            vl = f.create_earray(h5node, key,
-                                                 atom=at,
-                                                 shape=tuple(shape))
-                        except Exception as e:
-                            print(val.dtype.type)
-                            raise e
-                        vl.append(val)
-                        tohash = '{}'.format(val)
-                        s.update(tohash.encode('ascii'))
-                    h = s.digest()
-                    entry['hash'] = h
-                    f = self._root._v_file
-                    ea = f.root.hash
-                    if pedantic and h in ea:
-                        msg = "You can't add the same dataset "
-                        msg += "more than once if 'pedantic=True'."
-                        raise ValueError(msg)
-                    ea.append(np.array([h], dtype='S28'))
-                    entry.append()
-                    table.flush()
-
-        @property
-        def tags(self):
-            return self._tags
-
-        def __str__(self):
-            return class_name.strip('_')
-
-        def __setattr__(self, name, value):
-            # Raise an exception if not a property or attribute
-            msg = '{} attributes are read only. Use append method instead.'
-            raise AttributeError(msg.format(type(self).__name__))
-
-        def __getattr__(self, name):
-            table = getattr(self._root, 'data')
-            if name in self._property_keys:
-                if self._property_dict[name][0] == np.ndarray:
-                    dt = False
-                    if self._property_dict[name][1] == datetime.datetime:
-                        dt = True
-                    return RetVal(getattr(self._root, name), datetime=dt)
-                return RetVal(getattr(table.cols, name))
-            elif name in self._reference_keys:
-                if self._reference_dict[name][0] == np.ndarray:
-                    _t = []
-                    for val in table[0][name]:
-                        _t.append((ResourceIdentifier(val.decode('ascii')).
-                                   get_referred_object()))
-                    return _t
-                else:
-                    return (ResourceIdentifier(table[0][name].decode('ascii')).
-                            get_referred_object())
-            else:
-                msg = "{0:s} is not a property or reference of class {1:s}"
-                raise AttributeError(msg.format(name, type(self).__name__))
-
-        def __repr__(self):
-            msg = ''
-            msg += "ID: {:s}\n".format(self._root._v_name)
-            for n1 in list(self._root._v_children.keys()):
-                if n1 == 'data':
-                    continue
-                msg += ("{0:s}: {1:}\n"
-                        .format(n1, getattr(self._root, n1).shape))
-
-            table = self._root.data
-            for n2 in table.cols._v_colnames:
-                if n2 == 'hash':
-                    continue
-                try:
-                    msg += "{0:s}: {1:}\n".format(n2,
-                                                  table[0][n2].decode('ascii'))
-                except AttributeError:
-                    msg += "{0:s}: {1:}\n".format(n2, table[0][n2])
-            msg += ("Created at: {:s}\n"
-                    .format(self._root._v_attrs.creation_time))
-            return msg
-
-        def append(self, databuffer):
-            """
-            A base element can't be extended.
-            """
-            raise AttributeError("A base element can't be extended")
-
-    class ExpandableDataElement(DataElementBase):
-        """
-        A base class with type checking for extendable
-        elements in the datamodel.
-        """
-        def __init__(self, h5node, data_buffer=None, pedantic=False):
-            super(ExpandableDataElement, self).__init__(h5node, data_buffer,
-                                                        pedantic)
-            self.__dict__['modification_time'] = self.creation_time
-            h5node._v_attrs.modification_time = self.modification_time
-
-        def __repr__(self):
-            msg = ''
-            msg += "ID: {:s}\n".format(self._root._v_name)
-            for n1 in list(self._root._v_children.keys()):
-                if n1 == 'data':
-                    continue
-                msg += "{0:s}: {1:}\n".format(n1,
-                                              getattr(self._root, n1).shape)
-
-            table = self._root.data
-            for n2 in table.cols._v_colnames:
-                if n2 == 'hash':
-                    continue
-                msg += "{0:s}: {1:}\n".format(n2, table[0][n2])
-            msg += ("Created at: {:s}\n"
-                    .format(self._root._v_attrs.creation_time))
-            msg += ("Last modified at: {:s}\n"
-                    .format(self._root._v_attrs.creation_time))
-            return msg
-
-        def append(self, databuffer):
-            table = getattr(self._root, 'data')
-            s = hashlib.sha1()
-            entry = table.row
-            for key, val in list(databuffer.__dict__.items()):
-                if val is not None:
-                    try:
-                        prop_type = self._property_dict[key]
-                    except KeyError:
-                        prop_type = self._reference_dict[key]
-
-                    if prop_type[0] == np.ndarray:
-                        vl = getattr(self._root, key)
-                        vl.append(val)
-                    else:
-                        entry[key] = val
-                    tohash = '{}'.format(val)
-                    s.update(tohash.encode('ascii'))
-            h = s.digest()
-            if h in table[:]['hash']:
-                raise ValueError('Entry already exists.')
-            entry['hash'] = h
-            entry.append()
-            table.flush()
-            self.__dict__['modification_time'] = \
-                datetime.datetime.utcnow().isoformat()
-            self._root._v_attrs.modification_time = self.modification_time
-
-    class DataElementBuffer(object):
-        # Every element has to have an ID and a reference to the plugin
-        # root node
-        _properties = []
-        for item in class_attributes:
-            _properties.append((item[0], item[1]))
-        _property_keys = [_i[0] for _i in _properties]
-        _property_dict = {}
-        for key, value in _properties:
-            _property_dict[key] = value
-
-        # Assign references to other elements in the datamodel
-        _references = []
-        for item in class_references:
-            _references.append((item[0], item[1]))
-        _reference_keys = [_i[0] for _i in _references]
-        _reference_dict = {}
-        for key, value in _references:
-            _reference_dict[key] = value
-
-        def __init__(self, **kwargs):
-            # Set all property values to None or the kwarg value.
-            for key, _ in self._properties:
-                value = kwargs.pop(key, None)
-                setattr(self, key, value)
-            for key in self._reference_keys:
-                value = kwargs.pop(key, None)
-                setattr(self, key, value)
-
-            if len(list(kwargs.keys())) > 0:
-                msg = "The following names are not a "
-                msg += "property or reference of class {:s}: "
-                msg += ",".join(list(kwargs.keys()))
-                raise AttributeError(msg.format(type(self).__name__))
-
-        def __str__(self):
-            return class_name.strip('_')
-
-        def __setattr__(self, name, value):
-            try:
-                attrib_type = self._property_dict[name]
-            except KeyError:
-                try:
-                    attrib_type = self._reference_dict[name]
-                except KeyError:
-                    raise AttributeError(
-                        "%s is not a property or reference of class %s" %
-                        (name, type(self).__name__))
-
-            # Try to convert values into the specified datatypes
-            if value is not None:
-                try:
-                    if name in self._reference_keys:
-                        # check type for references
-                        if attrib_type[0] == np.ndarray:
-                            _t = []
-                            for n in value:
-                                if type(n) is not attrib_type[1]:
-                                    msg = "{:s} has to be of type: {}"
-                                    msg = msg.format(name, attrib_type[0])
-                                    raise ValueError(msg)
-                                _t.append(str(getattr(n, '_resource_id')))
-                            value = np.array(_t, dtype=np.bytes_)
-                        else:
-                            if type(value) is not attrib_type[0]:
-                                msg = "{:s} has to be of type: {}"
-                                raise ValueError(msg.format(name,
-                                                            attrib_type[0]))
-                            value = str(getattr(value, '_resource_id'))
-                    else:
-                        if attrib_type[0] == np.ndarray:
-                            # if the array contains datetime we need to convert
-                            # it into strings as pytables can't handle datetime
-                            # objects
-                            if attrib_type[1] == datetime.datetime:
-                                _vals = []
-                                for v in value:
-                                    _vals.append((spectroscopy.util
-                                                  .parse_iso_8601(v)
-                                                  .isoformat()))
-                                value = np.array(_vals)
-                            else:
-                                value = np.array(value).astype(attrib_type[1])
-                        elif self._property_dict[name][0] == datetime.datetime:
-                            value = (spectroscopy.util
-                                     .parse_iso_8601(value)
-                                     .isoformat())
-                        else:
-                            value = attrib_type[0](value)
-                except ValueError:
-                    msg = "'{:s}' can't be converted to: {}"
-                    raise ValueError(msg.format(name, attrib_type))
-
-            self.__dict__[name] = value
-
-
-    if class_type == 'base':
-        base_class = DataElementBase
-    elif class_type == 'extendable':
-        base_class = ExpandableDataElement
-    elif class_type == 'buffer':
-        base_class = DataElementBuffer
-    # Set the class type name.
-    setattr(base_class, "__name__", class_name)
-    return base_class

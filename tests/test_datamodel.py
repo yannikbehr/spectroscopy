@@ -66,16 +66,19 @@ class DatamodelTestCase(unittest.TestCase):
         r = d.new(rb)
         self.assertEqual(r.d_var.shape, (10, 2048))
         self.assertTrue(np.alltrue(r.d_var[0] < 1))
-        self.assertEqual(r.datetime[0], '2017-01-10T15:23:00')
+        self.assertEqual(r.datetime[0], np.datetime64('2017-01-10T15:23:00'))
 
     def test_PreferredFlux(self):
         d = Dataset(tempfile.mktemp(), 'w')
-        pfb = PreferredFluxBuffer(datetime=['2017-01-10T15:23:00',
+        pfb = PreferredFluxBuffer(flux_indices=[[2]],
+                                  datetime=['2017-01-10T15:23:00',
                                             '2017-01-11T15:23:00'])
         pf = d.new(pfb)
         np.testing.assert_array_equal(pf.datetime[:],
-                                      ['2017-01-10T15:23:00',
-                                       '2017-01-11T15:23:00'])
+                                      np.array(['2017-01-10T15:23:00',
+                                                '2017-01-11T15:23:00'],
+                                               dtype='datetime64[ms]'))
+        self.assertEqual(pf.flux_indices.shape, (1,1))
 
     def test_ResourceIdentifiers(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -243,8 +246,9 @@ class DatamodelTestCase(unittest.TestCase):
         self.assertEqual(np.array(r.ind_var[:]).size, 4096)
         self.assertTrue(np.alltrue(np.array(r.d_var[:]) < 2))
         np.testing.assert_array_equal(np.array(r.datetime[:]).flatten(),
-                                      ['2017-01-10T15:23:00',
-                                       '2017-01-10T15:23:01'])
+                                      np.array(['2017-01-10T15:23:00',
+                                                '2017-01-10T15:23:01'],
+                                               dtype='datetime64[ms]'))
         with self.assertRaises(ValueError):
             r.append(rb1, pedantic=True)
         with self.assertRaises(ValueError):

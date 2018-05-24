@@ -184,6 +184,8 @@ def get_wind_speed(gf, lon, lat, elev, date):
     else:
         _d = date
     _ts = calendar.timegm((_d.utctimetuple()))
+    # convert to ms
+    _ts *= 1e3
     _dt = gf.datetime[:].astype(np.datetime64)
     # find nearest point
     _t = np.atleast_2d(_dt).T
@@ -200,7 +202,7 @@ def get_wind_speed(gf, lon, lat, elev, date):
         vx_error = gf.vx_error[:][ndx[0]]
         vy_error = gf.vy_error[:][ndx[0]]
         vz_error = gf.vz_error[:][ndx[0]]
-    except AttributeError:
+    except TypeError:
         vx_error = None
         vy_error = None
         vz_error = None

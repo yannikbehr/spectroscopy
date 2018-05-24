@@ -54,7 +54,7 @@ def write_testfile(d, date, time, fin):
     but taking all the information from the GasFlow element.
     """
     gf = d.elements['GasFlow'][0]
-    mod = gf.methods[0].name[:][0]
+    mod = gf.methods[0].name
     year, month, day = int(date[0:4]), int(date[4:6]), int(date[6:8])
     hour, minute = int(time[0:2]), int(time[2:4])
     lines = []
@@ -87,7 +87,7 @@ def write_testfile(d, date, time, fin):
               astimezone(timezone('UTC')))
         otimes = np.unique(gf.datetime[:])
         otimes.sort()
-        for t in otimes:
+        for t in otimes.astype(np.str_):
             dt = timezone('UTC').localize(parse_iso_8601(t))
             times.append(dt)
             line += '{:<14s}'.format(dt.astimezone(nztz).strftime('%d%H%M'))

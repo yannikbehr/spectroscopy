@@ -138,7 +138,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
             nlines = len(fd.readlines())
         self.assertEqual(e['FluxBuffer'].value.shape, (nlines-1,))
         fb = e['FluxBuffer']
-        self.assertEqual(fb.datetime[-1], '2017-06-14T03:29:38.033000')
+        self.assertEqual(fb.datetime[-1], 
+                         np.datetime64('2017-06-14T03:29:38.033000'))
 
     def test_read_refspec(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -168,7 +169,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
         v = np.sqrt(vx*vx + vy*vy)
         self.assertAlmostEqual(v, 10.88, 2)
         self.assertAlmostEqual(vec2bearing(vx, vy), 255, 6)
-        self.assertEqual(dt, '2017-06-13T17:00:00')
+        self.assertEqual(dt, np.datetime64('2017-06-13T17:00:00'))
 
     @unittest.skip("Skipping")
     def test_plot(self):
@@ -250,20 +251,11 @@ class FlySpecPluginTestCase(unittest.TestCase):
         Read in a whole day's worth of data including the reference spectra,
         the flux results, and the wind data.
         """
-        def mycmp(fn1, fn2):
-            date1 = os.path.basename(fn1).split('.')[0]
-            date2 = os.path.basename(fn2).split('.')[0]
-            year, month, day, hourmin = date1.split('_')
-            d1 = datetime.datetime(int(year), int(month), int(day),
-                                   int(hourmin[0:2]), int(hourmin[2:]))
-            year, month, day, hourmin = date2.split('_')
-            d2 = datetime.datetime(int(year), int(month), int(day),
-                                   int(hourmin[0:2]), int(hourmin[2:]))
-            if d1 < d2:
-                return -1
-            if d1 > d2:
-                return 1
-            return 0
+        def keyfunc(fn):
+            date = os.path.basename(fn).split('.')[0]
+            year, month, day, hourmin = date.split('_')
+            return datetime.datetime(int(year), int(month), int(day),
+                                     int(hourmin[0:2]), int(hourmin[2:]))
 
         # Reference spectra
         fin_high = os.path.join(self.data_dir, 'TOFP04',
@@ -305,7 +297,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
             rdlist.append(r)
 
         files = glob.glob(os.path.join(self.data_dir, 'TOFP04', '2017*.txt'))
-        files.sort(cmp=mycmp)
+        files = sorted(files, key=keyfunc)
         r = None
         c = None
         nlines = 0
@@ -347,9 +339,9 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.assertEqual(c.value[0], 119.93)
         self.assertEqual(c.value[-1], 23.30)
         self.assertEqual(c.rawdata[4].datetime[-1],
-                         '2017-06-14T04:30:00.535000')
+                         np.datetime64('2017-06-14T04:30:00.535'))
         self.assertEqual(c.rawdata[4].datetime[0],
-                         '2017-06-13T20:30:49.512999')
+                         np.datetime64('2017-06-13T20:30:49.512'))
         if False:
             with tempfile.TemporaryFile() as fd:
                 plot(c, savefig=fd)
@@ -402,7 +394,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         self.assertAlmostEqual(f.value[nos], 0.62, 2)
         self.assertEqual(rn.inc_angle[i0], 25.)
         self.assertEqual(rn.inc_angle[i1], 150.)
-        self.assertEqual(f.datetime[nos], '2017-06-13T21:20:17.196000')
+        self.assertEqual(f.datetime[nos],
+                         np.datetime64('2017-06-13T21:20:17.196000'))
 
         pfb = PreferredFluxBuffer(fluxes=[f],
                                   flux_indices=[[nos]],

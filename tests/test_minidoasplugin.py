@@ -71,8 +71,10 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         rb = e['RawDataBuffer']
         self.assertEqual(rb.d_var.shape, (7615, 482))
         self.assertEqual(rb.d_var[0, 0], 78)
-        self.assertEqual(rb.datetime[0], '2016-11-01T09:00:00.070000')
-        self.assertEqual(rb.datetime[-1], '2016-11-01T16:29:54.850000')
+        self.assertEqual(rb.datetime[0],
+                         np.datetime64('2016-11-01T09:00:00.070'))
+        self.assertEqual(rb.datetime[-1],
+                         np.datetime64('2016-11-01T16:29:54.850'))
 
         with self.assertRaises(MiniDoasException):
             e1 = d.read(os.path.join(self.data_dir, 'minidoas',
@@ -82,7 +84,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
                                  'NE_2016_11_01_Spectra.csv'),
                     date='2016-11-01', ftype='minidoas-spectra', timeshift=13)
         cb = e1['ConcentrationBuffer']
-        self.assertEqual(cb.datetime[-1], '2016-11-01T03:28:07.410000')
+        self.assertEqual(cb.datetime[-1],
+                         np.datetime64('2016-11-01T03:28:07.410'))
 
         fn_wd = os.path.join(self.data_dir, 'minidoas', 'wind',
                              '20161101_WD_00.txt')
@@ -94,7 +97,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         gfb = e2['GasFlowBuffer']
         self.assertEqual(int(vec2bearing(gfb.vx[0], gfb.vy[0])), 240)
         self.assertAlmostEqual(np.sqrt(gfb.vx[0]**2 + gfb.vy[0]**2), 3.2, 1)
-        self.assertEqual(gfb.datetime[0], "2016-10-31T19:10:00")
+        self.assertEqual(gfb.datetime[0],
+                         np.datetime64("2016-10-31T19:10:00.000"))
         e3 = d.read(os.path.join(self.data_dir, 'minidoas',
                                  'XX_2016_11_01_Combined.csv'),
                     date='2016-11-01', ftype='minidoas-scan', station='NE',
@@ -102,7 +106,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
         fb = e3['FluxBuffer']
         np.testing.assert_array_almost_equal(fb.value[:],
                                              np.array([3.8, 1.2]), 1)
-        self.assertEqual(fb.datetime[0], '2016-10-31T23:15:04')
+        self.assertEqual(fb.datetime[0],
+                         np.datetime64('2016-10-31T23:15:04'))
 
     def read_single_station(self, d, station_info):
         """
@@ -210,8 +215,6 @@ class MiniDoasPluginTestCase(unittest.TestCase):
                 m3 = _m
         if m3 is None:
             mb3 = e4['MethodBuffer']
-            import ipdb
-            ipdb.set_trace()
             new_description = mb3.description[0]
             new_description += '; plume geometry inferred from triangulation'
             mb3.description = new_description
