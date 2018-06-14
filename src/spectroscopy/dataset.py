@@ -1,9 +1,6 @@
 """
 Provide container class for gas chemistry data.
 """
-from future.utils import native
-from builtins import str
-from builtins import object
 import hashlib
 import warnings
 
@@ -110,7 +107,7 @@ class Dataset(object):
                 # The group does not exist. Create it.
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
-                    group2 = self._f.create_group(group, native(nodename),
+                    group2 = self._f.create_group(group, nodename,
                                                   title=title,
                                                   filters=filters)
             group = group2
@@ -175,7 +172,7 @@ class Dataset(object):
             pass
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            group = self._f.create_group('/'+group_name, native(str(rid)))
+            group = self._f.create_group('/'+group_name, str(rid))
         e = _C(group, data_buffer, pedantic=pedantic)
         self.elements[group_name].append(e)
         return e

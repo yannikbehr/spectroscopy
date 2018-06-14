@@ -1,10 +1,6 @@
 """
 Plugin to read MiniDOAS data.
 """
-from __future__ import division
-from builtins import zip
-from builtins import str
-from past.utils import old_div
 import codecs
 import datetime
 import io
@@ -74,8 +70,8 @@ class MiniDoasRaw(DatasetPluginBase):
         fh.close()
         # Construct datetimes
         date = data['date'].astype('datetime64')
-        hours = (old_div(data['time'],3600.)).astype(int)
-        minutes = (old_div((data['time'] - hours*3600.),60.)).astype(int)
+        hours = (data['time']/3600.).astype(int)
+        minutes = ((data['time'] - hours*3600.)/60.).astype(int)
         fseconds = data['time'] - hours*3600. - minutes*60.
         iseconds = (fseconds).astype(int)
         mseconds = np.round((fseconds - iseconds), 3)*1e3
@@ -154,9 +150,9 @@ class MiniDoasScan(DatasetPluginBase):
         for _ws, h, w, e, n, t, dt in zip(ws, pheight, pwidth, peasting,
                                           pnorthing, ptrack, datetime):
             lon, lat = pyproj.transform(self.srcp, self.destp, e, n)
-            position.append([lon, lat, h-old_div(w,2.)])
+            position.append([lon, lat, h-w/2.])
             position.append([lon, lat, h])
-            position.append([lon, lat, h+old_div(w,2.)])
+            position.append([lon, lat, h+w/2.])
             time.extend([dt]*3)
             x, y = bearing2vec(t, _ws)
             vx.extend([x]*3)
@@ -178,6 +174,7 @@ class MiniDoasScan(DatasetPluginBase):
             raise MiniDoasException("'date' unspecified.")
 
         station = kargs.get('station', None)
+
         def dateconverter(x):
             return date+'T'+x.decode('ascii')
 
@@ -207,8 +204,8 @@ class MiniDoasScan(DatasetPluginBase):
             idx = np.arange(data.shape[0])
         dtm = data['time'][idx].astype('datetime64[s]')
         dtm -= np.timedelta64(int(timeshift), 'h')
-        fb = FluxBuffer(value=old_div(data['Emission'][idx],86.4),
-                        value_error=old_div(data['EmissionSE'][idx],86.4),
+        fb = FluxBuffer(value=data['Emission'][idx]/86.4,
+                        value_error=data['EmissionSE'][idx]/86.4,
                         datetime=dtm.astype(str))
         mb, gfb = self._plumegeometry2gasflow(data['ws'][idx],
                                               data['PlumeHeight'][idx],

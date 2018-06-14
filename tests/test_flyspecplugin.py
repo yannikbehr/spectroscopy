@@ -1,8 +1,3 @@
-from __future__ import division
-from __future__ import print_function
-from builtins import zip
-from builtins import range
-from past.utils import old_div
 import datetime
 import glob
 import inspect
@@ -53,8 +48,8 @@ class FlySpecPluginTestCase(unittest.TestCase):
         # any other fancy considerations. It also uses the alpha channel of
         # the images. Scaled by 255.
         rms = np.sqrt(
-            old_div(np.sum((255.0 * (expected_image - actual_image)) ** 2),
-            float(expected_image.size)))
+            np.sum((255.0 * (expected_image - actual_image)) ** 2) /
+            float(expected_image.size))
         return rms
 
     def test_add(self):
@@ -138,7 +133,7 @@ class FlySpecPluginTestCase(unittest.TestCase):
             nlines = len(fd.readlines())
         self.assertEqual(e['FluxBuffer'].value.shape, (nlines-1,))
         fb = e['FluxBuffer']
-        self.assertEqual(fb.datetime[-1], 
+        self.assertEqual(fb.datetime[-1],
                          np.datetime64('2017-06-14T03:29:38.033000'))
 
     def test_read_refspec(self):

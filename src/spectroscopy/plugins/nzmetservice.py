@@ -1,9 +1,6 @@
 """
 Plugin to read and write FlySpec data.
 """
-from builtins import zip
-from builtins import map
-from builtins import range
 from collections import defaultdict
 import datetime
 import os
