@@ -69,26 +69,26 @@ class Dataset(object):
             raise ValueError("You can't add a dataset to itself.")
         update_refs = []
         rid_dict = {}
-        for _e in other.elements.keys():
+        for _e in list(other.elements.keys()):
             for _k in other.elements[_e]:
-                ne = self._copy_children(_k)
+                ne = self._copy_children(_k, copyuserattrs=True)
                 self.elements[_e].append(ne)
                 update_refs.append(ne)
                 rid_dict[str(_k._resource_id)] = str(ne._resource_id)
 
         for ne in update_refs:
-            for _k in ne._reference_keys:
-                table = getattr(ne._root, 'data', None)
-                if table is not None:
-                    ref = getattr(ne._root.data.cols, _k, None)
-                    if ref is not None:
-                        if type(ref[0]) == np.ndarray:
-                            newentry = []
-                            for iref in ref[0]:
-                                newentry.append(rid_dict[iref])
-                            ref[0] = np.array(newentry)
-                        else:
-                            ref[0] = rid_dict[ref[0]]
+            for _k, prop_type in ne._references.items():
+                ref = getattr(ne._root._v_attrs, _k, None)
+                if ref is not None:
+                    if prop_type[0] == np.ndarray:
+                        newentry = []
+                        for iref in ref:
+                            newentry.append(rid_dict[iref.decode('ascii')]
+                                            .encode('ascii'))
+                        ne._root._v_attrs[_k] = np.array(newentry)
+                    else:
+                        ne._root._v_attrs[_k] = (rid_dict[ref.decode('ascii')]
+                                                 .encode('ascii'))
         return self
 
     def _newdst_group(self, dstgroup, title='', filters=None):
@@ -152,12 +152,12 @@ class Dataset(object):
             s = hashlib.sha224()
             # If data buffer is empty raise an exception
             empty = True
-            for k, v in data_buffer.__dict__.iteritems():
+            for k, v in list(data_buffer.__dict__.items()):
                 if k == 'tags':
                     continue
                 if v is not None:
-                    if k in data_buffer._property_dict.keys():
-                        s.update('{}'.format(v))
+                    if k in data_buffer._properties:
+                        s.update('{}'.format(v).encode('utf-8'))
                     empty = False
             if empty:
                 msg = "You can't add empty buffers if 'pedantic=True'."
@@ -195,7 +195,7 @@ class Dataset(object):
             if group._v_name is '/' or group._v_name+'Buffer' \
                not in dnew.base_elements:
                 continue
-            for sgroup in group._v_groups.keys():
+            for sgroup in list(group._v_groups.keys()):
                 _C = dnew.base_elements[group._v_name+'Buffer']
                 e = _C(group._v_groups[sgroup])
                 dnew.elements[group._v_name].append(e)
@@ -235,7 +235,8 @@ class Dataset(object):
             try:
                 ea = self._f.root.tags._v_children[tag]
                 for rid in ea[:]:
-                    e = ResourceIdentifier(rid).get_referred_object()
+                    e = (ResourceIdentifier(rid.astype(np.str_))
+                         .get_referred_object())
                     e.tags.remove(tag)
             except (KeyError, NoSuchNodeError):
                 msg = "Can't remove tag {} as it doesn't exist.".format(tag)

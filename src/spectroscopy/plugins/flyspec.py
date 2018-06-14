@@ -1,6 +1,7 @@
 """
 Plugin to read FlySpec data.
 """
+from functools import partial
 import datetime
 import os
 import struct
@@ -52,18 +53,28 @@ class FlySpecPlugin(DatasetPluginBase):
             """
             Convert degrees and decimal minutes to decimal degrees.
             """
-            idx = x.find('.')
-            minutes = float(x[idx - 2:]) / 60.
-            deg = float(x[:idx - 2])
+            xx = x.decode('ascii')
+            idx = xx.find('.')
+            minutes = float(xx[idx - 2:]) / 60.
+            deg = float(xx[:idx - 2])
             return deg + minutes
 
-        data = np.loadtxt(filename, usecols=range(0, 21),
+        def hem2no(x, hem):
+            """
+            Convert hemisphere to sign.
+            """
+            xx = x.decode('ascii')
+            if xx.lower() == hem:
+                return -1.0
+            return 1.0
+
+        data = np.loadtxt(filename, usecols=list(range(0, 21)),
                           converters={
                               8: todd,
-                              9: lambda x: -1.0 if x.lower() == 's' else 1.0,
+                              9: partial(hem2no, hem='s'),
                               10: todd,
-                              11: lambda x: -1.0 if x.lower() == 'w' else 1.0})
-        data = np.atleast_2d(data)
+                              11: partial(hem2no, hem='w')},
+                          ndmin=2)
         specfile = kargs.get('spectra', None)
         if specfile is not None:
             wavelengths = kargs.get('wavelengths', None)
@@ -169,7 +180,7 @@ class FlySpecRefPlugin(DatasetPluginBase):
         i = 0
         counts = []
         while i < len(raw_data):
-            counts.append(struct.unpack("2048f",raw_data[i:i+(2048 * 4)]))
+            counts.append(struct.unpack("2048f", raw_data[i:i+(2048 * 4)]))
             i += (2048 * 4)
         return counts
 
@@ -181,14 +192,17 @@ class FlySpecRefPlugin(DatasetPluginBase):
             wavelengths = kargs['wavelengths']
             mtype = kargs['type']
         except KeyError:
-            raise FlySpecPluginException('Please provide wavelengths and measurement type.')
-        
+            msg = 'Please provide wavelengths and measurement type.'
+            raise FlySpecPluginException(msg)
+
         spectra = np.array(self._read_spectra(filename))
         if spectra.shape[1] != wavelengths.size:
-            raise FlySpecPluginException("Spectra and wavelengths don't have the same size.")
+            msg = "Spectra and wavelengths don't have the same size."
+            raise FlySpecPluginException(msg)
         rb = RawDataBuffer(ind_var=wavelengths, d_var=spectra)
-        rdtb = RawDataTypeBuffer(d_var_unit='ppm m', ind_var_unit='nm', name=mtype)
-        return {str(rb):rb, str(rdtb):rdtb}
+        rdtb = RawDataTypeBuffer(d_var_unit='ppm m', ind_var_unit='nm',
+                                 name=mtype)
+        return {str(rb): rb, str(rdtb): rdtb}
 
     def close(self, filename):
         raise Exception('Close is undefined for the FlySpecRef backend')
@@ -199,20 +213,21 @@ class FlySpecRefPlugin(DatasetPluginBase):
 
 
 class FlySpecWindPlugin(DatasetPluginBase):
-    
+
     def read(self, dataset, filename, timeshift=0, **kargs):
         """
         Read the wind data for the Flyspecs on Tongariro.
         """
-        data = np.loadtxt(filename, dtype={'names':('date', 'wd', 'ws'), 
-                                           'formats':('S19', np.float, np.float)})
+        data = np.loadtxt(filename, dtype={'names': ('date', 'wd', 'ws'),
+                                           'formats': ('S19', np.float,
+                                                       np.float)})
 
         npts = data.shape[0]
-        position = np.tile(np.array([175.673, -39.108, 0.0]), (npts, 1)) 
+        position = np.tile(np.array([175.673, -39.108, 0.0]), (npts, 1))
         vx = np.zeros(npts)
         vy = np.zeros(npts)
         vz = np.zeros(npts)
-        time = np.empty(npts,dtype='S19')
+        time = np.empty(npts, dtype='S19')
         for i in range(npts):
             ws = data['ws'][i]
             wd = data['wd'][i]
@@ -225,7 +240,7 @@ class FlySpecWindPlugin(DatasetPluginBase):
             vx[i] = _vx
             vy[i] = _vy
             vz[i] = np.nan
-            time[i] = date 
+            time[i] = date
 
         dt = time.astype('datetime64[us]')
         ts = np.timedelta64(int(timeshift), 'h')
@@ -236,7 +251,7 @@ class FlySpecWindPlugin(DatasetPluginBase):
         mb = MethodBuffer(name='some model')
         m = dataset.new(mb)
         gfb = GasFlowBuffer(methods=[m], vx=vx, vy=vy, vz=vz,
-                            position=position, datetime=dt.astype(str), 
+                            position=position, datetime=dt.astype(str),
                             user_notes=description, unit='m/s')
         gf = dataset.new(gfb)
         return gf
@@ -244,6 +259,7 @@ class FlySpecWindPlugin(DatasetPluginBase):
     @staticmethod
     def get_format():
         return 'flyspecwind'
+
 
 if __name__ == '__main__':
     import doctest

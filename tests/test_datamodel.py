@@ -1,14 +1,20 @@
+import datetime
 import tempfile
 import unittest
 import warnings
 
 import numpy as np
+import tables
 
 from spectroscopy.datamodel import (RawDataBuffer, TargetBuffer,
                                     InstrumentBuffer, RawDataTypeBuffer,
                                     GasFlowBuffer, PreferredFluxBuffer,
-                                    MethodBuffer)
+                                    MethodBuffer, _Instrument, _Target,
+                                    _DataQualityType, _RawDataType)
 from spectroscopy.dataset import Dataset
+from spectroscopy.class_factory import (_buffer_class_factory,
+                                        _base_class_factory,
+                                        ResourceIdentifier)
 
 
 class DatamodelTestCase(unittest.TestCase):
@@ -25,12 +31,12 @@ class DatamodelTestCase(unittest.TestCase):
         t = d.new(tb)
         np.testing.assert_almost_equal(np.squeeze(t.position[:]),
                                        np.array([177.2, -37.5, 50]), 1)
-        self.assertEqual(t.target_id[0], 'WI001')
+        self.assertEqual(t.target_id, 'WI001')
         with self.assertRaises(AttributeError):
             t.position = (177.2, -37.5, 50)
         with self.assertRaises(AttributeError):
             t.target_id = 'WI002'
-        self.assertEqual(t.target_id[0], 'WI001')
+        self.assertEqual(t.target_id, 'WI001')
 
     def test_typechecking(self):
         """
@@ -48,7 +54,7 @@ class DatamodelTestCase(unittest.TestCase):
         with self.assertRaises(ValueError):
             RawDataBuffer(instrument=t, d_var=np.zeros((1, 2048)),
                           ind_var=np.arange(2048),
-                          datetime=['2017-01-10T15:23:00'])
+                          datetime='2017-01-10T15:23:00')
 
     def test_RawData(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -60,16 +66,19 @@ class DatamodelTestCase(unittest.TestCase):
         r = d.new(rb)
         self.assertEqual(r.d_var.shape, (10, 2048))
         self.assertTrue(np.alltrue(r.d_var[0] < 1))
-        self.assertEqual(r.datetime[0], '2017-01-10T15:23:00')
+        self.assertEqual(r.datetime[0], np.datetime64('2017-01-10T15:23:00'))
 
     def test_PreferredFlux(self):
         d = Dataset(tempfile.mktemp(), 'w')
-        pfb = PreferredFluxBuffer(datetime=['2017-01-10T15:23:00',
+        pfb = PreferredFluxBuffer(flux_indices=[[2]],
+                                  datetime=['2017-01-10T15:23:00',
                                             '2017-01-11T15:23:00'])
         pf = d.new(pfb)
         np.testing.assert_array_equal(pf.datetime[:],
-                                      ['2017-01-10T15:23:00',
-                                       '2017-01-11T15:23:00'])
+                                      np.array(['2017-01-10T15:23:00',
+                                                '2017-01-11T15:23:00'],
+                                               dtype='datetime64[ms]'))
+        self.assertEqual(pf.flux_indices.shape, (1,1))
 
     def test_ResourceIdentifiers(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -82,7 +91,7 @@ class DatamodelTestCase(unittest.TestCase):
                            ind_var=np.arange(2048),
                            datetime=['2017-01-10T15:23:00'])
         r = d.new(rb)
-        self.assertEqual(r.target.target_id[:], 'WI001')
+        self.assertEqual(r.target.target_id, 'WI001')
 
     def test_repr(self):
         d = Dataset(tempfile.mktemp(), 'w')
@@ -96,7 +105,11 @@ class DatamodelTestCase(unittest.TestCase):
                        '2017', 'target_id:', 'WI001', 'name:', 'White',
                        'Island', 'main', 'vent', 'Created']
         # remove ID and creation time from test as they always change
-        self.assertEqual(str(repr(t)).split()[2:-2], test_string)
+        repr_string = str(repr(t)).split()[2:-2]
+        for e in repr_string: 
+            self.assertTrue(e in test_string)
+        for s in test_string:
+            self.assertTrue(s in repr_string)
 
     def test_sum(self):
         d1 = Dataset(tempfile.mktemp(), 'w')
@@ -130,11 +143,11 @@ class DatamodelTestCase(unittest.TestCase):
         rc4 = d3.elements['RawData'][1]
         rc1 = d1.elements['RawData'][0]
         # Check that the references are not the same anymore...
-        self.assertNotEqual(getattr(rc3._root.data.cols, 'target')[0],
-                            getattr(rc1._root.data.cols, 'target')[0])
+        self.assertNotEqual(getattr(rc3._root._v_attrs, 'target'),
+                            getattr(rc1._root._v_attrs, 'target'))
         # ...but that the copied elements contain the same information
-        self.assertEqual(rc3.target.target_id[:], rc1.target.target_id[:])
-        self.assertEqual(rc4.target.target_id[:], rc2.target.target_id[:])
+        self.assertEqual(rc3.target.target_id, rc1.target.target_id)
+        self.assertEqual(rc4.target.target_id, rc2.target.target_id)
 
         # Now check that this is also working for arrays of references
         mb1 = MethodBuffer(name='Method1')
@@ -146,10 +159,10 @@ class DatamodelTestCase(unittest.TestCase):
         gf = d4.new(gfb)
         d3 += d4
         gf2 = d3.elements['GasFlow'][0]
-        self.assertNotEqual(getattr(gf2._root.data.cols, 'methods')[0][0],
-                            getattr(gf._root.data.cols, 'methods')[0][0])
-        self.assertEqual(gf2.methods[0].name[:], gf.methods[0].name[:])
-        self.assertEqual(gf2.methods[1].name[:], gf.methods[1].name[:])
+        self.assertNotEqual(getattr(gf2._root._v_attrs, 'methods')[0],
+                            getattr(gf._root._v_attrs, 'methods')[0])
+        self.assertEqual(gf2.methods[0].name, gf.methods[0].name)
+        self.assertEqual(gf2.methods[1].name, gf.methods[1].name)
         # ToDo: not sure what the _rids feature was there for
         # tmp = {}
         # tmp.update(d1._rids)
@@ -233,10 +246,13 @@ class DatamodelTestCase(unittest.TestCase):
         self.assertEqual(np.array(r.ind_var[:]).size, 4096)
         self.assertTrue(np.alltrue(np.array(r.d_var[:]) < 2))
         np.testing.assert_array_equal(np.array(r.datetime[:]).flatten(),
-                                      ['2017-01-10T15:23:00',
-                                       '2017-01-10T15:23:01'])
+                                      np.array(['2017-01-10T15:23:00',
+                                                '2017-01-10T15:23:01'],
+                                               dtype='datetime64[ms]'))
         with self.assertRaises(ValueError):
-            r.append(rb1)
+            r.append(rb1, pedantic=True)
+        with self.assertRaises(ValueError):
+            r.append(rb, pedantic=True)
         with self.assertRaises(AttributeError):
             t.append(tb)
         d.register_tags(['WI002'])
@@ -280,7 +296,7 @@ class DatamodelTestCase(unittest.TestCase):
 
         d1 = Dataset.open(fn)
         r1 = d1.elements['RawData'][0]
-        self.assertEqual(r1.target.name[:][0], 'White Island main vent')
+        self.assertEqual(r1.target.name, 'White Island main vent')
         self.assertEqual(list(r1.instrument.tags)[0], 'MD01')
 
     def test_tagging(self):
@@ -358,7 +374,6 @@ class DatamodelTestCase(unittest.TestCase):
         r = d.new(rb)
         rb1 = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
                             datetime=['2017-01-10T15:23:01'])
-        self.assertEqual(r.creation_time, r.modification_time)
         ct = r.creation_time
         r.append(rb1)
         self.assertGreater(r.modification_time, r.creation_time)
@@ -393,6 +408,147 @@ class DatamodelTestCase(unittest.TestCase):
 
         e = d.select("type.acquisition == 'stationary'", etype='RawData')
         self.assertEqual(e['RawData'][0], r)
+
+    def test_buffer_class_factory(self):
+        cls_properties = [('tags', (set,)),
+                          ('inc_angle', (np.ndarray, np.float_)),
+                          ('inc_angle_error', (np.ndarray, np.float_)),
+                          ('bearing', (np.ndarray, np.float_)),
+                          ('bearing_error', (np.ndarray, np.float_)),
+                          ('position', (np.ndarray, np.float_)),
+                          ('position_error', (np.ndarray, np.float_)),
+                          ('path_length', (np.ndarray, np.float_)),
+                          ('path_length_error', (np.ndarray, np.float_)),
+                          ('d_var', (np.ndarray, np.float_)),
+                          ('ind_var', (np.ndarray, np.float_)),
+                          ('datetime', (np.ndarray, datetime.datetime)),
+                          ('data_quality', (np.ndarray, np.float_)),
+                          ('integration_time', (np.ndarray, np.float_)),
+                          ('no_averages', (np.float_,)),
+                          ('temperature', (np.float_,)),
+                          ('user_notes', (np.str_,))]
+        cls_references = [('instrument', (_Instrument,)),
+                          ('target', (_Target,)),
+                          ('type', (_RawDataType,)),
+                          ('data_quality_type', (np.ndarray,
+                                                 _DataQualityType))]
+
+        RawDataBuffer = _buffer_class_factory('RawDataBuffer',
+                                              class_properties=cls_properties,
+                                              class_references=cls_references)
+        rd = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                           datetime=['2017-01-10T15:23:00'])
+        self.assertTrue(isinstance(rd.datetime[0], np.datetime64))
+        with self.assertRaises(AttributeError):
+            rd.something = 'something'
+        rd1 = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048))
+        self.assertEqual(rd1.datetime, None)
+        rd1.datetime = ['2017-01-10T15:23:00']
+        self.assertTrue(isinstance(rd1.datetime[0], np.datetime64))
+
+    def test_base_class_factory(self):
+        cls_props_target = [('tags', (set,)),
+                            ('target_id', (np.str_,)),
+                            ('name', (np.str_,)),
+                            ('position', (np.ndarray, np.float_)),
+                            ('position_error', (np.ndarray, np.float_)),
+                            ('description', (np.str_,))]
+
+        _Target = _base_class_factory('_Target', class_type='base',
+                                      class_properties=cls_props_target)
+        cls_props_dqt = [('tags', (set,)), ('name', (np.str_,)),
+                         ('reference', (np.str_,))]
+
+        _DataQualityType = _base_class_factory('_DataQualityType', 'base',
+                                               class_properties=cls_props_dqt)
+
+        cls_props_rawdt = [('tags', (set,)),
+                           ('inc_angle', (np.ndarray, np.float_)),
+                           ('inc_angle_error', (np.ndarray, np.float_)),
+                           ('bearing', (np.ndarray, np.float_)),
+                           ('bearing_error', (np.ndarray, np.float_)),
+                           ('position', (np.ndarray, np.float_)),
+                           ('position_error', (np.ndarray, np.float_)),
+                           ('path_length', (np.ndarray, np.float_)),
+                           ('path_length_error', (np.ndarray, np.float_)),
+                           ('d_var', (np.ndarray, np.float_)),
+                           ('ind_var', (np.ndarray, np.float_)),
+                           ('datetime', (np.ndarray, datetime.datetime)),
+                           ('data_quality', (np.ndarray, np.float_)),
+                           ('integration_time', (np.ndarray, np.float_)),
+                           ('no_averages', (np.float_,)),
+                           ('temperature', (np.float_,)),
+                           ('user_notes', (np.str_,))]
+        cls_refr_rawdt = [('instrument', (_Instrument,)),
+                          ('target', (_Target,)),
+                          ('type', (_RawDataType,)),
+                          ('data_quality_type', (np.ndarray,
+                                                 _DataQualityType))]
+
+        filename = tempfile.mktemp()
+        h5f = tables.open_file(filename, 'w')
+        h5f.create_earray('/', 'hash', tables.StringAtom(itemsize=28), (0,))
+
+        TargetBuffer = _buffer_class_factory('TargetBuffer',
+                                             class_properties=cls_props_target)
+        DataQualityTypeBuffer = \
+                _buffer_class_factory('DataQualityTypeBuffer',
+                                      class_properties=cls_props_dqt)
+
+        dtb1 = DataQualityTypeBuffer(name='q-measure 1')
+        dtb2 = DataQualityTypeBuffer(name='q-measure 2')
+
+        tb = TargetBuffer(name='White Island', position=(177.2, -37.5, 50))
+
+        group_name = _Target.__name__.strip('_')
+        h5f.create_group('/', group_name)
+        rid = ResourceIdentifier()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            group = h5f.create_group('/'+group_name, str(rid))
+        t = _Target(group, tb)
+
+        rid = ResourceIdentifier()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            group = h5f.create_group('/'+group_name, str(rid))
+        dt1 = _DataQualityType(group, dtb1)
+
+        rid = ResourceIdentifier()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            group = h5f.create_group('/'+group_name, str(rid))
+        dt2 = _DataQualityType(group, dtb2)
+
+        _RawData = _base_class_factory('_RawData', class_type='base',
+                                       class_properties=cls_props_rawdt,
+                                       class_references=cls_refr_rawdt)
+
+        RawDataBuffer = _buffer_class_factory('RawDataBuffer',
+                                              class_properties=cls_props_rawdt,
+                                              class_references=cls_refr_rawdt)
+        rdb = RawDataBuffer(d_var=np.zeros((1, 2048)), ind_var=np.arange(2048),
+                            datetime=['2017-01-10T15:23:00'], no_averages=23,
+                            user_notes='something', target=t,
+                            data_quality_type=[dt1, dt2])
+        group_name = _RawData.__name__.strip('_')
+        h5f.create_group('/', group_name)
+        rid = ResourceIdentifier()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            group = h5f.create_group('/'+group_name, str(rid))
+        rd = _RawData(group, rdb)
+        np.testing.assert_array_equal(rd.d_var[:], np.zeros((1, 2048)))
+        with self.assertRaises(AttributeError):
+            rd.something = 'something'
+        with self.assertRaises(AttributeError):
+            rd.d_var = np.ones((1, 2048))
+        self.assertEqual(rd.user_notes, 'something')
+        self.assertEqual(rd.no_averages, 23)
+        np.testing.assert_array_equal(rd.target.position[:],
+                                      np.array([177.2, -37.5, 50.]))
+        self.assertEqual(rd.target.name, 'White Island')
+        self.assertEqual(rd.data_quality_type[1].name, 'q-measure 2')
 
 
 def suite():

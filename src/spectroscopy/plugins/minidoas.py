@@ -24,18 +24,18 @@ def find_bad_lines(filename, **loadtxt_kargs):
     return a clean buffer.
     """
     master = io.StringIO()
-    fh = open(filename)
-    lines = fh.readlines()
-    for _l in lines[1:]:
-        fs = io.StringIO()
-        fs.write(unicode(_l))
-        fs.seek(0)
-        try:
-            np.loadtxt(fs, **loadtxt_kargs)
-        except ValueError:
-            pass
-        else:
-            master.write(unicode(_l))
+    with open(filename) as fh:
+        lines = fh.readlines()
+        for _l in lines[1:]:
+            fs = io.StringIO()
+            fs.write(str(_l))
+            fs.seek(0)
+            try:
+                np.loadtxt(fs, **loadtxt_kargs)
+            except ValueError:
+                pass
+            else:
+                master.write(str(_l))
     master.seek(0)
     return master
 
@@ -62,10 +62,12 @@ class MiniDoasRaw(DatasetPluginBase):
                        ('specin', np.float), ('counts', np.int, (482,))])
 
         def date_converter(x):
-            return '%s-%s-%s' % (x[0:4], x[4:6], x[6:8])
+            y = x.decode('ascii')
+            return '%s-%s-%s' % (y[0:4], y[4:6], y[6:8])
 
         data = np.loadtxt(fh, converters={1: date_converter},
                           dtype=dt, delimiter=',', ndmin=1)
+        fh.close()
         # Construct datetimes
         date = data['date'].astype('datetime64')
         hours = (data['time']/3600.).astype(int)
@@ -113,7 +115,7 @@ class MiniDoasSpectra(DatasetPluginBase):
                        ('fitshift', np.float), ('fitshift_err', np.float),
                        ('fitsqueeze', np.float), ('fitsqueezeerr', np.float)])
         data = np.loadtxt(filename, delimiter=',', skiprows=1,
-                          converters={0: lambda x: date+'T'+x},
+                          converters={0: lambda x: date+'T'+x.decode('ascii')},
                           dtype=dt)
         dtm = data['datetime'].astype('datetime64[ms]')
         dtm -= np.timedelta64(int(timeshift), 'h')
@@ -173,24 +175,27 @@ class MiniDoasScan(DatasetPluginBase):
 
         station = kargs.get('station', None)
 
-        dt = np.dtype([('time', 'S19'), ('ws', np.float), ('wd', np.float),
+        def dateconverter(x):
+            return date+'T'+x.decode('ascii')
+
+        dt = np.dtype([('time', 'U19'), ('ws', np.float), ('wd', np.float),
                        ('R2', np.float), ('SO2Start', np.float),
                        ('SO2Max', np.float), ('SO2End', np.float),
                        ('PlumeRange', np.float), ('PlumeWidth', np.float),
                        ('PlumeHeight', np.float), ('Easting', np.float),
                        ('Northing', np.float), ('Track', np.float),
-                       ('Emission', np.float), ('Station', 'S2'),
+                       ('Emission', np.float), ('Station', 'U2'),
                        ('EmissionSE', np.float)])
         try:
             data = np.loadtxt(filename, delimiter=',', skiprows=1, dtype=dt,
-                              converters={0: lambda x: date+'T'+x},
+                              converters={0: dateconverter},
                               ndmin=1)
         except ValueError:
             buf = find_bad_lines(filename, delimiter=',', dtype=dt,
-                                 converters={0: lambda x: date+'T'+x},
+                                 converters={0: dateconverter},
                                  ndmin=1)
             data = np.loadtxt(buf, delimiter=',', dtype=dt,
-                              converters={0: lambda x: date+'T'+x},
+                              converters={0: dateconverter},
                               ndmin=1)
 
         if station is not None:
@@ -229,7 +234,8 @@ class MiniDoasWind(DatasetPluginBase):
             raise MiniDoasException(msg)
 
         def dateconverter(x):
-            return (datetime.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
+            return (datetime.datetime.strptime(x.decode('ascii'),
+                                               '%d/%m/%Y %H:%M:%S')
                     .strftime('%Y-%m-%dT%H:%M:%S'))
 
         try:

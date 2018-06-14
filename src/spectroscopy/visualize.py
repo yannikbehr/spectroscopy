@@ -1,7 +1,6 @@
 """
 Overview plots for different elements in a dataset.
 """
-
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
@@ -74,11 +73,11 @@ def plot_concentration(c, savefig=None, angle_bin=1.0, **kargs):
     fig = plt.figure()
     if log:
         z = np.where(m > 0.0, m, 0.1)
-        plt.contourf(range(nretrieval), angle_bins[1:], z.T, ncontours,
+        plt.contourf(list(range(nretrieval)), angle_bins[1:], z.T, ncontours,
                      norm=LogNorm(z.min(), z.max()), cmap=cmap)
     else:
         z = np.ma.masked_invalid(m)
-        plt.contourf(range(nretrieval), angle_bins[1:], m.T, ncontours,
+        plt.contourf(list(range(nretrieval)), angle_bins[1:], m.T, ncontours,
                      norm=Normalize(z.min(), z.max()), cmap=cmap)
     new_labels = []
     new_ticks = []

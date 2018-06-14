@@ -35,7 +35,7 @@ class NZMetservicePluginTestCase(unittest.TestCase):
         self.assertAlmostEqual(v / 0.514444, 17, 6)
         self.assertAlmostEqual(70., vec2bearing(vx, vy), 6)
         m = gf.methods[0]
-        self.assertEqual(m.name[:][0], 'gfs')
+        self.assertEqual(m.name, 'gfs')
         d.read(os.path.join(self.data_dir,
                             'gns_wind_model_data_ecmwf_20160921_0630.txt'),
                ftype='NZMETSERVICE', preferred_model='ecmwf')
@@ -51,8 +51,8 @@ class NZMetservicePluginTestCase(unittest.TestCase):
         v = math.sqrt(vx * vx + vy * vy)
         self.assertAlmostEqual(v / 0.514444, 19, 6)
         self.assertAlmostEqual(65., vec2bearing(vx, vy), 6)
-        self.assertEqual(gf1.methods[0].name[:][0], 'ecmwf')
-        self.assertEqual(gf1.unit[:][0], 'm/s')
+        self.assertEqual(gf1.methods[0].name, 'ecmwf')
+        self.assertEqual(gf1.unit, 'm/s')
 
     def test_empty_model(self):
         d = Dataset(tempfile.mktemp(), 'w')
