@@ -141,7 +141,8 @@ class MiniDoasPluginTestCase(unittest.TestCase):
 
         # Read the concentration
         e1 = d.read(station_info['files']['spectra'],
-                    date='2016-11-01', ftype='minidoas-spectra', timeshift=13)
+                    date='2016-11-01', ftype='minidoas-spectra', timeshift=13,
+                    model=True)
         cb = e1['ConcentrationBuffer']
         idxs = np.zeros(cb.value.shape)
         for i in range(cb.value.shape[0]):
